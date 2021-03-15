@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 OS_NAME="$(uname | awk '{print tolower($0)}')"
-OS_FULL="$(uname -a)"
+OS_ARCH="$(uname -m)"
 
 if [ "${OS_NAME}" == "darwin" ]; then
-    INSTALLER="brew"
+  INSTALLER="brew"
 fi
 
 ################################################################################
@@ -38,7 +38,7 @@ _prepare() {
   echo "${OS_NAME} [${INSTALLER}]"
 
   if [ "${INSTALLER}" == "" ]; then
-      _error "Not supported OS."
+    _error "Not supported OS."
   fi
 
   mkdir -p ~/.aws
@@ -58,14 +58,39 @@ EOF
 
   # brew for mac
   if [ "${INSTALLER}" == "brew" ]; then
-      command -v brew > /dev/null || ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+    command -v brew > /dev/null || HAS_BREW=false
+
+    if [ ! -z ${HAS_BREW} ]; then
+      sudo xcodebuild -license
+      xcode-select --install
+
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    fi
+
+    if [ "${OS_ARCH}" == "arm64" ]; then
+      command -v ibrew > /dev/null || HAS_IBREW=false
+
+      if [ ! -z ${HAS_IBREW} ]; then
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+      fi
+    fi
   fi
 }
 
-_update() {
-  # update
+_install_brew() {
+  command -v $1 > /dev/null || brew install ${2:-$1}
+}
+
+_install_brew_apps() {
+  INSTALLED=$(ls /Applications | grep $1 | wc -l | xargs)
+
+  if [ "x${INSTALLED}" == "x0" ]; then
+    brew install -cask ${2:-$1}
+  fi
+}
+
+_install() {
   echo "================================================================================"
-  echo "update..."
 
   if [ "${INSTALLER}" == "brew" ]; then
       brew update && brew upgrade
@@ -77,43 +102,81 @@ _update() {
       # getopt
       GETOPT=$(getopt 2>&1 | head -1 | xargs)
       if [ "${GETOPT}" == "--" ]; then
-          brew install gnu-getopt
-          brew link --force gnu-getopt
+        brew install gnu-getopt
+        brew link --force gnu-getopt
       fi
 
-      command -v argo > /dev/null || brew install argo
-      command -v argocd > /dev/null || brew install argocd
-      command -v aws > /dev/null || brew install awscli
-      command -v fzf > /dev/null || brew install fzf
-      command -v gh > /dev/null || brew install gh
-      command -v git > /dev/null || brew install git
-      command -v go > /dev/null || brew install go
-      command -v helm > /dev/null || brew install helm
-      command -v http > /dev/null || brew install httpie
-      command -v istioctl > /dev/null || brew install istioctl
-      command -v jenv > /dev/null || brew install jenv
-      command -v jq > /dev/null || brew install jq
-      command -v jsonnet > /dev/null || brew install jsonnet
-      command -v k9s > /dev/null || brew install k9s
-      command -v kubectl > /dev/null || brew install kubernetes-cli
-      command -v node > /dev/null || brew install node
-      command -v pyenv > /dev/null || brew install pyenv
-      command -v telnet > /dev/null || brew install telnet
-      command -v telnet > /dev/null || brew install telnet
-      command -v tfenv > /dev/null || brew install tfenv
-      command -v tmux > /dev/null || brew install tmux
-      command -v wget > /dev/null || brew install wget
-      command -v yq > /dev/null || brew install yq
-      command -v zsh > /dev/null || brew install zsh
+      _install_brew argocd
+      _install_brew aws awscli
+      _install_brew fzf
+      _install_brew gh
+      _install_brew git
+      _install_brew go
+      _install_brew grpcurl
+      _install_brew http httpie
+      _install_brew jenv
+      _install_brew jq
+      _install_brew jsonnet
+      _install_brew node
+      _install_brew pyenv
+      _install_brew telnet
+      _install_brew terraform-docs
+      _install_brew tmux
+      _install_brew wget
+      _install_brew yq
+      _install_brew zsh
+      # _install_brew ffmpeg
+      # _install_brew youtube-dl
+
+      _install_brew tfenv
+      _install_brew helm
+
+      _install_brew kubectl kubernetes-cli
+      _install_brew istioctl
+      _install_brew k9s
 
       command -v java > /dev/null || HAS_JAVA=false
       if [ ! -z ${HAS_JAVA} ]; then
-          brew tap AdoptOpenJDK/openjdk
-          brew install --cask adoptopenjdk8
+        brew tap AdoptOpenJDK/openjdk
+        brew install --cask adoptopenjdk8
       fi
-      command -v mvn > /dev/null || brew install maven
+
+      _install_brew mvn maven
+
+      _install_brew_apps "Dropbox.app" dropbox
+      _install_brew_apps "Google Chrome.app" google-chrome
+      _install_brew_apps "iStat Menus.app" istat-menus
+      _install_brew_apps "iTerm.app" iterm2
+      # _install_brew_apps "Slack.app" slack # app store
+      _install_brew_apps "Visual Studio Code.app" visual-studio-code
 
       brew cleanup
+  fi
+}
+
+_aliases() {
+  TARGET=${HOME}/${1}
+
+  ALIASES="${HOME}/.aliases"
+
+  curl -sL -o ${ALIASES} nalbam.github.io/dotfiles/aliases.sh
+
+  if [ -f "${ALIASES}" ]; then
+    touch ${TARGET}
+    HAS_ALIAS="$(cat ${TARGET} | grep '.aliases' | wc -l | xargs)"
+
+    if [ "x${HAS_ALIAS}" == "x0" ]; then
+      echo "" >> ${TARGET}
+      echo "if [ -f ~/.aliases ]; then" >> ${TARGET}
+      echo "  source ~/.aliases" >> ${TARGET}
+      echo "fi" >> ${TARGET}
+      echo "" >> ${TARGET}
+      echo "if [ -d /opt/homebrew/bin ]; then" >> ${TARGET}
+      echo "  export PATH=\"/opt/homebrew/bin:$PATH\"" >> ${TARGET}
+      echo "fi" >> ${TARGET}
+    fi
+
+    source ${ALIASES}
   fi
 }
 
@@ -121,4 +184,7 @@ _update() {
 
 _prepare
 
-_update
+_install
+
+_aliases ".bashrc"
+_aliases ".zshrc"
