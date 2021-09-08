@@ -93,7 +93,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew yq
 
   # zsh
-  command -v zsh > /dev/null && HAS_ZSH=false
+  command -v zsh > /dev/null || HAS_ZSH=false
   if [ ! -z ${HAS_ZSH} ]; then
     brew install zsh
     /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
