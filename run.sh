@@ -139,17 +139,17 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   # _install_brew mvn maven
 
-  _install_brew_apps "Dropbox.app" dropbox
-  _install_brew_apps "Google Chrome.app" google-chrome
-  _install_brew_apps "iStat Menus.app" istat-menus
-  _install_brew_apps "iTerm.app" iterm2
-  # _install_brew_apps "Slack.app" slack # app store
-  _install_brew_apps "Visual Studio Code.app" visual-studio-code
+  # _install_brew_apps "Dropbox.app" dropbox
+  # _install_brew_apps "Google Chrome.app" google-chrome
+  # _install_brew_apps "iStat Menus.app" istat-menus
+  # _install_brew_apps "iTerm.app" iterm2
+  # # _install_brew_apps "Slack.app" slack # app store
+  # _install_brew_apps "Visual Studio Code.app" visual-studio-code
 
   brew cleanup
 fi
 
 curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
-curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
-curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
-curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
+# curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+# curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
+# curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
