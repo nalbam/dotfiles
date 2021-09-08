@@ -2,6 +2,7 @@
 
 OS_NAME="$(uname | awk '{print tolower($0)}')"
 OS_ARCH="$(uname -m)"
+OS_LBIT="$(getconf LONG_BIT)"
 
 if [ "${OS_NAME}" == "darwin" ]; then
   INSTALLER="brew"
@@ -47,8 +48,7 @@ _install_brew_apps() {
 
 ################################################################################
 
-echo "================================================================================"
-echo "${OS_NAME} [${INSTALLER}]"
+echo "${OS_NAME} ${OS_ARCH} ${OS_LBIT} [${INSTALLER}]"
 
 if [ "${INSTALLER}" == "" ]; then
   _error "Not supported OS."
@@ -149,6 +149,6 @@ if [ "${INSTALLER}" == "brew" ]; then
 fi
 
 curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
-# curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
-# curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
+curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 # curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
