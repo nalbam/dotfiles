@@ -67,13 +67,13 @@ EOF
       /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     fi
 
-    if [ "${OS_ARCH}" == "arm64" ]; then
-      command -v ibrew > /dev/null || HAS_IBREW=false
+    # if [ "${OS_ARCH}" == "arm64" ]; then
+    #   command -v ibrew > /dev/null || HAS_IBREW=false
 
-      if [ ! -z ${HAS_IBREW} ]; then
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-      fi
-    fi
+    #   if [ ! -z ${HAS_IBREW} ]; then
+    #     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    #   fi
+    # fi
   fi
 }
 
@@ -106,34 +106,44 @@ _install() {
         brew link --force gnu-getopt
       fi
 
+      _install_brew argo
       _install_brew argocd
       _install_brew aws awscli
+      _install_brew aws-vault
+      _install_brew eksctl
+      _install_brew figlet
       _install_brew fzf
       _install_brew gh
       _install_brew git
       _install_brew go
       _install_brew grpcurl
+      _install_brew helm
       _install_brew http httpie
+      _install_brew istioctl
       _install_brew jenv
       _install_brew jq
       _install_brew jsonnet
+      _install_brew k6
+      _install_brew k9s
+      _install_brew kube-ps1
+      _install_brew kubectl kubernetes-cli
+      _install_brew minikube
       _install_brew node
       _install_brew pyenv
       _install_brew telnet
       _install_brew terraform-docs
+      _install_brew tfenv
       _install_brew tmux
       _install_brew wget
       _install_brew yq
       _install_brew zsh
-      # _install_brew ffmpeg
-      # _install_brew youtube-dl
 
-      _install_brew tfenv
-      _install_brew helm
+      # _install_brew zsh-syntax-highlighting
 
-      _install_brew kubectl kubernetes-cli
-      _install_brew istioctl
-      _install_brew k9s
+      _install_brew podman simnalamburt/x/podman-apple-silicon
+
+      # _install_brew podman
+      # _install_brew qemu
 
       command -v java > /dev/null || HAS_JAVA=false
       if [ ! -z ${HAS_JAVA} ]; then
@@ -141,7 +151,7 @@ _install() {
         brew install --cask adoptopenjdk8
       fi
 
-      _install_brew mvn maven
+      # _install_brew mvn maven
 
       _install_brew_apps "Dropbox.app" dropbox
       _install_brew_apps "Google Chrome.app" google-chrome

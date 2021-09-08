@@ -1,0 +1,33 @@
+[core]
+	autocrlf = input
+	editor = vim
+	fscache = yes
+	pager = less -+XF -SQc
+	precomposeunicode = yes
+	preloadindex = yes
+	quotepath = no
+[user]
+	name = nalbam
+	email = me@nalbam.com
+[log]
+	date = iso8601
+[color]
+	ui = auto
+[diff]
+	renames = copies
+[fetch]
+	prune = yes
+[push]
+	default = simple
+[pull]
+	rebase = true
+[merge]
+	conflictstyle = diff3
+[commit]
+	gpgsign = yes
+[rerere]
+	enabled = yes
+[stash]
+	showPatch = true
+[status]
+	showStash = true
