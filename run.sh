@@ -38,8 +38,16 @@ _install_brew() {
   command -v $1 > /dev/null || brew install ${2:-$1}
 }
 
+_install_brew_path() {
+  INSTALLED=$(ls /opt/homebrew/Cellar/ | grep "$1" | wc -l | xargs)
+
+  if [ "x${INSTALLED}" == "x0" ]; then
+    brew install ${2:-$1}
+  fi
+}
+
 _install_brew_apps() {
-  INSTALLED=$(ls /Applications | grep "$1" | wc -l | xargs)
+  INSTALLED=$(ls /Applications/ | grep "$1" | wc -l | xargs)
 
   if [ "x${INSTALLED}" == "x0" ]; then
     brew install -cask ${2:-$1}
@@ -96,8 +104,8 @@ if [ "${INSTALLER}" == "brew" ]; then
   command -v zsh > /dev/null || HAS_ZSH=false
   if [ ! -z ${HAS_ZSH} ]; then
     brew install zsh
+    chsh -s /bin/zsh
     /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
-    brew install zsh-syntax-highlighting
   fi
 
   _install_brew jenv
@@ -118,11 +126,13 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew jsonnet
   _install_brew k6
   _install_brew k9s
-  _install_brew kube-ps1
   _install_brew kubectl kubernetes-cli
   _install_brew minikube
   _install_brew node
   _install_brew terraform-docs
+
+  _install_brew_path kube-ps1
+  _install_brew_path zsh-syntax-highlighting
 
   # _install_brew podman
   # _install_brew qemu
