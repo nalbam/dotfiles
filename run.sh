@@ -38,7 +38,7 @@ _install_brew() {
 }
 
 _install_brew_apps() {
-  INSTALLED=$(ls /Applications | grep $1 | wc -l | xargs)
+  INSTALLED=$(ls /Applications | grep "$1" | wc -l | xargs)
 
   if [ "x${INSTALLED}" == "x0" ]; then
     brew install -cask ${2:-$1}
