@@ -66,12 +66,11 @@ chmod 400 ~/.ssh/config
 
 # brew for mac
 if [ "${INSTALLER}" == "brew" ]; then
+  # brew
   command -v brew > /dev/null || HAS_BREW=false
-
   if [ ! -z ${HAS_BREW} ]; then
     sudo xcodebuild -license
     xcode-select --install
-
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
 
@@ -139,12 +138,12 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   # _install_brew mvn maven
 
-  # _install_brew_apps "Dropbox.app" dropbox
-  # _install_brew_apps "Google Chrome.app" google-chrome
-  # _install_brew_apps "iStat Menus.app" istat-menus
-  # _install_brew_apps "iTerm.app" iterm2
-  # # _install_brew_apps "Slack.app" slack # app store
-  # _install_brew_apps "Visual Studio Code.app" visual-studio-code
+  _install_brew_apps "Dropbox.app" dropbox
+  _install_brew_apps "Google Chrome.app" google-chrome
+  _install_brew_apps "iStat Menus.app" istat-menus
+  _install_brew_apps "iTerm.app" iterm2
+  # _install_brew_apps "Slack.app" slack # app store
+  _install_brew_apps "Visual Studio Code.app" visual-studio-code
 
   brew cleanup
 fi
