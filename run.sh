@@ -33,50 +33,6 @@ _error() {
   exit 1
 }
 
-_prepare() {
-  echo "================================================================================"
-  echo "${OS_NAME} [${INSTALLER}]"
-
-  if [ "${INSTALLER}" == "" ]; then
-    _error "Not supported OS."
-  fi
-
-  mkdir -p ~/.aws
-  mkdir -p ~/.ssh
-
-  # ssh keygen
-  [ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
-
-  # ssh config
-  if [ ! -f ~/.ssh/config ]; then
-cat <<EOF > ~/.ssh/config
-Host *
-    StrictHostKeyChecking no
-EOF
-  fi
-  chmod 400 ~/.ssh/config
-
-  # brew for mac
-  if [ "${INSTALLER}" == "brew" ]; then
-    command -v brew > /dev/null || HAS_BREW=false
-
-    if [ ! -z ${HAS_BREW} ]; then
-      sudo xcodebuild -license
-      xcode-select --install
-
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    fi
-
-    # if [ "${OS_ARCH}" == "arm64" ]; then
-    #   command -v ibrew > /dev/null || HAS_IBREW=false
-
-    #   if [ ! -z ${HAS_IBREW} ]; then
-    #     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    #   fi
-    # fi
-  fi
-}
-
 _install_brew() {
   command -v $1 > /dev/null || brew install ${2:-$1}
 }
@@ -89,112 +45,111 @@ _install_brew_apps() {
   fi
 }
 
-_install() {
-  echo "================================================================================"
-
-  if [ "${INSTALLER}" == "brew" ]; then
-      brew update && brew upgrade
-
-      # cat Brewfile| grep 'brew ' | cut -d'"' -f2 | while read APP; do
-      #   command -v ${APP} > /dev/null || brew install ${APP}
-      # done
-
-      # getopt
-      GETOPT=$(getopt 2>&1 | head -1 | xargs)
-      if [ "${GETOPT}" == "--" ]; then
-        brew install gnu-getopt
-        brew link --force gnu-getopt
-      fi
-
-      _install_brew argo
-      _install_brew argocd
-      _install_brew aws awscli
-      _install_brew aws-vault
-      _install_brew eksctl
-      _install_brew figlet
-      _install_brew fzf
-      _install_brew gh
-      _install_brew git
-      _install_brew go
-      _install_brew grpcurl
-      _install_brew helm
-      _install_brew http httpie
-      _install_brew istioctl
-      _install_brew jenv
-      _install_brew jq
-      _install_brew jsonnet
-      _install_brew k6
-      _install_brew k9s
-      _install_brew kube-ps1
-      _install_brew kubectl kubernetes-cli
-      _install_brew minikube
-      _install_brew node
-      _install_brew pyenv
-      _install_brew telnet
-      _install_brew terraform-docs
-      _install_brew tfenv
-      _install_brew tmux
-      _install_brew wget
-      _install_brew yq
-      _install_brew zsh
-
-      # _install_brew zsh-syntax-highlighting
-
-      _install_brew podman simnalamburt/x/podman-apple-silicon
-
-      # _install_brew podman
-      # _install_brew qemu
-
-      command -v java > /dev/null || HAS_JAVA=false
-      if [ ! -z ${HAS_JAVA} ]; then
-        brew tap AdoptOpenJDK/openjdk
-        brew install --cask adoptopenjdk8
-      fi
-
-      # _install_brew mvn maven
-
-      _install_brew_apps "Dropbox.app" dropbox
-      _install_brew_apps "Google Chrome.app" google-chrome
-      _install_brew_apps "iStat Menus.app" istat-menus
-      _install_brew_apps "iTerm.app" iterm2
-      # _install_brew_apps "Slack.app" slack # app store
-      _install_brew_apps "Visual Studio Code.app" visual-studio-code
-
-      brew cleanup
-  fi
-}
-
-_aliases() {
-  TARGET=${HOME}/${1}
-
-  ALIASES="${HOME}/.aliases"
-
-  curl -sL -o ${ALIASES} nalbam.github.io/dotfiles/aliases.sh
-
-  if [ -f "${ALIASES}" ]; then
-    touch ${TARGET}
-    HAS_ALIAS="$(cat ${TARGET} | grep '.aliases' | wc -l | xargs)"
-
-    if [ "x${HAS_ALIAS}" == "x0" ]; then
-      echo "" >> ${TARGET}
-      echo "if [ -f ~/.aliases ]; then" >> ${TARGET}
-      echo "  source ~/.aliases" >> ${TARGET}
-      echo "fi" >> ${TARGET}
-      echo "" >> ${TARGET}
-      echo "if [ -d /opt/homebrew/bin ]; then" >> ${TARGET}
-      echo "  export PATH=\"/opt/homebrew/bin:$PATH\"" >> ${TARGET}
-      echo "fi" >> ${TARGET}
-    fi
-
-    source ${ALIASES}
-  fi
-}
-
 ################################################################################
 
-_prepare
+echo "================================================================================"
+echo "${OS_NAME} [${INSTALLER}]"
 
-_install
+if [ "${INSTALLER}" == "" ]; then
+  _error "Not supported OS."
+fi
 
-_aliases ".bashrc"
-_aliases ".zshrc"
+mkdir -p ~/.aws
+mkdir -p ~/.ssh
+
+# ssh keygen
+[ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
+
+# ssh config
+curl -sL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
+chmod 400 ~/.ssh/config
+
+# brew for mac
+if [ "${INSTALLER}" == "brew" ]; then
+  command -v brew > /dev/null || HAS_BREW=false
+
+  if [ ! -z ${HAS_BREW} ]; then
+    sudo xcodebuild -license
+    xcode-select --install
+
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  fi
+
+  brew update && brew upgrade
+
+  # getopt
+  GETOPT=$(getopt 2>&1 | head -1 | xargs)
+  if [ "${GETOPT}" == "--" ]; then
+    brew install gnu-getopt
+    brew link --force gnu-getopt
+  fi
+
+  _install_brew fzf
+  _install_brew git
+  _install_brew go
+  _install_brew jq
+  _install_brew telnet
+  _install_brew tmux
+  _install_brew wget
+  _install_brew yq
+
+  # zsh
+  command -v $1 > /dev/null && HAS_ZSH=false
+  if [ ! -z ${HAS_ZSH} ]; then
+    brew install zsh
+    /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+    brew install zsh-syntax-highlighting
+  fi
+
+  _install_brew jenv
+  _install_brew pyenv
+  _install_brew tfenv
+
+  _install_brew argo
+  _install_brew argocd
+  _install_brew aws awscli
+  _install_brew aws-vault
+  _install_brew eksctl
+  _install_brew figlet
+  _install_brew gh
+  _install_brew grpcurl
+  _install_brew helm
+  _install_brew http httpie
+  _install_brew istioctl
+  _install_brew jsonnet
+  _install_brew k6
+  _install_brew k9s
+  _install_brew kube-ps1
+  _install_brew kubectl kubernetes-cli
+  _install_brew minikube
+  _install_brew node
+  _install_brew terraform-docs
+
+  # _install_brew podman
+  # _install_brew qemu
+
+  _install_brew podman simnalamburt/x/podman-apple-silicon
+
+  # java
+  command -v java > /dev/null || HAS_JAVA=false
+  if [ ! -z ${HAS_JAVA} ]; then
+    brew tap AdoptOpenJDK/openjdk
+    brew install --cask adoptopenjdk8
+  fi
+
+  # _install_brew mvn maven
+
+  _install_brew_apps "Dropbox.app" dropbox
+  _install_brew_apps "Google Chrome.app" google-chrome
+  _install_brew_apps "iStat Menus.app" istat-menus
+  _install_brew_apps "iTerm.app" iterm2
+  # _install_brew_apps "Slack.app" slack # app store
+  _install_brew_apps "Visual Studio Code.app" visual-studio-code
+
+  brew cleanup
+fi
+
+curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
+curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
+curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
