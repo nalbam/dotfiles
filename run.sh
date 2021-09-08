@@ -162,3 +162,5 @@ curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.a
 curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
 curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
+
+_success
