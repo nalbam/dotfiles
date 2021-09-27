@@ -163,4 +163,8 @@ curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.ba
 curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
+_result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
+_result "kubectl: $(kubectl version --client -o json | jq .clientversion.gitversion -r)"
+_result "helm:    $(helm version --client --short | cut -d'+' -f1)"
+
 _success
