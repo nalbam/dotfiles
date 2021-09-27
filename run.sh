@@ -166,5 +166,6 @@ curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zsh
 _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
 _result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
 _result "helm:    $(helm version --client --short | cut -d'+' -f1)"
+_result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
 
 _success
