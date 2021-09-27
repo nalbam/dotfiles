@@ -56,7 +56,7 @@ _install_brew_apps() {
 
 ################################################################################
 
-echo "${OS_NAME} ${OS_ARCH} ${OS_LBIT} [${INSTALLER}]"
+_result "${OS_NAME} ${OS_ARCH} ${OS_LBIT} [${INSTALLER}]"
 
 if [ "${INSTALLER}" == "" ]; then
   _error "Not supported OS."
