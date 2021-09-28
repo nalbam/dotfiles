@@ -79,6 +79,19 @@ _install_npm() {
   fi
 }
 
+_install_npm_path() {
+  if [ -d /usr/local/lib/node_modules/ ]; then
+    INSTALLED=$(ls /usr/local/lib/node_modules/ | grep "$1" | wc -l | xargs)
+  else
+    INSTALLED=
+  fi
+
+  if [ "x${INSTALLED}" == "x0" ]; then
+    _command "npm install -g ${2:-$1}"
+    npm install -g ${2:-$1}
+  fi
+}
+
 ################################################################################
 
 _result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
@@ -178,7 +191,7 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   # nodejs
   _install_brew_path node
-  _install_npm reveal-md
+  _install_npm_path reveal-md
 
   # java
   _install_brew_path openjdk
