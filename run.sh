@@ -2,7 +2,6 @@
 
 OS_NAME="$(uname | awk '{print tolower($0)}')"
 OS_ARCH="$(uname -m)"
-OS_LBIT="$(getconf LONG_BIT)"
 
 if [ "${OS_NAME}" == "darwin" ]; then
   INSTALLER="brew"
@@ -82,7 +81,7 @@ _install_npm() {
 
 ################################################################################
 
-_result "${OS_NAME} ${OS_ARCH} ${OS_LBIT} [${INSTALLER}]"
+_result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
 
 if [ "${INSTALLER}" == "" ]; then
   _error "Not supported OS."
