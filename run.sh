@@ -126,61 +126,61 @@ if [ "${INSTALLER}" == "brew" ]; then
     brew link --force gnu-getopt
   fi
 
-  _install_brew fzf
-  _install_brew git
-  _install_brew go
-  _install_brew jq
-  _install_brew telnet
-  _install_brew tmux
-  _install_brew wget
-  _install_brew yq
+  _install_brew_path fzf
+  _install_brew_path git
+  _install_brew_path go
+  _install_brew_path jq
+  _install_brew_path telnet
+  _install_brew_path tmux
+  _install_brew_path wget
+  _install_brew_path yq
 
-  _install_brew jenv
-  _install_brew pyenv
-  _install_brew tfenv
+  _install_brew_path jenv
+  _install_brew_path pyenv
+  _install_brew_path tfenv
 
-  _install_brew argo
-  _install_brew argocd
-  _install_brew aws awscli
-  _install_brew aws-vault
-  _install_brew eksctl
-  _install_brew figlet
-  _install_brew gh
-  _install_brew grpcurl
-  _install_brew helm
-  _install_brew http httpie
-  _install_brew istioctl
-  _install_brew jsonnet
-  _install_brew k6
-  _install_brew k9s
-  _install_brew kubectl kubernetes-cli
-  _install_brew minikube
-  _install_brew terraform-docs
+  _install_brew_path argo
+  _install_brew_path argocd
+  _install_brew_path aws-vault
+  _install_brew_path awscli
+  _install_brew_path eksctl
+  _install_brew_path figlet
+  _install_brew_path gh
+  _install_brew_path grpcurl
+  _install_brew_path helm
+  _install_brew_path helm-docs
+  _install_brew_path httpie
+  _install_brew_path hub
+  _install_brew_path hugo
+  _install_brew_path istioctl
+  _install_brew_path jsonnet
+  _install_brew_path k6
+  _install_brew_path k9s
+  _install_brew_path kubectx
+  _install_brew_path kubernetes-cli
+  _install_brew_path minikube
+  _install_brew_path tanka
+  _install_brew_path terraform-docs
+
+  _install_brew_path kubectl-argo-rollouts argoproj/tap/kubectl-argo-rollouts
 
   _install_brew_path kube-ps1
   _install_brew_path zsh-syntax-highlighting
 
   if [ "${OS_ARCH}" == "x86_64" ]; then
     _install_brew_path qemu
-    _install_brew podman
+    _install_brew_path podman
   elif [ "${OS_ARCH}" == "arm64" ]; then
-    _install_brew podman simnalamburt/x/podman-apple-silicon
+    _install_brew_path podman-apple-silicon simnalamburt/x/podman-apple-silicon
   fi
 
   # nodejs
-  _install_brew node
-
+  _install_brew_path node
   _install_npm reveal-md
 
   # java
-  command -v java > /dev/null || HAS_JAVA=false
-  if [ ! -z ${HAS_JAVA} ]; then
-    _command "brew install --cask adoptopenjdk8"
-    brew tap AdoptOpenJDK/openjdk
-    brew install --cask adoptopenjdk8
-  fi
-
-  _install_brew mvn maven
+  _install_brew_path openjdk
+  _install_brew_path maven
 
   # apps
   _install_brew_apps "Dropbox.app" dropbox
