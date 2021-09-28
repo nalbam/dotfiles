@@ -106,18 +106,29 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
+export PATH="$PATH:/Users/nalbam/.local/bin"
+
 if [ -d "/opt/homebrew/bin" ]; then
   export PATH="/opt/homebrew/bin:$PATH"
 fi
 
-export PATH="$PATH:/Users/nalbam/.local/bin"
-export PATH="/opt/homebrew/opt/gnu-getopt/bin:$PATH"
+if [ -d "/opt/homebrew/opt/gnu-getopt/bin" ]; then
+  export PATH="/opt/homebrew/opt/gnu-getopt/bin:$PATH"
+fi
 
 #eval "$(pyenv init -)"
 
-source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
+if [ -d "/opt/homebrew/opt/kube-ps1" ]; then
+  source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
+elif [ -d "/usr/local/opt/kube-ps1" ]; then
+  source "/usr/local/opt/kube-ps1/share/kube-ps1.sh"
+fi
 PS1='$(kube_ps1)'$PS1
 
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
 
-source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+if [ -d "/opt/homebrew/share/zsh-syntax-highlighting" ]; then
+  source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+elif [ -d "/usr/local/share/zsh-syntax-highlighting" ]; then
+  source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+fi
