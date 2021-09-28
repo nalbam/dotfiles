@@ -126,6 +126,8 @@ if [ "${INSTALLER}" == "brew" ]; then
     brew link --force gnu-getopt
   fi
 
+  _command "check utils..."
+
   _install_brew_path fzf
   _install_brew_path git
   _install_brew_path go
@@ -194,11 +196,13 @@ if [ "${INSTALLER}" == "brew" ]; then
   brew cleanup
 fi
 
+_command "download config..."
 curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
 curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
 curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
+_command "check versions..."
 _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
 _result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
 _result "helm:    $(helm version --client --short | cut -d'+' -f1)"
