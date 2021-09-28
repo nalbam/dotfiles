@@ -121,8 +121,11 @@ if [ "${INSTALLER}" == "brew" ]; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
 
-  _command "brew update && upgrade..."
-  brew update && brew upgrade
+  _command "brew update..."
+  brew update
+
+  _command "brew upgrade..."
+  brew upgrade
 
   # zsh
   command -v zsh > /dev/null || HAS_ZSH=false
