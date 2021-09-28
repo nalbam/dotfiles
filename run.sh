@@ -203,7 +203,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_npm_path reveal-md
 
   # java
-  _install_brew_path openjdk
+  _install_brew_path adoptopenjdk8
   _install_brew_path maven
 
   # apps
