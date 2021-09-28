@@ -136,6 +136,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   # getopt
   GETOPT=$(getopt 2>&1 | head -1 | xargs)
   if [ "${GETOPT}" == "--" ]; then
+    _command "brew install gnu-getopt"
     brew install gnu-getopt
     brew link --force gnu-getopt
   fi
