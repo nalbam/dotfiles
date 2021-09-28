@@ -47,13 +47,15 @@ _install_brew() {
 }
 
 _install_brew_path() {
-  if [ -d /opt/homebrew/Cellar/ ]; then
-    INSTALLED=$(ls /opt/homebrew/Cellar/ | grep "$1" | wc -l | xargs)
-  elif [ -d /usr/local/Cellar/ ]; then
-    INSTALLED=$(ls /usr/local/Cellar/ | grep "$1" | wc -l | xargs)
-  else
-    INSTALLED=
-  fi
+  # if [ -d /opt/homebrew/Cellar/ ]; then
+  #   INSTALLED=$(ls /opt/homebrew/Cellar/ | grep "$1" | wc -l | xargs)
+  # elif [ -d /usr/local/Cellar/ ]; then
+  #   INSTALLED=$(ls /usr/local/Cellar/ | grep "$1" | wc -l | xargs)
+  # else
+  #   INSTALLED=
+  # fi
+
+  INSTALLED=$(cat /tmp/brew_list | grep "$1" | wc -l | xargs)
 
   if [ "x${INSTALLED}" == "x0" ]; then
     _command "brew install ${2:-$1}"
@@ -126,6 +128,8 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   _command "brew upgrade..."
   brew upgrade
+
+  brew list > /tmp/brew_list
 
   # zsh
   command -v zsh > /dev/null || HAS_ZSH=false
@@ -203,10 +207,17 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew_path maven
 
   # apps
-  _install_brew_apps "Dropbox.app" dropbox
-  _install_brew_apps "Google Chrome.app" google-chrome
-  _install_brew_apps "iTerm.app" iterm2
-  _install_brew_apps "Visual Studio Code.app" visual-studio-code
+  _install_brew_path dropbox
+  _install_brew_path google-chrome
+  _install_brew_path istat-menus
+  _install_brew_path iterm2
+  _install_brew_path slack
+  _install_brew_path visual-studio-code
+
+  # _install_brew_apps "Dropbox.app" dropbox
+  # _install_brew_apps "Google Chrome.app" google-chrome
+  # _install_brew_apps "iTerm.app" iterm2
+  # _install_brew_apps "Visual Studio Code.app" visual-studio-code
 
   # _install_brew_apps "iStat Menus.app" istat-menus
   # _install_brew_apps "Slack.app" slack # app store
