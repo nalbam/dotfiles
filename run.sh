@@ -42,7 +42,7 @@ _install_brew() {
   INSTALLED=
   command -v $1 > /dev/null || INSTALLED=false
   if [ ! -z ${INSTALLED} ]; then
-    _command "brew install $1"
+    _command "brew install ${2:-$1}"
     brew install ${2:-$1}
   fi
 }
@@ -57,7 +57,7 @@ _install_brew_path() {
   fi
 
   if [ "x${INSTALLED}" == "x0" ]; then
-    _command "brew install $1"
+    _command "brew install ${2:-$1}"
     brew install ${2:-$1}
   fi
 }
@@ -66,7 +66,7 @@ _install_brew_apps() {
   INSTALLED=$(ls /Applications/ | grep "$1" | wc -l | xargs)
 
   if [ "x${INSTALLED}" == "x0" ]; then
-    _command "brew install -cask $1"
+    _command "brew install -cask ${2:-$1}"
     brew install -cask ${2:-$1}
   fi
 }
