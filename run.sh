@@ -24,6 +24,10 @@ _result() {
   _echo "# $@" 4
 }
 
+_command() {
+  _echo "$ $@" 3
+}
+
 _success() {
   _echo "+ $@" 2
   exit 0
@@ -35,7 +39,12 @@ _error() {
 }
 
 _install_brew() {
-  command -v $1 > /dev/null || brew install ${2:-$1}
+  INSTALLED=
+  command -v $1 > /dev/null || INSTALLED=false
+  if [ ! -z ${INSTALLED} ]; then
+    _command "brew install ${2:-$1}"
+    brew install ${2:-$1}
+  fi
 }
 
 _install_brew_path() {
@@ -44,10 +53,11 @@ _install_brew_path() {
   elif [ -d /usr/local/Cellar/ ]; then
     INSTALLED=$(ls /usr/local/Cellar/ | grep "$1" | wc -l | xargs)
   else
-    INSTALLED=x
+    INSTALLED=
   fi
 
   if [ "x${INSTALLED}" == "x0" ]; then
+    _command "brew install ${2:-$1}"
     brew install ${2:-$1}
   fi
 }
@@ -56,6 +66,7 @@ _install_brew_apps() {
   INSTALLED=$(ls /Applications/ | grep "$1" | wc -l | xargs)
 
   if [ "x${INSTALLED}" == "x0" ]; then
+    _command "brew install -cask ${2:-$1}"
     brew install -cask ${2:-$1}
   fi
 }
@@ -83,6 +94,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   # brew
   command -v brew > /dev/null || HAS_BREW=false
   if [ ! -z ${HAS_BREW} ]; then
+    _command "xcode-select --install"
     sudo xcodebuild -license
     xcode-select --install
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -109,6 +121,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   # zsh
   command -v zsh > /dev/null || HAS_ZSH=false
   if [ ! -z ${HAS_ZSH} ]; then
+    _command "brew install zsh"
     brew install zsh
     chsh -s /bin/zsh
     /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
@@ -148,6 +161,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   # java
   command -v java > /dev/null || HAS_JAVA=false
   if [ ! -z ${HAS_JAVA} ]; then
+    _command "brew install --cask adoptopenjdk8"
     brew tap AdoptOpenJDK/openjdk
     brew install --cask adoptopenjdk8
   fi
