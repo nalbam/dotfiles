@@ -153,10 +153,12 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew_path kube-ps1
   _install_brew_path zsh-syntax-highlighting
 
-  # _install_brew podman
-  # _install_brew qemu
-
-  _install_brew podman simnalamburt/x/podman-apple-silicon
+  if [ "${OS_ARCH}" == "x86_64" ]; then
+    _install_brew podman
+    _install_brew qemu
+  elif [ "${OS_ARCH}" == "arm64" ]; then
+    _install_brew podman simnalamburt/x/podman-apple-silicon
+  fi
 
   # java
   command -v java > /dev/null || HAS_JAVA=false
