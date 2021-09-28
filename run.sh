@@ -39,7 +39,13 @@ _install_brew() {
 }
 
 _install_brew_path() {
-  INSTALLED=$(ls /opt/homebrew/Cellar/ | grep "$1" | wc -l | xargs)
+  if [ -d /opt/homebrew/Cellar/ ]; then
+    INSTALLED=$(ls /opt/homebrew/Cellar/ | grep "$1" | wc -l | xargs)
+  elif [ -d /usr/local/Cellar/ ]; then
+    INSTALLED=$(ls /usr/local/Cellar/ | grep "$1" | wc -l | xargs)
+  else
+    INSTALLED=x
+  fi
 
   if [ "x${INSTALLED}" == "x0" ]; then
     brew install ${2:-$1}
