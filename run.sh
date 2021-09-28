@@ -71,6 +71,15 @@ _install_brew_apps() {
   fi
 }
 
+_install_npm() {
+  INSTALLED=
+  command -v $1 > /dev/null || INSTALLED=false
+  if [ ! -z ${INSTALLED} ]; then
+    _command "npm install -g ${2:-$1}"
+    npm install -g ${2:-$1}
+  fi
+}
+
 ################################################################################
 
 _result "${OS_NAME} ${OS_ARCH} ${OS_LBIT} [${INSTALLER}]"
@@ -102,6 +111,15 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   brew update && brew upgrade
 
+  # zsh
+  command -v zsh > /dev/null || HAS_ZSH=false
+  if [ ! -z ${HAS_ZSH} ]; then
+    _command "brew install zsh"
+    brew install zsh
+    chsh -s /bin/zsh
+    /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+  fi
+
   # getopt
   GETOPT=$(getopt 2>&1 | head -1 | xargs)
   if [ "${GETOPT}" == "--" ]; then
@@ -117,15 +135,6 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew tmux
   _install_brew wget
   _install_brew yq
-
-  # zsh
-  command -v zsh > /dev/null || HAS_ZSH=false
-  if [ ! -z ${HAS_ZSH} ]; then
-    _command "brew install zsh"
-    brew install zsh
-    chsh -s /bin/zsh
-    /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
-  fi
 
   _install_brew jenv
   _install_brew pyenv
@@ -147,7 +156,6 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew k9s
   _install_brew kubectl kubernetes-cli
   _install_brew minikube
-  _install_brew node
   _install_brew terraform-docs
 
   _install_brew_path kube-ps1
@@ -160,6 +168,11 @@ if [ "${INSTALLER}" == "brew" ]; then
     _install_brew podman simnalamburt/x/podman-apple-silicon
   fi
 
+  # nodejs
+  _install_brew node
+
+  _install_npm reveal-md
+
   # java
   command -v java > /dev/null || HAS_JAVA=false
   if [ ! -z ${HAS_JAVA} ]; then
@@ -168,8 +181,9 @@ if [ "${INSTALLER}" == "brew" ]; then
     brew install --cask adoptopenjdk8
   fi
 
-  # _install_brew mvn maven
+  _install_brew mvn maven
 
+  # apps
   _install_brew_apps "Dropbox.app" dropbox
   _install_brew_apps "Google Chrome.app" google-chrome
   _install_brew_apps "iTerm.app" iterm2
