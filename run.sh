@@ -172,7 +172,7 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   _install_brew_apps "Dropbox.app" dropbox
   _install_brew_apps "Google Chrome.app" google-chrome
-  _install_brew_apps "iStat Menus.app" istat-menus
+  # _install_brew_apps "iStat Menus.app" istat-menus
   _install_brew_apps "iTerm.app" iterm2
   # _install_brew_apps "Slack.app" slack # app store
   _install_brew_apps "Visual Studio Code.app" visual-studio-code
