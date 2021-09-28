@@ -121,6 +121,7 @@ if [ "${INSTALLER}" == "brew" ]; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   fi
 
+  _command "brew update && upgrade..."
   brew update && brew upgrade
 
   # zsh
@@ -206,6 +207,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   # _install_brew_apps "iStat Menus.app" istat-menus
   # _install_brew_apps "Slack.app" slack # app store
 
+  _command "brew cleanup..."
   brew cleanup
 fi
 
