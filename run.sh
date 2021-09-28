@@ -154,8 +154,8 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew_path zsh-syntax-highlighting
 
   if [ "${OS_ARCH}" == "x86_64" ]; then
+    _install_brew_path qemu
     _install_brew podman
-    _install_brew qemu
   elif [ "${OS_ARCH}" == "arm64" ]; then
     _install_brew podman simnalamburt/x/podman-apple-silicon
   fi
