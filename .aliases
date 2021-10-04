@@ -16,7 +16,6 @@ alias n='toaster git'
 alias q='toaster assume'
 alias r='toaster region'
 alias s='toaster ssh'
-alias v='toaster vsc'
 alias x='toaster ctx'
 alias z='toaster ns'
 
