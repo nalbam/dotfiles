@@ -117,6 +117,9 @@ curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.ba
 curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
+git config --global user.name "nalbam"
+git config --global user.email "me@nalbam.com"
+
 # brew for mac
 if [ "${INSTALLER}" == "brew" ]; then
   # brew
