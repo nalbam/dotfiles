@@ -112,6 +112,11 @@ mkdir -p ~/.ssh
 curl -sL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
 chmod 400 ~/.ssh/config
 
+curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
+curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
+curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
+
 # brew for mac
 if [ "${INSTALLER}" == "brew" ]; then
   # brew
@@ -222,20 +227,14 @@ if [ "${INSTALLER}" == "brew" ]; then
   # _install_brew_apps "iStat Menus.app" istat-menus
   # _install_brew_apps "Slack.app" slack # app store
 
+  _command "check versions..."
+  _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
+  _result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
+  _result "helm:    $(helm version --client --short | cut -d'+' -f1)"
+  _result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
+
   _command "brew cleanup..."
   brew cleanup
 fi
-
-_command "download config..."
-curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
-curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
-curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
-curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
-
-_command "check versions..."
-_result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
-_result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
-_result "helm:    $(helm version --client --short | cut -d'+' -f1)"
-_result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
 
 _success
