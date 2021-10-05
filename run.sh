@@ -117,8 +117,15 @@ curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.ba
 curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
+# git config
 git config --global user.name "nalbam"
 git config --global user.email "me@nalbam.com"
+
+git config --global core.autocrlf input
+git config --global core.pager ''
+git config --global core.precomposeunicode true
+git config --global core.quotepath false
+git config --global pull.ff only
 
 # brew for mac
 if [ "${INSTALLER}" == "brew" ]; then
