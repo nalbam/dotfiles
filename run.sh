@@ -112,6 +112,10 @@ mkdir -p ~/.ssh
 curl -sL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
 chmod 400 ~/.ssh/config
 
+# # aws config
+# curl -sL -o ~/.aws/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.aws/config
+# chmod 400 ~/.aws/config
+
 curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
 curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
 curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
