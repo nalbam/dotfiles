@@ -169,6 +169,7 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   _command "check utils..."
 
+  _install_brew_path bat
   _install_brew_path fzf
   _install_brew_path git
   _install_brew_path go
