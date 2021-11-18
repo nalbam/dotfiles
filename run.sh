@@ -106,15 +106,19 @@ mkdir -p ~/.aws
 mkdir -p ~/.ssh
 
 # ssh keygen
-[ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
+[ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
 
 # ssh config
-curl -sL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
-chmod 400 ~/.ssh/config
+if [ ! -f ~/.ssh/config ]; then
+  curl -sL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
+  chmod 400 ~/.ssh/config
+fi
 
-# # aws config
-# curl -sL -o ~/.aws/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.aws/config
-# chmod 400 ~/.aws/config
+# aws config
+if [ ! -f ~/.aws/config ]; then
+  curl -sL -o ~/.aws/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.aws/config
+  chmod 400 ~/.aws/config
+fi
 
 curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
 curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
@@ -178,6 +182,9 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew_path tmux
   _install_brew_path wget
   _install_brew_path yq
+  _install_brew_path figlet
+  _install_brew_path grpcurl
+  _install_brew_path httpie
 
   _install_brew_path jenv
   _install_brew_path pyenv
@@ -188,12 +195,9 @@ if [ "${INSTALLER}" == "brew" ]; then
   _install_brew_path aws-vault
   _install_brew_path awscli
   _install_brew_path eksctl
-  _install_brew_path figlet
   _install_brew_path gh
-  _install_brew_path grpcurl
   _install_brew_path helm
   _install_brew_path helm-docs
-  _install_brew_path httpie
   _install_brew_path hub
   _install_brew_path hugo
   _install_brew_path istioctl
