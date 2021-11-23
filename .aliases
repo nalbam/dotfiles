@@ -56,6 +56,10 @@ alias docker='podman'
 alias py='python'
 alias py3='python3'
 
+alias xs='cd'
+alias vf='cd'
+alias ㅊㅇ='cd'
+
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
 # alias p='reveal-md -w --port 8888 --theme https://raw.githubusercontent.com/nalbam/docs/master/.theme/black.css'
