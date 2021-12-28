@@ -118,8 +118,9 @@ elif [ -d "/usr/local/opt/gnu-getopt/bin" ]; then
   export PATH="/usr/local/opt/gnu-getopt/bin:$PATH"
 fi
 
-# eval "$(pyenv init -)"
 export PATH="$(pyenv root)/shims:$PATH"
+
+eval "$(pyenv init -)"
 
 if [ -d "/opt/homebrew/opt/kube-ps1" ]; then
   source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
