@@ -21,10 +21,11 @@ _echo() {
 
 _read() {
   if [ "${TPUT}" != "" ]; then
-    read -p "$(tput setaf 6)$1$(tput sgr0)" ANSWER
+    printf "$(tput setaf 6)$1$(tput sgr0)"
   else
-    read -p "$1" ANSWER
+    printf "$1"
   fi
+  read ANSWER
 }
 
 _result() {
