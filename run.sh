@@ -45,15 +45,6 @@ _error() {
   exit 1
 }
 
-_install_brew() {
-  INSTALLED=
-  command -v $1 > /dev/null || INSTALLED=false
-  if [ ! -z ${INSTALLED} ]; then
-    _command "brew install ${2:-$1}"
-    brew install ${2:-$1}
-  fi
-}
-
 _git_config() {
   DEFAULT="$(whoami)"
   _read "Please input git user name [${DEFAULT}]: "
@@ -75,6 +66,15 @@ _git_config() {
 
   _command "git config --list"
   git config --list
+}
+
+_install_brew() {
+  INSTALLED=
+  command -v $1 > /dev/null || INSTALLED=false
+  if [ ! -z ${INSTALLED} ]; then
+    _command "brew install ${2:-$1}"
+    brew install ${2:-$1}
+  fi
 }
 
 _install_brew_path() {
