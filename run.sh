@@ -146,8 +146,7 @@ curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zsh
 
 # git config
 GIT_USERNAME=$(git config --global user.name)
-
-if [ ! -z ${GIT_USERNAME} ]; then
+if [ -z ${GIT_USERNAME} ]; then
   DEFAULT="$(whoami)"
   _read "Please input git user name [${DEFAULT}]: "
   GIT_USERNAME=${ANSWER:-${DEFAULT}}
