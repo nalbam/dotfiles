@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 OS_NAME="$(uname | awk '{print tolower($0)}')"
 OS_ARCH="$(uname -m)"
@@ -141,14 +141,14 @@ if [ -z ${GIT_USERNAME} ]; then
   _read "Please input git user name [${DEFAULT}]: "
   GIT_USERNAME=${ANSWER:-${DEFAULT}}
 
-  # _command "git config --global user.name ${GIT_USERNAME}"
+  _command "git config --global user.name ${GIT_USERNAME}"
   git config --global user.name "${GIT_USERNAME}"
 
   DEFAULT="${GIT_USERNAME}@daangn.com"
   _read "Please input git user email [${DEFAULT}]: "
   GIT_USERMAIL=${ANSWER:-${DEFAULT}}
 
-  # _command "git config --global user.email ${GIT_USERMAIL}"
+  _command "git config --global user.email ${GIT_USERMAIL}"
   git config --global user.email "${GIT_USERMAIL}"
 fi
 
