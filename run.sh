@@ -54,6 +54,20 @@ _install_brew() {
   fi
 }
 
+git_config() {
+  DEFAULT="$(whoami)"
+  _read "Please input git user name [${DEFAULT}]: "
+
+  GIT_USERNAME="${ANSWER:-${DEFAULT}}"
+  git config --global user.name "${GIT_USERNAME}"
+
+  DEFAULT="${GIT_USERNAME}@nalbam.com"
+  _read "Please input git user email [${DEFAULT}]: "
+
+  GIT_USEREMAIL="${ANSWER:-${DEFAULT}}"
+  git config --global user.email "${GIT_USEREMAIL}"
+}
+
 _install_brew_path() {
   # if [ -d /opt/homebrew/Cellar/ ]; then
   #   INSTALLED=$(ls /opt/homebrew/Cellar/ | grep "$1" | wc -l | xargs)
@@ -137,19 +151,7 @@ curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zsh
 # git config
 GIT_USERNAME=$(git config --global user.name)
 if [ -z ${GIT_USERNAME} ]; then
-  DEFAULT="$(whoami)"
-  _read "Please input git user name [${DEFAULT}]: "
-  GIT_USERNAME=${ANSWER:-${DEFAULT}}
-
-  _command "git config --global user.name ${GIT_USERNAME}"
-  git config --global user.name "${GIT_USERNAME}"
-
-  DEFAULT="${GIT_USERNAME}@daangn.com"
-  _read "Please input git user email [${DEFAULT}]: "
-  GIT_USERMAIL=${ANSWER:-${DEFAULT}}
-
-  _command "git config --global user.email ${GIT_USERMAIL}"
-  git config --global user.email "${GIT_USERMAIL}"
+  git_config
 fi
 
 git config --global core.autocrlf input
