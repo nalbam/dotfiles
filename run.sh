@@ -127,8 +127,23 @@ curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vim
 curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
 # git config
-git config --global user.name "nalbam"
-git config --global user.email "me@nalbam.com"
+GIT_USERNAME=$(git config --global user.name)
+
+if [ ! -z ${GIT_USERNAME} ]; then
+  DEFAULT="$(whoami)"
+  _read "Please input git user name [${DEFAULT}]: "
+  GIT_USERNAME=${ANSWER:-${DEFAULT}}
+
+  _command "git config --global user.name ${GIT_USERNAME}"
+  git config --global user.name "${GIT_USERNAME}"
+
+  DEFAULT="${GIT_USERNAME}@daangn.com"
+  _read "Please input git user email [${DEFAULT}]: "
+  GIT_USERMAIL=${ANSWER:-${DEFAULT}}
+
+  _command "git config --global user.email ${GIT_USERMAIL}"
+  git config --global user.email "${GIT_USERMAIL}"
+fi
 
 git config --global core.autocrlf input
 git config --global core.pager ''
