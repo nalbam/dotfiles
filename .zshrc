@@ -106,7 +106,7 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
-export PATH="$PATH:/Users/nalbam/.local/bin"
+export PATH="$PATH:$HOME/.local/bin"
 
 # if [ -d "/opt/homebrew/bin" ]; then
 #   export PATH="/opt/homebrew/bin:$PATH"
@@ -118,7 +118,7 @@ elif [ -d "/usr/local/opt/gnu-getopt/bin" ]; then
   export PATH="/usr/local/opt/gnu-getopt/bin:$PATH"
 fi
 
-export PATH="$PATH:$(pyenv root)/shims"
+# export PATH="$PATH:$(pyenv root)/shims"
 # eval "$(pyenv init -)"
 
 if [ -d "/opt/homebrew/opt/kube-ps1" ]; then
