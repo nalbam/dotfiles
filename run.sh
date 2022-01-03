@@ -54,7 +54,7 @@ _install_brew() {
   fi
 }
 
-git_config() {
+_git_config() {
   DEFAULT="$(whoami)"
   _read "Please input git user name [${DEFAULT}]: "
 
@@ -69,14 +69,6 @@ git_config() {
 }
 
 _install_brew_path() {
-  # if [ -d /opt/homebrew/Cellar/ ]; then
-  #   INSTALLED=$(ls /opt/homebrew/Cellar/ | grep "$1" | wc -l | xargs)
-  # elif [ -d /usr/local/Cellar/ ]; then
-  #   INSTALLED=$(ls /usr/local/Cellar/ | grep "$1" | wc -l | xargs)
-  # else
-  #   INSTALLED=
-  # fi
-
   INSTALLED=$(cat /tmp/brew_list | grep "$1" | wc -l | xargs)
 
   if [ "x${INSTALLED}" == "x0" ]; then
@@ -151,14 +143,14 @@ curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zsh
 # git config
 GIT_USERNAME=$(git config --global user.name)
 if [ -z ${GIT_USERNAME} ]; then
-  git_config
-fi
+  _git_config
 
-git config --global core.autocrlf input
-git config --global core.pager ''
-git config --global core.precomposeunicode true
-git config --global core.quotepath false
-git config --global pull.ff only
+  git config --global core.autocrlf input
+  git config --global core.pager ''
+  git config --global core.precomposeunicode true
+  git config --global core.quotepath false
+  git config --global pull.ff only
+fi
 
 # brew for mac
 if [ "${INSTALLER}" == "brew" ]; then
