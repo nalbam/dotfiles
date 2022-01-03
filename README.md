@@ -3,5 +3,5 @@
 ## install
 
 ```bash
-curl -sL nalbam.github.io/dotfiles/run.sh | bash
+bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 ```
