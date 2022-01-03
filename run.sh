@@ -141,7 +141,7 @@ curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vim
 curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
 # git config
-GIT_USERNAME=$(git config --global user.name)
+GIT_USERNAME="$(git config --global user.name)"
 if [ -z ${GIT_USERNAME} ]; then
   _git_config
 
