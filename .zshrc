@@ -108,9 +108,9 @@ fi
 
 export PATH="$PATH:$HOME/.local/bin"
 
-# if [ -d "/opt/homebrew/bin" ]; then
-#   export PATH="/opt/homebrew/bin:$PATH"
-# fi
+if [ -d "/opt/homebrew/bin" ]; then
+  export PATH="/opt/homebrew/bin:$PATH"
+fi
 
 if [ -d "/opt/homebrew/opt/gnu-getopt/bin" ]; then
   export PATH="/opt/homebrew/opt/gnu-getopt/bin:$PATH"
