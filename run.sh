@@ -144,9 +144,17 @@ if [ ! -f ~/.aws/config ]; then
   chmod 400 ~/.aws/config
 fi
 
+# .aliases
+if [ -f ~/.aliases ] && [ ! -f ~/.aliases.backup ]: then
+  cp ~/.aliases ~/.aliases.backup
+fi
 curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
+
+# .vimrc
+if [ -f ~/.vimrc ] && [ ! -f ~/.vimrc.backup ]: then
+  cp ~/.vimrc ~/.vimrc.backup
+fi
 curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
-curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
 # git config
 GIT_USERNAME="$(git config --global user.name)"
@@ -282,7 +290,14 @@ if [ "${INSTALLER}" == "brew" ]; then
   brew cleanup
 fi
 
-if [ -d "/opt/homebrew/bin" ]; then
+# .zshrc
+if [ -f ~/.zshrc ] && [ ! -f ~/.zshrc.backup ]: then
+  cp ~/.zshrc ~/.zshrc.backup
+fi
+curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
+
+# .zprofile
+if [ -d /opt/homebrew/bin ]; then
   curl -sL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.arm
 else
   curl -sL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile
