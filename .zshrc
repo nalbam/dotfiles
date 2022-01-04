@@ -106,7 +106,7 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
-export PATH="$PATH:$HOME/.local/bin"
+# export PATH="$HOME/.local/bin:$PATH"
 
 # if [ -d "/opt/homebrew/bin" ]; then
 #   export PATH="/opt/homebrew/bin:$PATH"
