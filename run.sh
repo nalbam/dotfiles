@@ -165,6 +165,11 @@ if [ "${INSTALLER}" == "brew" ]; then
     sudo xcodebuild -license
     xcode-select --install
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    if [ -d "/opt/homebrew/bin" ]; then
+      eval "$(/opt/homebrew/bin/brew shellenv)"
+    else
+      eval "$(brew shellenv)"
+    fi
   fi
 
   _command "brew update..."
