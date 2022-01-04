@@ -211,50 +211,6 @@ if [ "${INSTALLER}" == "brew" ]; then
     brew link --force gnu-getopt
   fi
 
-  _command "check utils..."
-
-  _install_brew_path bat
-  _install_brew_path fzf
-  _install_brew_path git
-  _install_brew_path go
-  _install_brew_path jq
-  _install_brew_path telnet
-  _install_brew_path tmux
-  _install_brew_path wget
-  _install_brew_path yq
-  _install_brew_path figlet
-  _install_brew_path grpcurl
-  _install_brew_path httpie
-
-  _install_brew_path jenv
-  _install_brew_path pyenv
-  _install_brew_path tfenv
-
-  _install_brew_path argo
-  _install_brew_path argocd
-  _install_brew_path aws-vault
-  _install_brew_path awscli
-  _install_brew_path eksctl
-  _install_brew_path gh
-  _install_brew_path helm
-  _install_brew_path helm-docs
-  _install_brew_path hub
-  _install_brew_path hugo
-  _install_brew_path istioctl
-  _install_brew_path jsonnet
-  _install_brew_path k6
-  _install_brew_path k9s
-  _install_brew_path kubectx
-  _install_brew_path kubernetes-cli
-  _install_brew_path minikube
-  _install_brew_path tanka
-  _install_brew_path terraform-docs
-
-  _install_brew_path kubectl-argo-rollouts argoproj/tap/kubectl-argo-rollouts
-
-  _install_brew_path kube-ps1
-  _install_brew_path zsh-syntax-highlighting
-
   if [ "${OS_ARCH}" == "x86_64" ]; then
     _install_brew_path qemu
     _install_brew_path podman
@@ -262,29 +218,8 @@ if [ "${INSTALLER}" == "brew" ]; then
     _install_brew_path podman-apple-silicon simnalamburt/x/podman-apple-silicon
   fi
 
-  # nodejs
-  _install_brew_path node
-  _install_npm_path reveal-md
-
-  # java
-  _install_brew_path openjdk
-  _install_brew_path maven
-
-  # apps
-  _install_brew_path dropbox
-  _install_brew_path google-chrome
-  _install_brew_path istat-menus
-  _install_brew_path iterm2
-  _install_brew_path slack
-  _install_brew_path visual-studio-code
-
-  # _install_brew_apps "Dropbox.app" dropbox
-  # _install_brew_apps "Google Chrome.app" google-chrome
-  # _install_brew_apps "iTerm.app" iterm2
-  # _install_brew_apps "Visual Studio Code.app" visual-studio-code
-
-  # _install_brew_apps "iStat Menus.app" istat-menus
-  # _install_brew_apps "Slack.app" slack # app store
+  _command "brew bundle..."
+  brew bundle
 
   _command "check versions..."
   _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
