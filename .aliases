@@ -5,10 +5,10 @@ alias tu='t update'
 alias tt='t tools'
 
 c() {
-    toaster cdw ${1}
-    if [ -f /tmp/toaster-temp-result ]; then
-        cd $(cat /tmp/toaster-temp-result)
-    fi
+  toaster cdw ${1}
+  if [ -f /tmp/toaster-temp-result ]; then
+    cd $(cat /tmp/toaster-temp-result)
+  fi
 }
 
 alias e='toaster env'
@@ -62,8 +62,4 @@ alias ㅊㅇ='cd'
 
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
-# alias p='reveal-md -w --port 8888 --theme https://raw.githubusercontent.com/nalbam/docs/master/.theme/black.css'
 alias p='reveal-md -w --port 8888 --theme night'
-
-# export GOPATH=$HOME/work
-# export PATH=$PATH:$GOPATH/bin
