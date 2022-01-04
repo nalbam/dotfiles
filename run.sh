@@ -134,13 +134,13 @@ mkdir -p ~/.ssh
 
 # ssh config
 if [ ! -f ~/.ssh/config ]; then
-  curl -sL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
+  curl -fsSL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
   chmod 400 ~/.ssh/config
 fi
 
 # aws config
 if [ ! -f ~/.aws/config ]; then
-  curl -sL -o ~/.aws/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.aws/config
+  curl -fsSL -o ~/.aws/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.aws/config
   chmod 400 ~/.aws/config
 fi
 
@@ -148,13 +148,13 @@ fi
 if [ -f ~/.aliases ] && [ ! -f ~/.aliases.backup ]; then
   cp ~/.aliases ~/.aliases.backup
 fi
-curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
+curl -fsSL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
 
 # .vimrc
 if [ -f ~/.vimrc ] && [ ! -f ~/.vimrc.backup ]; then
   cp ~/.vimrc ~/.vimrc.backup
 fi
-curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
+curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 
 # git config
 GIT_USERNAME="$(git config --global user.name)"
@@ -294,13 +294,13 @@ fi
 if [ -f ~/.zshrc ] && [ ! -f ~/.zshrc.backup ]; then
   cp ~/.zshrc ~/.zshrc.backup
 fi
-curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
+curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
 # .zprofile
 if [ -d /opt/homebrew/bin ]; then
-  curl -sL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.arm
+  curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.arm
 else
-  curl -sL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile
+  curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile
 fi
 
 _success
