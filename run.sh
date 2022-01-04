@@ -147,7 +147,6 @@ fi
 curl -sL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
 curl -sL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
 curl -sL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
-curl -sL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile
 curl -sL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
 # git config
@@ -280,6 +279,12 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   _command "brew cleanup..."
   brew cleanup
+fi
+
+if [ -d "/opt/homebrew/bin" ]; then
+  curl -sL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.arm
+else
+  curl -sL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile
 fi
 
 _success
