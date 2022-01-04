@@ -211,6 +211,7 @@ if [ "${INSTALLER}" == "brew" ]; then
     brew link --force gnu-getopt
   fi
 
+  # podman
   if [ "${OS_ARCH}" == "x86_64" ]; then
     _install_brew_path qemu
     _install_brew_path podman
