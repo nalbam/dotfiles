@@ -156,6 +156,12 @@ if [ -f ~/.vimrc ] && [ ! -f ~/.vimrc.backup ]; then
 fi
 curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 
+# .Brewfile
+if [ -f ~/.Brewfile ] && [ ! -f ~/.Brewfile.backup ]; then
+  cp ~/.Brewfile ~/.Brewfile.backup
+fi
+curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/.Brewfile
+
 # git config
 GIT_USERNAME="$(git config --global user.name)"
 if [ -z ${GIT_USERNAME} ]; then
