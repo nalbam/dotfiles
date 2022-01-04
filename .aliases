@@ -1,23 +1,26 @@
 #!/bin/bash
 
-alias t='toaster'
-alias tu='t update'
-alias tt='t tools'
+command -v toaster > /dev/null || HAS_TOASTER=false
+if [ ! -z ${HAS_TOASTER} ]; then
+  alias t='toaster'
+  alias tu='t update'
+  alias tt='t tools'
 
-c() {
-  toaster cdw ${1}
-  if [ -f /tmp/toaster-temp-result ]; then
-    cd $(cat /tmp/toaster-temp-result)
-  fi
-}
+  c() {
+    toaster cdw ${1}
+    if [ -f /tmp/toaster-temp-result ]; then
+      cd $(cat /tmp/toaster-temp-result)
+    fi
+  }
 
-alias e='toaster env'
-alias n='toaster git'
-alias q='toaster assume'
-alias r='toaster region'
-alias s='toaster ssh'
-alias x='toaster ctx'
-alias z='toaster ns'
+  alias e='toaster env'
+  alias n='toaster git'
+  alias q='toaster assume'
+  alias r='toaster region'
+  alias s='toaster ssh'
+  alias x='toaster ctx'
+  alias z='toaster ns'
+fi
 
 alias a='aws'
 alias k='kubectl'
