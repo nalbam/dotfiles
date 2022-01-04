@@ -160,7 +160,7 @@ curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.v
 if [ -f ~/Brewfile ] && [ ! -f ~/Brewfile.backup ]; then
   cp ~/Brewfile ~/Brewfile.backup
 fi
-curl -fsSL -o ~/Brewfile https://raw.githubusercontent.com/daangn/dotfiles/main/Brewfile
+curl -fsSL -o ~/Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile
 
 # git config
 GIT_USERNAME="$(git config --global user.name)"
