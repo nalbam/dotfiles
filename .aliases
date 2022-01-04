@@ -1,7 +1,7 @@
 #!/bin/bash
 
-command -v toaster > /dev/null || HAS_TOASTER=false
-if [ ! -z ${HAS_TOASTER} ]; then
+# command -v toaster > /dev/null || HAS_TOASTER=false
+# if [ ! -z ${HAS_TOASTER} ]; then
   alias t='toaster'
   alias tu='t update'
   alias tt='t tools'
@@ -20,7 +20,7 @@ if [ ! -z ${HAS_TOASTER} ]; then
   alias s='toaster ssh'
   alias x='toaster ctx'
   alias z='toaster ns'
-fi
+# fi
 
 alias a='aws'
 alias k='kubectl'
