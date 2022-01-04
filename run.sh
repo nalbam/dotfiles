@@ -220,7 +220,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   fi
 
   _command "brew bundle..."
-  brew bundle
+  brew bundle --file=~/Brewfile
 
   _command "check versions..."
   _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
