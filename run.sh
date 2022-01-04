@@ -174,11 +174,9 @@ if [ "${INSTALLER}" == "brew" ]; then
     _command "brew install..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     if [ -d "/opt/homebrew/bin" ]; then
-      echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
       eval "$(/opt/homebrew/bin/brew shellenv)"
     else
       eval "$(brew shellenv)"
-      echo 'eval "$(brew shellenv)"' >> ~/.zprofile
     fi
   fi
 
