@@ -34,6 +34,12 @@ fi
 
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
 
+if [ -d "/opt/homebrew/share/zsh-autosuggestions" ]; then
+  source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+elif [ -d "/usr/local/share/zsh-autosuggestions" ]; then
+  source /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+fi
+
 if [ -d "/opt/homebrew/share/zsh-syntax-highlighting" ]; then
   source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 elif [ -d "/usr/local/share/zsh-syntax-highlighting" ]; then
