@@ -1,10 +1,12 @@
 #!/bin/bash
 
-OS_NAME="$(uname | awk '{print tolower($0)}')"
+OS_NAME="$(uname | awk '{print tolower($0)}' | cut -d'-' -f1)"
 OS_ARCH="$(uname -m)"
 
 if [ "${OS_NAME}" == "darwin" ]; then
   INSTALLER="brew"
+elif [ "${OS_NAME}" == "mingw64_nt" ]; then
+  INSTALLER="choco"
 fi
 
 ################################################################################
@@ -156,12 +158,6 @@ if [ -f ~/.vimrc ] && [ ! -f ~/.vimrc.backup ]; then
 fi
 curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 
-# Brewfile
-if [ -f ~/Brewfile ] && [ ! -f ~/Brewfile.backup ]; then
-  cp ~/Brewfile ~/Brewfile.backup
-fi
-curl -fsSL -o ~/Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile
-
 # git config
 GIT_USERNAME="$(git config --global user.name)"
 if [ -z ${GIT_USERNAME} ]; then
@@ -218,6 +214,12 @@ if [ "${INSTALLER}" == "brew" ]; then
   elif [ "${OS_ARCH}" == "arm64" ]; then
     _install_brew_path podman-apple-silicon simnalamburt/x/podman-apple-silicon
   fi
+
+  # Brewfile
+  if [ -f ~/Brewfile ] && [ ! -f ~/Brewfile.backup ]; then
+    cp ~/Brewfile ~/Brewfile.backup
+  fi
+  curl -fsSL -o ~/Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile
 
   _command "brew bundle..."
   brew bundle --file=~/Brewfile
