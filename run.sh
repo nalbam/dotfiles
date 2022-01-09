@@ -241,6 +241,12 @@ if [ -f ~/.bashrc ] && [ ! -f ~/.bashrc.backup ]; then
 fi
 curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
 
+# .profile
+if [ -f ~/.profile ] && [ ! -f ~/.profile.backup ]; then
+  cp ~/.zshrc ~/.profile.backup
+fi
+curl -fsSL -o ~/.profile https://raw.githubusercontent.com/nalbam/dotfiles/main/.profile
+
 # .zshrc
 if [ -f ~/.zshrc ] && [ ! -f ~/.zshrc.backup ]; then
   cp ~/.zshrc ~/.zshrc.backup
