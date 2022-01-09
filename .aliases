@@ -63,6 +63,9 @@ alias xs='cd'
 alias vf='cd'
 alias ㅊㅇ='cd'
 
+alias l='ls -alF'
+alias ll='ls -alF'
+
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
 alias p='reveal-md -w --port 8888 --theme night'
