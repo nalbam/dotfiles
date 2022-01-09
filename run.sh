@@ -132,7 +132,8 @@ mkdir -p ~/.aws
 mkdir -p ~/.ssh
 
 # ssh keygen
-[ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
+[ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
+[ ! -f ~/.ssh/id_ed25519 ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
 
 # ssh config
 if [ ! -f ~/.ssh/config ]; then
