@@ -234,6 +234,12 @@ if [ "${INSTALLER}" == "brew" ]; then
   brew cleanup
 fi
 
+# .bashrc
+if [ -f ~/.bashrc ] && [ ! -f ~/.bashrc.backup ]; then
+  cp ~/.zshrc ~/.bashrc.backup
+fi
+curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+
 # .zshrc
 if [ -f ~/.zshrc ] && [ ! -f ~/.zshrc.backup ]; then
   cp ~/.zshrc ~/.zshrc.backup
