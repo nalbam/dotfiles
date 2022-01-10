@@ -30,9 +30,9 @@ alias am='aws sts get-caller-identity | jq .'
 
 alias av='aws-vault'
 alias ave='export AWS_VAULT= && av exec'
-alias ava='export AWS_VAULT= && av exec daangn/alpha --'
-alias avd='export AWS_VAULT= && av exec daangn/data --'
-alias avp='export AWS_VAULT= && av exec daangn/prod --'
+alias ava='export AWS_VAULT= && av exec daangn-alpha --'
+alias avd='export AWS_VAULT= && av exec daangn-data --'
+alias avp='export AWS_VAULT= && av exec daangn-prod --'
 alias avn='export AWS_VAULT= && av exec nalbam --'
 
 alias tf='terraform'
