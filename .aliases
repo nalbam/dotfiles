@@ -64,7 +64,7 @@ alias vf='cd'
 alias ㅊㅇ='cd'
 
 alias l='ls -al'
-alias ll='ls -alF'
+alias ll='ls -l'
 
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
