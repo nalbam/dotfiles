@@ -217,13 +217,13 @@ if [ "${INSTALLER}" == "brew" ]; then
   fi
 
   # Brewfile
-  if [ -f ~/Brewfile ] && [ ! -f ~/Brewfile.backup ]; then
-    cp ~/Brewfile ~/Brewfile.backup
+  if [ -f ~/.Brewfile ] && [ ! -f ~/.Brewfile.backup ]; then
+    cp ~/.Brewfile ~/.Brewfile.backup
   fi
-  curl -fsSL -o ~/Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile
+  curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile
 
   _command "brew bundle..."
-  brew bundle --file=~/Brewfile
+  brew bundle --file=~/.Brewfile
 
   _command "check versions..."
   _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
