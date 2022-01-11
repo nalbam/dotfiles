@@ -1,4 +1,4 @@
-#!/bin/bash
+# .aliases
 
 # command -v toaster > /dev/null || HAS_TOASTER=false
 # if [ ! -z ${HAS_TOASTER} ]; then
