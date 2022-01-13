@@ -58,8 +58,9 @@ alias xs='cd'
 alias vf='cd'
 alias ㅊㅇ='cd'
 
-alias l='ls -al'
+alias ls='ls --color=auto'
 alias ll='ls -l'
+alias l='ls -al'
 
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
