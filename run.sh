@@ -241,7 +241,11 @@ fi
 if [ -f ~/.bashrc ] && [ ! -f ~/.bashrc.backup ]; then
   cp ~/.bashrc ~/.bashrc.backup
 fi
-curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+if [ "${OS_NAME}" == "linux" ]; then
+  curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc.linux
+else
+  curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+fi
 
 # .profile
 if [ -f ~/.profile ] && [ ! -f ~/.profile.backup ]; then
