@@ -100,6 +100,15 @@ _install_brew_apps() {
   fi
 }
 
+_install_apt() {
+  INSTALLED=
+  command -v $1 > /dev/null || INSTALLED=false
+  if [ ! -z ${INSTALLED} ]; then
+    _command "sudo apt install -y ${2:-$1}"
+    apt install -y ${2:-$1}
+  fi
+}
+
 _install_npm() {
   INSTALLED=
   command -v $1 > /dev/null || INSTALLED=false
@@ -241,6 +250,20 @@ if [ "${INSTALLER}" == "brew" ]; then
 
   _command "brew cleanup..."
   brew cleanup
+fi
+
+# brew for ubuntu
+if [ "${INSTALLER}" == "apt" ]; then
+  _command "apt update..."
+  sudo apt update
+
+  _command "apt upgrade..."
+  sudo apt upgrade -y
+
+  _install_apt curl
+  _install_apt git
+  _install_apt wget
+  _install_apt fzf
 fi
 
 # .bashrc
