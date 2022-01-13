@@ -122,6 +122,12 @@ _install_npm_path() {
   fi
 }
 
+_backup() {
+  if [ -f $1 ] && [ ! -f $1.backup ]; then
+    cp $1 $1.backup
+  fi
+}
+
 ################################################################################
 
 _result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
@@ -238,9 +244,7 @@ if [ "${INSTALLER}" == "brew" ]; then
 fi
 
 # .bashrc
-if [ -f ~/.bashrc ] && [ ! -f ~/.bashrc.backup ]; then
-  cp ~/.bashrc ~/.bashrc.backup
-fi
+_backup ~/.bashrc
 if [ "${OS_NAME}" == "linux" ]; then
   curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc.linux
 else
@@ -248,18 +252,15 @@ else
 fi
 
 # .profile
-if [ -f ~/.profile ] && [ ! -f ~/.profile.backup ]; then
-  cp ~/.profile ~/.profile.backup
-fi
+_backup ~/.profile
 curl -fsSL -o ~/.profile https://raw.githubusercontent.com/nalbam/dotfiles/main/.profile
 
 # .zshrc
-if [ -f ~/.zshrc ] && [ ! -f ~/.zshrc.backup ]; then
-  cp ~/.zshrc ~/.zshrc.backup
-fi
+_backup ~/.zshrc
 curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 
 # .zprofile
+_backup ~/.zprofile
 if [ -d /opt/homebrew/bin ]; then
   curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.arm
 else
