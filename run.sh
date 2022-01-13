@@ -5,6 +5,8 @@ OS_ARCH="$(uname -m)"
 
 if [ "${OS_NAME}" == "darwin" ]; then
   INSTALLER="brew"
+elif [ "${OS_NAME}" == "linux" ]; then
+  INSTALLER="apt"
 elif [ "${OS_NAME}" == "mingw64_nt" ]; then
   INSTALLER="choco"
 fi
