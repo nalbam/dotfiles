@@ -189,11 +189,11 @@ if [ "${INSTALLER}" == "brew" ]; then
     _command "xcode-select --install"
     sudo xcodebuild -license
     xcode-select --install
-  fi
 
-  # if [ "${OS_ARCH}" == "arm64" ]; then
-  #   sudo softwareupdate --install-rosetta --agree-to-license
-  # fi
+    if [ "${OS_ARCH}" == "arm64" ]; then
+      sudo softwareupdate --install-rosetta --agree-to-license
+    fi
+  fi
 
   # brew
   command -v brew > /dev/null || HAS_BREW=false
