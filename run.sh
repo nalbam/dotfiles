@@ -184,13 +184,20 @@ fi
 
 # brew for mac
 if [ "${INSTALLER}" == "brew" ]; then
-  # brew
-  command -v brew > /dev/null || HAS_BREW=false
-  if [ ! -z ${HAS_BREW} ]; then
+  command -v xcode-select > /dev/null || HAS_XCODE=false
+  if [ ! -z ${HAS_XCODE} ]; then
     _command "xcode-select --install"
     sudo xcodebuild -license
     xcode-select --install
+  fi
 
+  # if [ "${OS_ARCH}" == "arm64" ]; then
+  #   sudo softwareupdate --install-rosetta --agree-to-license
+  # fi
+
+  # brew
+  command -v brew > /dev/null || HAS_BREW=false
+  if [ ! -z ${HAS_BREW} ]; then
     _command "brew install..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     if [ -d "/opt/homebrew/bin" ]; then
@@ -216,6 +223,7 @@ if [ "${INSTALLER}" == "brew" ]; then
     chsh -s /bin/zsh
   fi
 
+  # oh-my-zsh
   if [ ! -d ~/.oh-my-zsh ]; then
     /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
   fi
