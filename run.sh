@@ -214,6 +214,9 @@ if [ "${INSTALLER}" == "brew" ]; then
     _command "brew install zsh"
     brew install zsh
     chsh -s /bin/zsh
+  fi
+
+  if [ ! -d ~/.oh-my-zsh ]; then
     /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
   fi
 
