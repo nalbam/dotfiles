@@ -155,13 +155,13 @@ mkdir -p ~/.ssh
 # ssh config
 if [ ! -f ~/.ssh/config ]; then
   curl -fsSL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
-  chmod 400 ~/.ssh/config
+  chmod 600 ~/.ssh/config
 fi
 
 # aws config
 if [ ! -f ~/.aws/config ]; then
   curl -fsSL -o ~/.aws/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.aws/config
-  chmod 400 ~/.aws/config
+  chmod 600 ~/.aws/config
 fi
 
 # .aliases
