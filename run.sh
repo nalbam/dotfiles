@@ -288,6 +288,10 @@ if [ "${INSTALLER}" == "apt" ]; then
                         libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
                         xz-utils tk-dev
   fi
+
+  if [ ! -d ~/.pyenv ]; then
+    git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+  fi
 fi
 
 # chsh zsh
