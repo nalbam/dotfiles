@@ -57,6 +57,12 @@ elif [ -d "/usr/local/share/zsh-syntax-highlighting" ]; then
   source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
 
+# pyenv
+if [ -d "$HOME/.pyenv" ]; then
+  export PYENV_ROOT="$HOME/.pyenv"
+  export PATH="$PYENV_ROOT/bin:$PATH"
+fi
+
 # tfenv
 export TFENV_AUTO_INSTALL=true
 if [[ "${OS_ARCH}" == "arm64" ]]; then
