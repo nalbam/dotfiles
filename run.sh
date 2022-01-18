@@ -237,12 +237,6 @@ if [ "${INSTALLER}" == "brew" ]; then
   if [ ! -z ${HAS_ZSH} ]; then
     _command "brew install zsh"
     brew install zsh
-    chsh -s /bin/zsh
-  fi
-
-  # oh-my-zsh
-  if [ ! -d ~/.oh-my-zsh ]; then
-    /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
   fi
 
   # getopt
@@ -288,19 +282,28 @@ if [ "${INSTALLER}" == "apt" ]; then
   _command "apt upgrade..."
   sudo apt upgrade -y
 
-  _install_apt curl
-  _install_apt git
-  _install_apt wget
-  _install_apt fzf
+  command -v zsh >/dev/null || HAS_ZSH=false
+  if [ ! -z ${HAS_ZSH} ]; then
+    sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev git fzf zsh \
+                        libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
+                        xz-utils tk-dev
+  fi
+fi
+
+# chsh zsh
+THIS_SHELL="$(grep $(whoami) /etc/passwd | cut -d':' -f7)"
+if [[ "${THIS_SHELL}" == "/bin/zsh" ]]; then
+  chsh -s /bin/zsh
+fi
+
+# oh-my-zsh
+if [ ! -d ~/.oh-my-zsh ]; then
+  /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 fi
 
 # .bashrc
 _backup ~/.bashrc
-if [ "${OS_NAME}" == "linux" ]; then
-  curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc.linux
-else
-  curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
-fi
+curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
 
 # .profile
 _backup ~/.profile
@@ -312,10 +315,6 @@ curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.z
 
 # .zprofile
 _backup ~/.zprofile
-if [ -d /opt/homebrew/bin ]; then
-  curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.arm
-else
-  curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile
-fi
+curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.${OS_NAME}.${OS_ARCH}
 
 _success
