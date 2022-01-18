@@ -206,6 +206,12 @@ if [ "${INSTALLER}" == "brew" ]; then
     curl -fsSL -o ~/Library/KeyBindings/DefaultkeyBinding.dict https://raw.githubusercontent.com/nalbam/dotfiles/main/.mac/DefaultkeyBinding.dict
   fi
 
+  # .macos
+  if [ ! -f ~/.macos ]; then
+    curl -fsSL -o ~/.macos https://raw.githubusercontent.com/nalbam/dotfiles/main/.macos
+    /bin/bash ~/.macos
+  fi
+
   # brew
   command -v brew >/dev/null || HAS_BREW=false
   if [ ! -z ${HAS_BREW} ]; then
