@@ -13,7 +13,7 @@ fi
 
 ################################################################################
 
-command -v tput > /dev/null && TPUT=true
+command -v tput >/dev/null && TPUT=true
 
 _echo() {
   if [ "${TPUT}" != "" ] && [ "$2" != "" ]; then
@@ -75,7 +75,7 @@ _git_config() {
 
 _install_brew() {
   INSTALLED=
-  command -v $1 > /dev/null || INSTALLED=false
+  command -v $1 >/dev/null || INSTALLED=false
   if [ ! -z ${INSTALLED} ]; then
     _command "brew install ${2:-$1}"
     brew install ${2:-$1}
@@ -102,7 +102,7 @@ _install_brew_apps() {
 
 _install_apt() {
   INSTALLED=
-  command -v $1 > /dev/null || INSTALLED=false
+  command -v $1 >/dev/null || INSTALLED=false
   if [ ! -z ${INSTALLED} ]; then
     _command "sudo apt install -y ${2:-$1}"
     apt install -y ${2:-$1}
@@ -111,7 +111,7 @@ _install_apt() {
 
 _install_npm() {
   INSTALLED=
-  command -v $1 > /dev/null || INSTALLED=false
+  command -v $1 >/dev/null || INSTALLED=false
   if [ ! -z ${INSTALLED} ]; then
     _command "npm install -g ${2:-$1}"
     npm install -g ${2:-$1}
@@ -144,6 +144,11 @@ _result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
 if [ "${INSTALLER}" == "" ]; then
   _error "Not supported OS."
 fi
+
+# sudo -v
+
+# # Keep-alive: update existing `sudo` time stamp
+# while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 mkdir -p ~/.aws
 mkdir -p ~/.ssh
@@ -184,7 +189,7 @@ fi
 
 # brew for mac
 if [ "${INSTALLER}" == "brew" ]; then
-  command -v xcode-select > /dev/null || HAS_XCODE=false
+  command -v xcode-select >/dev/null || HAS_XCODE=false
   if [ ! -z ${HAS_XCODE} ]; then
     _command "xcode-select --install"
     sudo xcodebuild -license
@@ -202,7 +207,7 @@ if [ "${INSTALLER}" == "brew" ]; then
   fi
 
   # brew
-  command -v brew > /dev/null || HAS_BREW=false
+  command -v brew >/dev/null || HAS_BREW=false
   if [ ! -z ${HAS_BREW} ]; then
     _command "brew install..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -219,10 +224,10 @@ if [ "${INSTALLER}" == "brew" ]; then
   _command "brew upgrade..."
   brew upgrade
 
-  brew list > /tmp/brew_list
+  brew list >/tmp/brew_list
 
   # zsh
-  command -v zsh > /dev/null || HAS_ZSH=false
+  command -v zsh >/dev/null || HAS_ZSH=false
   if [ ! -z ${HAS_ZSH} ]; then
     _command "brew install zsh"
     brew install zsh
