@@ -12,6 +12,8 @@ source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
+OS_ARCH="$(uname -m)"
+
 if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
@@ -57,6 +59,6 @@ fi
 
 # tfenv
 export TFENV_AUTO_INSTALL=true
-if [ -d "/opt/homebrew/bin" ]; then
+if [ "${OS_ARCH}" == "arm64" ]; then
   export TFENV_ARCH=arm64
 fi

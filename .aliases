@@ -58,7 +58,6 @@ alias xs='cd'
 alias vf='cd'
 alias ㅊㅇ='cd'
 
-# alias ls='ls --color=auto'
 alias ll='ls -l'
 alias l='ls -al'
 
