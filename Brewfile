@@ -40,8 +40,8 @@ brew "zsh"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 
-brew "helm-docs"
-brew "kubectl-argo-rollouts"
+# brew "helm-docs"
+# brew "kubectl-argo-rollouts"
 
 # brew "norwoodj/tap/helm-docs"
 # brew "argoproj/tap/kubectl-argo-rollouts"
