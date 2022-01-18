@@ -54,3 +54,9 @@ if [ -d "/opt/homebrew/share/zsh-syntax-highlighting" ]; then
 elif [ -d "/usr/local/share/zsh-syntax-highlighting" ]; then
   source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
+
+# tfenv
+export TFENV_AUTO_INSTALL=true
+if [ -d "/opt/homebrew/bin" ]; then
+  export TFENV_ARCH=arm64
+fi
