@@ -66,7 +66,7 @@ _git_config() {
   GIT_USERNAME="${ANSWER:-${DEFAULT}}"
   git config --global user.name "${GIT_USERNAME}"
 
-  DEFAULT="${GIT_USERNAME}@nalbam.com"
+  DEFAULT="me@${GIT_USERNAME}.com"
   _read "Please input git user email [${DEFAULT}]: "
 
   GIT_USEREMAIL="${ANSWER:-${DEFAULT}}"
