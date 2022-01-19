@@ -151,6 +151,14 @@
 	# Include summaries of merged commits in newly created merge commit messages
 	log = true
 
+[pull]
+
+  # rebase
+  rebase = true
+
+  # fast-forward only
+  # ff = only
+
 [push]
 
 	# https://git-scm.com/docs/git-config#git-config-pushdefault
