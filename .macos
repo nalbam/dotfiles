@@ -16,7 +16,7 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 # Trackpad, mouse, keyboard, Bluetooth accessories, and input                 #
 ###############################################################################
 
-defaults write NSGlobalDomain com.apple.mouse.scaling -int 2
+defaults write NSGlobalDomain com.apple.mouse.scaling -int 3
 
 ###############################################################################
 # Dock, Dashboard, and hot corners                                            #
