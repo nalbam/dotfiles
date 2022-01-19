@@ -1,6 +1,6 @@
 alias t='toaster'
 alias tu='t update'
-alias tt='t tools'
+alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
 c() {
   toaster cdw ${1}
