@@ -51,6 +51,15 @@ _error() {
 }
 
 _git_config() {
+  # git config --global core.autocrlf input
+  # git config --global core.pager ''
+  # git config --global core.precomposeunicode true
+  # git config --global core.quotepath false
+  # git config --global pull.ff only
+
+  # git config --global user.name "nalbam"
+  # git config --global user.email "me@nalbam.com"
+
   DEFAULT="$(whoami)"
   _read "Please input git user name [${DEFAULT}]: "
 
@@ -62,12 +71,6 @@ _git_config() {
 
   GIT_USEREMAIL="${ANSWER:-${DEFAULT}}"
   git config --global user.email "${GIT_USEREMAIL}"
-
-  # git config --global core.autocrlf input
-  # git config --global core.pager ''
-  # git config --global core.precomposeunicode true
-  # git config --global core.quotepath false
-  # git config --global pull.ff only
 
   _command "git config --list"
   git config --list
@@ -185,11 +188,6 @@ curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.v
 # .gitconfig
 if [ ! -f ~/.gitconfig ]; then
   curl -fsSL -o ~/.gitconfig https://raw.githubusercontent.com/nalbam/dotfiles/main/.gitconfig
-fi
-
-# git config
-GIT_USERNAME="$(git config --global user.name)"
-if [ -z ${GIT_USERNAME} ]; then
   _git_config
 fi
 

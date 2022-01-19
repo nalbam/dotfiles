@@ -1,6 +1,6 @@
 [core]
 
-  pager = less -+XF -SQc
+  pager =
 
 	# Use custom `.gitignore` and `.gitattributes`.
 	excludesfile = ~/.gitignore
