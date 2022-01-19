@@ -1,26 +1,26 @@
 [core]
-	untrackedCache = true
+  untrackedCache = true
   autocrlf = input
   pager =
   precomposeunicode = true
   quotepath = false
 
 [apply]
-	whitespace = fix
+  whitespace = fix
 
 [branch]
-	sort = -committerdate
+  sort = -committerdate
 
 [color]
-	ui = auto
+  ui = auto
 
 [pull]
   rebase = true
   # ff = only
 
 [push]
-	default = simple
-	followTags = true
+  default = simple
+  followTags = true
 
 [init]
-	defaultBranch = main
+  defaultBranch = main
