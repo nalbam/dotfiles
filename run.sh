@@ -137,6 +137,11 @@ _backup() {
   fi
 }
 
+_download() {
+  _backup ~/$1
+  curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
+}
+
 ################################################################################
 
 _result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
@@ -170,15 +175,15 @@ if [ ! -f ~/.aws/config ]; then
 fi
 
 # .aliases
-if [ -f ~/.aliases ] && [ ! -f ~/.aliases.backup ]; then
-  cp ~/.aliases ~/.aliases.backup
-fi
+_backup ~/.aliases
 curl -fsSL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
 
+# .gitconfig
+_backup ~/.gitconfig
+curl -fsSL -o ~/.gitconfig https://raw.githubusercontent.com/nalbam/dotfiles/main/.gitconfig
+
 # .vimrc
-if [ -f ~/.vimrc ] && [ ! -f ~/.vimrc.backup ]; then
-  cp ~/.vimrc ~/.vimrc.backup
-fi
+_backup ~/.vimrc
 curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 
 # git config
