@@ -15,8 +15,8 @@
   ui = auto
 
 [pull]
-  rebase = true
-  # ff = only
+  # rebase = true
+  ff = only
 
 [push]
   default = simple
