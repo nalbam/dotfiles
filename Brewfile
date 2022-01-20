@@ -50,6 +50,7 @@ brew "zsh-syntax-highlighting"
 # brew "argoproj/tap/kubectl-argo-rollouts"
 
 cask "1password"
+cask "1password-cli"
 cask "aws-vault"
 cask "aws-vpn-client"
 cask "dropbox"
