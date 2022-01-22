@@ -280,16 +280,6 @@ _result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cu
 _command "brew cleanup..."
 brew cleanup
 
-
-# if [ ! -d ~/.pyenv ]; then
-#   git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-# fi
-
-# if [ ! -d ~/.tfenv ]; then
-#   git clone https://github.com/tfutils/tfenv.git ~/.tfenv
-# fi
-
-
 # oh-my-zsh
 if [ ! -d ~/.oh-my-zsh ]; then
   # chsh zsh
@@ -300,6 +290,18 @@ if [ ! -d ~/.oh-my-zsh ]; then
 
   /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 fi
+
+if [ ! -d ~/.dracula ]; then
+  git clone https://github.com/dracula/zsh.git ~/.dracula
+fi
+
+# if [ ! -d ~/.pyenv ]; then
+#   git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+# fi
+
+# if [ ! -d ~/.tfenv ]; then
+#   git clone https://github.com/tfutils/tfenv.git ~/.tfenv
+# fi
 
 # .bashrc
 _backup ~/.bashrc
