@@ -293,6 +293,7 @@ fi
 
 if [ ! -d ~/.dracula ]; then
   git clone https://github.com/dracula/zsh.git ~/.dracula
+  ln -s ~/.dracula/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
 fi
 
 # if [ ! -d ~/.pyenv ]; then
