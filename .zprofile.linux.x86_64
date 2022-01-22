@@ -1,2 +1,2 @@
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-eval "$($HOME/.pyenv/bin/pyenv init --path)"
+eval "$(pyenv init --path)"

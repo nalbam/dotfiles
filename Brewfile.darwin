@@ -43,12 +43,6 @@ brew "zsh"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 
-# brew "helm-docs"
-# brew "kubectl-argo-rollouts"
-
-# brew "norwoodj/tap/helm-docs"
-# brew "argoproj/tap/kubectl-argo-rollouts"
-
 cask "1password"
 cask "1password-cli"
 cask "aws-vault"
