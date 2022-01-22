@@ -290,14 +290,14 @@ brew cleanup
 # fi
 
 
-# chsh zsh
-THIS_SHELL="$(grep $(whoami) /etc/passwd | cut -d':' -f7)"
-if [[ "${THIS_SHELL}" == "/bin/zsh" ]]; then
-  chsh -s /bin/zsh
-fi
-
 # oh-my-zsh
 if [ ! -d ~/.oh-my-zsh ]; then
+  # chsh zsh
+  THIS_SHELL="$(grep $(whoami) /etc/passwd | cut -d':' -f7)"
+  if [[ "${THIS_SHELL}" == "/bin/zsh" ]]; then
+    chsh -s /bin/zsh
+  fi
+
   /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 fi
 
