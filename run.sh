@@ -284,7 +284,7 @@ if [ "${INSTALLER}" == "apt" ]; then
   if [ ! -z ${HAS_ZSH} ]; then
     sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev git fzf zsh \
                         libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
-                        xz-utils tk-dev jq
+                        xz-utils tk-dev jq unzip
   fi
 
   if [ ! -d ~/.pyenv ]; then
