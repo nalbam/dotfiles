@@ -266,7 +266,7 @@ fi
 
 # Brewfile
 _backup ~/.Brewfile
-curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile
+curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile.${OS_NAME}
 
 _command "brew bundle..."
 brew bundle --file=~/.Brewfile
