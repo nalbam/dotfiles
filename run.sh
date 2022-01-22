@@ -284,11 +284,15 @@ if [ "${INSTALLER}" == "apt" ]; then
   if [ ! -z ${HAS_ZSH} ]; then
     sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev git fzf zsh \
                         libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
-                        xz-utils tk-dev
+                        xz-utils tk-dev jq
   fi
 
   if [ ! -d ~/.pyenv ]; then
     git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+  fi
+
+  if [ ! -d ~/.tfenv ]; then
+    git clone https://github.com/tfutils/tfenv.git ~/.tfenv
   fi
 fi
 
