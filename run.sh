@@ -219,11 +219,13 @@ if [ "${OS_NAME}" == "linux" ]; then
   _command "apt upgrade..."
   sudo apt upgrade -y
 
-  command -v zsh >/dev/null || HAS_ZSH=false
-  if [ ! -z ${HAS_ZSH} ]; then
-    sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev git fzf zsh file procps \
-                        libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
-                        xz-utils tk-dev jq unzip apt-transport-https ca-certificates
+  command -v jq >/dev/null || HAS_JQ=false
+  if [ ! -z ${HAS_JQ} ]; then
+    sudo apt install -y build-essential procps curl file git unzip jq
+
+    # sudo apt install -y make build-essential git fzf zsh file wget curl llvm procps unzip jq apt-transport-https ca-certificates \
+    #                     libreadline-dev libsqlite3-dev  libncurses5-dev libncursesw5-dev libssl-dev zlib1g-dev libbz2-dev \
+    #                     xz-utils tk-dev
   fi
 fi
 
