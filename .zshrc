@@ -68,3 +68,7 @@ export TFENV_AUTO_INSTALL=true
 if [[ "${OS_ARCH}" == "arm64" ]]; then
   export TFENV_ARCH=arm64
 fi
+if [ -d "$HOME/.tfenv" ]; then
+  export TFENV_ROOT="$HOME/.tfenv"
+  export PATH="$TFENV_ROOT/bin:$PATH"
+fi
