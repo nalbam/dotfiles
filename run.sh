@@ -186,7 +186,7 @@ if [ ! -f ~/.gitconfig ]; then
 fi
 
 # brew for mac
-if [ "${INSTALLER}" == "brew" ]; then
+if [ "${OS_NAME}" == "darwin" ]; then
   command -v xcode-select >/dev/null || HAS_XCODE=false
   if [ ! -z ${HAS_XCODE} ]; then
     _command "xcode-select --install"
@@ -209,71 +209,10 @@ if [ "${INSTALLER}" == "brew" ]; then
     curl -fsSL -o ~/.macos https://raw.githubusercontent.com/nalbam/dotfiles/main/.macos
     /bin/bash ~/.macos
   fi
-
-  # brew
-  command -v brew >/dev/null || HAS_BREW=false
-  if [ ! -z ${HAS_BREW} ]; then
-    _command "brew install..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    if [ -d "/opt/homebrew/bin" ]; then
-      eval "$(/opt/homebrew/bin/brew shellenv)"
-    else
-      eval "$(brew shellenv)"
-    fi
-  fi
-
-  _command "brew update..."
-  brew update
-
-  _command "brew upgrade..."
-  brew upgrade
-
-  brew list >/tmp/brew_list
-
-  # zsh
-  command -v zsh >/dev/null || HAS_ZSH=false
-  if [ ! -z ${HAS_ZSH} ]; then
-    _command "brew install zsh"
-    brew install zsh
-  fi
-
-  # getopt
-  GETOPT=$(getopt 2>&1 | head -1 | xargs)
-  if [ "${GETOPT}" == "--" ]; then
-    _command "brew install gnu-getopt"
-    brew install gnu-getopt
-    brew link --force gnu-getopt
-  fi
-
-  # podman
-  if [ "${OS_ARCH}" == "x86_64" ]; then
-    _install_brew_path qemu
-    _install_brew_path podman
-  elif [ "${OS_ARCH}" == "arm64" ]; then
-    _install_brew_path podman-apple-silicon simnalamburt/x/podman-apple-silicon
-  fi
-
-  # Brewfile
-  if [ -f ~/.Brewfile ] && [ ! -f ~/.Brewfile.backup ]; then
-    cp ~/.Brewfile ~/.Brewfile.backup
-  fi
-  curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile
-
-  _command "brew bundle..."
-  brew bundle --file=~/.Brewfile
-
-  _command "check versions..."
-  _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
-  _result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
-  _result "helm:    $(helm version --client --short | cut -d'+' -f1)"
-  _result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
-
-  _command "brew cleanup..."
-  brew cleanup
 fi
 
-# brew for ubuntu
-if [ "${INSTALLER}" == "apt" ]; then
+# brew for linux
+if [ "${OS_NAME}" == "linux" ]; then
   _command "apt update..."
   sudo apt update
 
@@ -282,19 +221,72 @@ if [ "${INSTALLER}" == "apt" ]; then
 
   command -v zsh >/dev/null || HAS_ZSH=false
   if [ ! -z ${HAS_ZSH} ]; then
-    sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev git fzf zsh \
+    sudo apt install -y make build-essential libssl-dev zlib1g-dev libbz2-dev git fzf zsh file procps \
                         libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev \
-                        xz-utils tk-dev jq unzip
-  fi
-
-  if [ ! -d ~/.pyenv ]; then
-    git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-  fi
-
-  if [ ! -d ~/.tfenv ]; then
-    git clone https://github.com/tfutils/tfenv.git ~/.tfenv
+                        xz-utils tk-dev jq unzip apt-transport-https ca-certificates
   fi
 fi
+
+# brew
+command -v brew >/dev/null || HAS_BREW=false
+if [ ! -z ${HAS_BREW} ]; then
+  _command "brew install..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  if [ -d /opt/homebrew/bin ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [ -d /home/linuxbrew ]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  else
+    eval "$(brew shellenv)"
+  fi
+fi
+
+_command "brew update..."
+brew update
+
+_command "brew upgrade..."
+brew upgrade
+
+# zsh
+command -v zsh >/dev/null || HAS_ZSH=false
+if [ ! -z ${HAS_ZSH} ]; then
+  _command "brew install zsh"
+  brew install zsh
+fi
+
+# getopt
+GETOPT=$(getopt 2>&1 | head -1 | xargs)
+if [ "${GETOPT}" == "--" ]; then
+  _command "brew install gnu-getopt"
+  brew install gnu-getopt
+  brew link --force gnu-getopt
+fi
+
+# Brewfile
+_backup ~/.Brewfile
+curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile
+
+_command "brew bundle..."
+brew bundle --file=~/.Brewfile
+
+_command "check versions..."
+_result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
+_result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
+_result "helm:    $(helm version --client --short | cut -d'+' -f1)"
+_result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
+
+_command "brew cleanup..."
+brew cleanup
+
+
+# if [ ! -d ~/.pyenv ]; then
+#   git clone https://github.com/pyenv/pyenv.git ~/.pyenv
+# fi
+
+# if [ ! -d ~/.tfenv ]; then
+#   git clone https://github.com/tfutils/tfenv.git ~/.tfenv
+# fi
+
 
 # chsh zsh
 THIS_SHELL="$(grep $(whoami) /etc/passwd | cut -d':' -f7)"
