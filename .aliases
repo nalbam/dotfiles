@@ -2,14 +2,15 @@ alias t='toaster'
 alias tu='bash -c "$(curl -fsSL toast.sh/install)"'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
-# alias c='toaster cdw'
 alias e='toaster env'
 alias n='toaster git'
 alias q='toaster assume'
-# alias r='toaster region'
 alias s='toaster ssh'
 alias x='toaster ctx'
 alias z='toaster ns'
+
+# alias c='toaster cdw'
+# alias r='toaster region'
 
 c() {
   toaster cdw ${1}
@@ -40,14 +41,13 @@ alias avn='export AWS_VAULT= && av exec nalbam --'
 
 alias tf='terraform'
 alias tfc='rm -rf .terraform && rm -rf .terraform.lock.hcl'
-alias tfi='tf init'
-alias tff='tf init && tf fmt'
-alias tfp='tf init && tf fmt && tf plan'
-alias tfa='tf init && tf fmt && tf apply'
-alias tfd='tf init && tf destroy'
-alias tfs='tf init && tf state'
-alias tfg='tf init && tf graph'
-alias tfo='tf init && tf output'
+alias tff='am && tf init && tf fmt'
+alias tfp='am && tf init && tf fmt && tf plan'
+alias tfa='am && tf init && tf fmt && tf apply'
+alias tfd='am && tf init && tf destroy'
+alias tfs='am && tf init && tf state'
+alias tfg='am && tf init && tf graph'
+alias tfo='am && tf init && tf output'
 
 alias tfim='tf init && tf import'
 
@@ -57,7 +57,7 @@ alias tfsr='tf init && tf state rm'
 
 alias tfdoc="terraform-docs markdown"
 
-alias docker='podman'
+# alias docker='podman'
 
 alias py='python'
 alias py3='python3'
