@@ -18,6 +18,9 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 defaults write NSGlobalDomain com.apple.mouse.scaling -int 3
 
+# Could not write domain com.apple.universalaccess; exiting
+# defaults write com.apple.universalaccess mouseDriverCursorSize -int 2
+
 ###############################################################################
 # Dock, Dashboard, and hot corners                                            #
 ###############################################################################
