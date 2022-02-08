@@ -38,6 +38,7 @@ alias ava='export AWS_VAULT= && av exec daangn-alpha --'
 alias avd='export AWS_VAULT= && av exec daangn-data --'
 alias avp='export AWS_VAULT= && av exec daangn-prod --'
 alias avn='export AWS_VAULT= && av exec nalbam --'
+alias avc='av clear'
 
 alias tf='terraform'
 alias tfc='rm -rf .terraform && rm -rf .terraform.lock.hcl'
