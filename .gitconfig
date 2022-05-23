@@ -24,3 +24,8 @@
 
 [init]
   defaultBranch = main
+
+[includeIf "gitdir:~/work/src/github.com/daangn/"]
+  path = .gitconfig-daangn
+[includeIf "gitdir:~/work/src/github.com/nalbam/"]
+  path = .gitconfig-nalbam

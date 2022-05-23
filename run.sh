@@ -182,6 +182,8 @@ curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.v
 # .gitconfig
 if [ ! -f ~/.gitconfig ]; then
   curl -fsSL -o ~/.gitconfig https://raw.githubusercontent.com/nalbam/dotfiles/main/.gitconfig
+  curl -fsSL -o ~/.gitconfig-daangn https://raw.githubusercontent.com/nalbam/dotfiles/main/.gitconfig-daangn
+  curl -fsSL -o ~/.gitconfig-nalbam https://raw.githubusercontent.com/nalbam/dotfiles/main/.gitconfig-nalbam
   _git_config
 fi
 
@@ -266,7 +268,7 @@ fi
 
 # Brewfile
 _backup ~/.Brewfile
-curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile.${OS_NAME}
+curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile.$OS_NAME
 
 _command "brew bundle..."
 brew bundle --file=~/.Brewfile
@@ -318,6 +320,8 @@ curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.z
 
 # .zprofile
 _backup ~/.zprofile
-curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.${OS_NAME}.${OS_ARCH}
+curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.$OS_NAME.$OS_ARCH
+
+# .gitconfig
 
 _success
