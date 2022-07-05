@@ -4,7 +4,7 @@ tap "homebrew/core"
 
 brew "argo"
 brew "argocd"
-# brew "awscli"
+brew "awscli"
 brew "curl"
 brew "direnv"
 brew "eksctl"
