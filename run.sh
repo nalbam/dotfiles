@@ -273,12 +273,6 @@ curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main
 _command "brew bundle..."
 brew bundle --file=~/.Brewfile
 
-_command "check versions..."
-_result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
-_result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
-_result "helm:    $(helm version --client --short | cut -d'+' -f1)"
-_result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
-
 _command "brew cleanup..."
 brew cleanup
 
@@ -323,5 +317,11 @@ _backup ~/.zprofile
 curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.$OS_NAME.$OS_ARCH
 
 # .gitconfig
+
+_command "check versions..."
+_result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
+_result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
+_result "helm:    $(helm version --client --short | cut -d'+' -f1)"
+_result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
 
 _success
