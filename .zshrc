@@ -53,6 +53,12 @@ elif [ -d "/usr/local/share/zsh-syntax-highlighting" ]; then
   source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
 
+# gopath
+if [ -d "$HOME/go" ]; then
+  export GOPATH="$HOME/go"
+  export PATH="$GOPATH/bin:$PATH"
+fi
+
 # pyenv
 if [ -d "$HOME/.pyenv" ]; then
   export PYENV_ROOT="$HOME/.pyenv"
@@ -67,10 +73,4 @@ fi
 if [ -d "$HOME/.tfenv" ]; then
   export TFENV_ROOT="$HOME/.tfenv"
   export PATH="$TFENV_ROOT/bin:$PATH"
-fi
-
-# gopath
-if [ -d "$HOME/go" ]; then
-  export GOPATH="$HOME/go"
-  export PATH="$GOPATH/bin:$PATH"
 fi
