@@ -21,11 +21,6 @@ fi
 
 export PATH="$HOME/.local/bin${PATH+:$PATH}"
 
-# PATH_BREW="$(echo "$PATH" | grep '/opt/homebrew/bin' | wc -l | xargs)"
-# if [ "x${PATH_BREW}" == "x0" ]; then
-#   export PATH="/opt/homebrew/bin:/opt/homebrew/sbin${PATH+:$PATH}"
-# fi
-
 if [ -d "/opt/homebrew/bin" ]; then
   export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
 fi
@@ -66,10 +61,16 @@ fi
 
 # tfenv
 export TFENV_AUTO_INSTALL=true
-if [[ "${OS_ARCH}" == "arm64" ]]; then
+if [ "${OS_ARCH}" == "arm64" ]; then
   export TFENV_ARCH=arm64
 fi
 if [ -d "$HOME/.tfenv" ]; then
   export TFENV_ROOT="$HOME/.tfenv"
   export PATH="$TFENV_ROOT/bin:$PATH"
+fi
+
+# gopath
+if [ -d "$HOME/go" ]; then
+  export GOPATH="$HOME/go"
+  export PATH="$GOPATH/bin:$PATH"
 fi
