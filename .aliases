@@ -1,5 +1,5 @@
 alias t='toaster'
-alias tu='bash -c "$(curl -fsSL toaster.run/install)"'
+alias tu='bash -c "$(curl -fsSL opspresso.github.io/toaster/install.sh)"'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
 alias e='toaster env'
