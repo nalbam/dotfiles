@@ -50,6 +50,9 @@ alias tfs='am && tf init && tf state'
 alias tfg='am && tf init && tf graph'
 alias tfo='am && tf init && tf output'
 
+alias tfcp='tfc && tfp'
+alias tfca='tfc && tfa'
+
 alias tfim='tf init && tf import'
 
 alias tfsl='tf init && tf state list'
