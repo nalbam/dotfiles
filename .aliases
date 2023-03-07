@@ -63,6 +63,8 @@ alias tfsr='tf init && tf state rm'
 
 alias tfdoc="terraform-docs markdown"
 
+alias slsd="am && sls deploy"
+
 # alias docker='podman'
 
 alias py='python'
