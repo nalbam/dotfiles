@@ -31,14 +31,6 @@ elif [ -d "/usr/local/opt/gnu-getopt/bin" ]; then
   export PATH="/usr/local/opt/gnu-getopt/bin:$PATH"
 fi
 
-# if [ -d "/opt/homebrew/opt/kube-ps1" ]; then
-#   source "/opt/homebrew/opt/kube-ps1/share/kube-ps1.sh"
-#   PS1='$(kube_ps1)'$PS1
-# elif [ -d "/usr/local/opt/kube-ps1" ]; then
-#   source "/usr/local/opt/kube-ps1/share/kube-ps1.sh"
-#   PS1='$(kube_ps1)'$PS1
-# fi
-
 PS1='$(kube_ps1)'$PS1
 
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
