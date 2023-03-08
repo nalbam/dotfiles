@@ -314,7 +314,7 @@ curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.z
 
 # .zprofile
 _backup ~/.zprofile
-curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.$OS_NAME.$OS_ARCH
+curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.$OS_NAME.$OS_ARCH.sh
 
 # .gitconfig
 
