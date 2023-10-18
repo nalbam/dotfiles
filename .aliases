@@ -65,6 +65,8 @@ alias tfdoc="terraform-docs markdown"
 
 alias slsd="am && sls deploy"
 
+alias amp="amplify"
+
 # alias docker='podman'
 
 alias py='python'
