@@ -76,8 +76,6 @@ alias dff='colordiff'
 
 alias p='reveal-md -w --port 8888 --theme night'
 
-alias ak="/Applications/Aptakube.app/Contents/MacOS/Aptakube"
-
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
 alias ll='ls -l'
