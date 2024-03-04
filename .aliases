@@ -44,7 +44,7 @@ alias avc='av clear'
 alias kn='kubens'
 
 alias tf='terraform'
-alias tfc='rm -rf .terraform && rm -rf .terraform.lock.hcl'
+alias tfc='rm -rf .terraform .terraform.lock.hcl'
 alias tff='am && tf init && tf fmt'
 alias tfp='am && tf init && tf fmt && tf plan'
 alias tfa='am && tf init && tf fmt && tf apply'
