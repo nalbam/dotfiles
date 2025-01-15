@@ -268,7 +268,7 @@ fi
 
 # Brewfile
 _backup ~/.Brewfile
-curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/Brewfile.$OS_NAME
+curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/$OS_NAME/Brewfile
 
 _command "brew bundle..."
 brew bundle --file=~/.Brewfile
@@ -322,7 +322,7 @@ curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.z
 
 # .zprofile
 _backup ~/.zprofile
-curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/.zprofile.$OS_NAME.$OS_ARCH.sh
+curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/$OS_NAME/.zprofile.$OS_ARCH.sh
 
 # .gitconfig
 
