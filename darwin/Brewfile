@@ -41,10 +41,12 @@ brew "zsh"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 
-# cask "1password"
-# cask "google-chrome"
-# cask "slack"
-# cask "zoom"
+if ENV['USER'] == "nalbam"
+  cask "1password"
+  cask "google-chrome"
+  cask "slack"
+  cask "zoom"
+end
 
 cask "google-drive"
 cask "aws-vault"
