@@ -140,7 +140,7 @@ _install_npm_path() {
 }
 
 _backup() {
-  if [ -f $1 ] && [ ! -f $1.backup ]; then
+  if [ -f $1 ]; then
     cp $1 $1.backup
   fi
 }
@@ -183,20 +183,16 @@ if [ ! -f ~/.aws/config ]; then
 fi
 
 # .aliases
-# _backup ~/.aliases
-# curl -fsSL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
 _download .aliases
 
 # .vimrc
-# _backup ~/.vimrc
-# curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
 _download .vimrc
 
 # .gitconfig
 if [ ! -f ~/.gitconfig ]; then
-  curl -fsSL -o ~/.gitconfig https://raw.githubusercontent.com/nalbam/dotfiles/main/.gitconfig
-  curl -fsSL -o ~/.gitconfig-daangn https://raw.githubusercontent.com/nalbam/dotfiles/main/.gitconfig-daangn
-  curl -fsSL -o ~/.gitconfig-nalbam https://raw.githubusercontent.com/nalbam/dotfiles/main/.gitconfig-nalbam
+  _download .gitconfig
+  _download .gitconfig-daangn
+  _download .gitconfig-nalbam
   _git_config
 fi
 
@@ -280,8 +276,6 @@ if [ "${GETOPT}" == "--" ]; then
 fi
 
 # Brewfile
-# _backup ~/.Brewfile
-# curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/$OS_NAME/Brewfile
 _download .Brewfile $OS_NAME/Brewfile
 
 _command "brew bundle..."
@@ -329,23 +323,15 @@ fi
 # fi
 
 # .bashrc
-# _backup ~/.bashrc
-# curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
 _download .bashrc
 
 # .profile
-# _backup ~/.profile
-# curl -fsSL -o ~/.profile https://raw.githubusercontent.com/nalbam/dotfiles/main/.profile
 _download .profile
 
 # .zshrc
-# _backup ~/.zshrc
-# curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
 _download .zshrc
 
 # .zprofile
-# _backup ~/.zprofile
-# curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/$OS_NAME/.zprofile.$OS_ARCH.sh
 _download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
 
 # .gitconfig
