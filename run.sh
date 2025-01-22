@@ -236,11 +236,11 @@ if [ "${OS_NAME}" == "darwin" ]; then
 
   # .macos
   _download .macos
-  if [ ! -f ~/.macos.history ]; then
+  if [ ! -f ~/.macos.backup ]; then
     /bin/bash ~/.macos
     _backup ~/.macos
   else
-    if [ "$(md5sum ~/.dotfiles/.macos | awk '{print $1}')" != "$(md5sum ~/.macos.history | awk '{print $1}')" ]; then
+    if [ "$(md5sum ~/.dotfiles/.macos | awk '{print $1}')" != "$(md5sum ~/.macos.backup | awk '{print $1}')" ]; then
       /bin/bash ~/.macos
       _backup ~/.macos
     fi
