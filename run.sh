@@ -147,7 +147,11 @@ _backup() {
 
 _download() {
   _backup ~/$1
-  curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
+  if [ -f ~/.dotfiles/${2:-$1} ]; then
+    cp ~/.dotfiles/${2:-$1} ~/$1
+  else
+    curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
+  fi
 }
 
 ################################################################################
@@ -170,15 +174,24 @@ mkdir -p ~/.ssh
 [ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
 [ ! -f ~/.ssh/id_ed25519 ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
 
+# dotfiles
+if [ ! -d ~/.dotfiles ]; then
+  git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles
+else
+  cd ~/.dotfiles
+  git pull
+  cd -
+fi
+
 # ssh config
 if [ ! -f ~/.ssh/config ]; then
-  curl -fsSL -o ~/.ssh/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.ssh/config
+  _download .ssh/config
   chmod 600 ~/.ssh/config
 fi
 
 # aws config
 if [ ! -f ~/.aws/config ]; then
-  curl -fsSL -o ~/.aws/config https://raw.githubusercontent.com/nalbam/dotfiles/main/.aws/config
+  _download .aws/config
   chmod 600 ~/.aws/config
 fi
 
