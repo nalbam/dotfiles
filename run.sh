@@ -11,6 +11,11 @@ elif [ "${OS_NAME}" == "mingw64_nt" ]; then
   INSTALLER="choco"
 fi
 
+HOSTNAME="$(hostname)"
+
+# hostname 에서 - 앞 부분을 ORG 로 설정
+ORG="$(echo ${HOSTNAME} | cut -d'-' -f1)"
+
 ################################################################################
 
 command -v tput >/dev/null && TPUT=true
@@ -60,7 +65,13 @@ _git_config() {
   GIT_USERNAME="${ANSWER:-${DEFAULT}}"
   git config --global user.name "${GIT_USERNAME}"
 
-  DEFAULT="me@${GIT_USERNAME}.com"
+  if [ "${ORG}" == "nalbam" ]; then
+    DEFAULT="me@nalbam.com"
+  elif [ "${ORG}" == "Karrot" ]; then
+    DEFAULT="${GIT_USERNAME}@daangn.com"
+  else
+    DEFAULT="${GIT_USERNAME}@gmail.com"
+  fi
   _read "Please input git user email [${DEFAULT}]: "
 
   GIT_USEREMAIL="${ANSWER:-${DEFAULT}}"
