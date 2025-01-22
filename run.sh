@@ -146,8 +146,10 @@ _backup() {
 
 _download() {
   if [ -f ~/.dotfiles/${2:-$1} ]; then
-    if [ "$(md5sum ~/.dotfiles/${2:-$1} | awk '{print $1}')" != "$(md5sum ~/$1 | awk '{print $1}')" ]; then
-      _backup ~/$1
+    if [ ! -f ~/$1 ]; then
+      if [ "$(md5sum ~/.dotfiles/${2:-$1} | awk '{print $1}')" != "$(md5sum ~/$1 | awk '{print $1}')" ]; then
+        _backup ~/$1
+      fi
     fi
     cp ~/.dotfiles/${2:-$1} ~/$1
   # else
