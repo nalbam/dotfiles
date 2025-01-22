@@ -67,14 +67,47 @@ defaults write com.apple.dock wvous-bl-corner -int 6
 defaults write com.apple.dock wvous-br-corner -int 14
 
 ###############################################################################
-# iTerm 2                                                                     #
+# Screen                                                                      #
+###############################################################################
+
+# Save screenshots to the clipboard
+defaults write com.apple.screencapture target -string "clipboard"
+
+###############################################################################
+# iTerm2                                                                      #
 ###############################################################################
 
 # Don’t display the annoying prompt when quitting iTerm
 defaults write com.googlecode.iterm2 PromptOnQuit -bool false
 
+# Set the window size
+# defaults write com.googlecode.iterm2 "New Bookmarks" Columns -int 240
+# defaults write com.googlecode.iterm2 "New Bookmarks" Rows -int 50
+
+# Increase scrollback lines
+# defaults write com.googlecode.iterm2 "New Bookmarks" ScrollbackLines -int 9000
+
 ###############################################################################
-# Done                                                                        #
+# Kill affected applications                                                  #
 ###############################################################################
+
+for app in "Activity Monitor" \
+  "Address Book" \
+  "Calendar" \
+  "cfprefsd" \
+  "Contacts" \
+  "Dock" \
+  "Finder" \
+  "iCal" \
+  "iTerm2" \
+  "Mail" \
+  "Messages" \
+  "Photos" \
+  "SizeUp" \
+  "Spectacle" \
+  "SystemUIServer" \
+  "Terminal"; do
+  killall "${app}" &>/dev/null
+done
 
 echo "Done. Note that some of these changes require a logout/restart to take effect."
