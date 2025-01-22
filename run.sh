@@ -150,9 +150,9 @@ _download() {
       _backup ~/$1
     fi
     cp ~/.dotfiles/${2:-$1} ~/$1
-  else
-    _backup ~/$1
-    curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
+  # else
+  #   _backup ~/$1
+  #   curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
   fi
 }
 
