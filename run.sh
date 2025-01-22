@@ -280,8 +280,9 @@ if [ "${GETOPT}" == "--" ]; then
 fi
 
 # Brewfile
-_backup ~/.Brewfile
-curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/$OS_NAME/Brewfile
+# _backup ~/.Brewfile
+# curl -fsSL -o ~/.Brewfile https://raw.githubusercontent.com/nalbam/dotfiles/main/$OS_NAME/Brewfile
+_download .Brewfile $OS_NAME/Brewfile
 
 _command "brew bundle..."
 brew bundle --file=~/.Brewfile
@@ -300,9 +301,15 @@ if [ ! -d ~/.oh-my-zsh ]; then
   /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 fi
 
+# dracula theme
 if [ ! -d ~/.dracula ]; then
-  git clone https://github.com/dracula/zsh.git ~/.dracula
-  ln -s ~/.dracula/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
+  mkdir -p ~/.dracula
+
+  git clone https://github.com/dracula/zsh.git ~/.dracula/zsh
+  ln -s ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
+
+  git clone https://github.com/dracula/iterm.git ~/.dracula/iterm
+  ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
 fi
 
 # if [ ! -d ~/.pyenv ]; then
@@ -322,20 +329,24 @@ fi
 # fi
 
 # .bashrc
-_backup ~/.bashrc
-curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+# _backup ~/.bashrc
+# curl -fsSL -o ~/.bashrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.bashrc
+_download .bashrc
 
 # .profile
-_backup ~/.profile
-curl -fsSL -o ~/.profile https://raw.githubusercontent.com/nalbam/dotfiles/main/.profile
+# _backup ~/.profile
+# curl -fsSL -o ~/.profile https://raw.githubusercontent.com/nalbam/dotfiles/main/.profile
+_download .profile
 
 # .zshrc
-_backup ~/.zshrc
-curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
+# _backup ~/.zshrc
+# curl -fsSL -o ~/.zshrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.zshrc
+_download .zshrc
 
 # .zprofile
-_backup ~/.zprofile
-curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/$OS_NAME/.zprofile.$OS_ARCH.sh
+# _backup ~/.zprofile
+# curl -fsSL -o ~/.zprofile https://raw.githubusercontent.com/nalbam/dotfiles/main/$OS_NAME/.zprofile.$OS_ARCH.sh
+_download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
 
 # .gitconfig
 
