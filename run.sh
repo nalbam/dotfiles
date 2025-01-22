@@ -239,7 +239,7 @@ if [ "${OS_NAME}" == "darwin" ]; then
   if [ ! -f ~/.macos.history ]; then
     /bin/bash ~/.macos
     _backup ~/.macos
-  elif [ -f ~/.macos.history ]; then
+  else
     if [ "$(md5sum ~/.dotfiles/.macos | awk '{print $1}')" != "$(md5sum ~/.macos.history | awk '{print $1}')" ]; then
       /bin/bash ~/.macos
       _backup ~/.macos
