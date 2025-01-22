@@ -13,7 +13,6 @@ fi
 
 HOSTNAME="$(hostname)"
 
-# hostname 에서 - 앞 부분을 ORG 로 설정
 ORG="$(echo ${HOSTNAME} | cut -d'-' -f1)"
 
 ################################################################################
@@ -146,10 +145,13 @@ _backup() {
 }
 
 _download() {
-  _backup ~/$1
   if [ -f ~/.dotfiles/${2:-$1} ]; then
-    cp ~/.dotfiles/${2:-$1} ~/$1
+    if [ "$(md5sum ~/.dotfiles/${2:-$1} | awk '{print $1}')" != "$(md5sum ~/$1 | awk '{print $1}')" ]; then
+      _backup ~/$1
+      cp ~/.dotfiles/${2:-$1} ~/$1
+    fi
   else
+    _backup ~/$1
     curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
   fi
 }
