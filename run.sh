@@ -183,12 +183,14 @@ if [ ! -f ~/.aws/config ]; then
 fi
 
 # .aliases
-_backup ~/.aliases
-curl -fsSL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
+# _backup ~/.aliases
+# curl -fsSL -o ~/.aliases https://raw.githubusercontent.com/nalbam/dotfiles/main/.aliases
+_download .aliases
 
 # .vimrc
-_backup ~/.vimrc
-curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
+# _backup ~/.vimrc
+# curl -fsSL -o ~/.vimrc https://raw.githubusercontent.com/nalbam/dotfiles/main/.vimrc
+_download .vimrc
 
 # .gitconfig
 if [ ! -f ~/.gitconfig ]; then
