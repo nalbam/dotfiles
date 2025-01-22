@@ -149,9 +149,11 @@ _download() {
     if [ ! -f ~/$1 ]; then
       if [ "$(md5sum ~/.dotfiles/${2:-$1} | awk '{print $1}')" != "$(md5sum ~/$1 | awk '{print $1}')" ]; then
         _backup ~/$1
+        cp ~/.dotfiles/${2:-$1} ~/$1
       fi
+    else
+      cp ~/.dotfiles/${2:-$1} ~/$1
     fi
-    cp ~/.dotfiles/${2:-$1} ~/$1
   # else
   #   _backup ~/$1
   #   curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
@@ -233,9 +235,15 @@ if [ "${OS_NAME}" == "darwin" ]; then
   fi
 
   # .macos
-  if [ ! -f ~/.macos ]; then
-    _download .macos
+  _download .macos
+  if [ ! -f ~/.macos.history ]; then
     /bin/bash ~/.macos
+    _backup ~/.macos
+  elif [ -f ~/.macos.history ]; then
+    if [ "$(md5sum ~/.dotfiles/.macos | awk '{print $1}')" != "$(md5sum ~/.macos.history | awk '{print $1}')" ]; then
+      /bin/bash ~/.macos
+      _backup ~/.macos
+    fi
   fi
 fi
 
