@@ -31,7 +31,7 @@ sudo nvram SystemAudioVolume=" "
 defaults write NSGlobalDomain com.apple.mouse.scaling -int 3
 
 # Could not write domain com.apple.universalaccess; exiting
-# defaults write com.apple.universalaccess mouseDriverCursorSize -int 2
+defaults write com.apple.universalaccess mouseDriverCursorSize -int 2
 
 ###############################################################################
 # Dock, Dashboard, and hot corners                                            #
