@@ -225,12 +225,12 @@ if [ "${OS_NAME}" == "darwin" ]; then
   # ₩ -> `
   if [ ! -f ~/Library/KeyBindings/DefaultkeyBinding.dict ]; then
     mkdir -p ~/Library/KeyBindings/
-    curl -fsSL -o ~/Library/KeyBindings/DefaultkeyBinding.dict https://raw.githubusercontent.com/nalbam/dotfiles/main/.mac/DefaultkeyBinding.dict
+    _download Library/KeyBindings/DefaultkeyBinding.dict .mac/DefaultkeyBinding.dict
   fi
 
   # .macos
   if [ ! -f ~/.macos ]; then
-    curl -fsSL -o ~/.macos https://raw.githubusercontent.com/nalbam/dotfiles/main/.macos
+    _download .macos
     /bin/bash ~/.macos
   fi
 fi
