@@ -328,7 +328,8 @@ if [ ! -d ~/.dracula ]; then
   ln -s ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
 
   git clone https://github.com/dracula/iterm.git ~/.dracula/iterm
-  ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
+  mkdir -p ~/Applications/iTerm2
+  ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Applications/iTerm2/Dracula.itermcolors
 fi
 
 # if [ ! -d ~/.pyenv ]; then
