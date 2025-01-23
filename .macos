@@ -184,7 +184,7 @@ defaults write com.apple.dock dashboard-in-overlay -bool true
 defaults write com.apple.dock wvous-tl-corner -int 6
 defaults write com.apple.dock wvous-tr-corner -int 5
 defaults write com.apple.dock wvous-bl-corner -int 6
-defaults write com.apple.dock wvous-br-corner -int 10
+defaults write com.apple.dock wvous-br-corner -int 11
 
 ###############################################################################
 # Safari & WebKit                                                             #
@@ -254,7 +254,6 @@ defaults write com.apple.ActivityMonitor SortDirection -int 0
 for app in "Activity Monitor" \
   "Address Book" \
   "Calendar" \
-  "cfprefsd" \
   "Contacts" \
   "Dock" \
   "Finder" \
