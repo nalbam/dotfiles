@@ -159,7 +159,7 @@ defaults write com.apple.dock mineffect -string "genie"
 defaults write com.apple.dock minimize-to-application -bool true
 
 # Show only open applications in the Dock
-defaults write com.apple.dock static-only -bool true
+# defaults write com.apple.dock static-only -bool true
 
 # Disable Dashboard
 defaults write com.apple.dashboard mcx-disabled -bool true
