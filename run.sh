@@ -331,22 +331,6 @@ if [ ! -d ~/.dracula ]; then
   ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
 fi
 
-# if [ ! -d ~/.pyenv ]; then
-#   git clone https://github.com/pyenv/pyenv.git ~/.pyenv
-# fi
-
-# if [ ! -d ~/.tfenv ]; then
-#   git clone https://github.com/tfutils/tfenv.git ~/.tfenv
-# fi
-
-if [ ! -d ~/.oh-my-zsh/plugins/zsh-autosuggestions ]; then
-  git clone https://github.com/zsh-users/zsh-autosuggestions.git ~/.oh-my-zsh/plugins/zsh-autosuggestions
-fi
-
-if [ ! -d ~/.oh-my-zsh/plugins/zsh-syntax-highlighting ]; then
-  git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/plugins/zsh-syntax-highlighting
-fi
-
 # .bashrc
 _download .bashrc
 
