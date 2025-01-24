@@ -66,7 +66,7 @@ _git_config() {
 
   if [ "${ORG}" == "nalbam" ]; then
     DEFAULT="me@nalbam.com"
-  elif [ "${ORG}" == "Karrot" ]; then
+  elif [ "${ORG}" == "Karrot" ] || [ "${ORG}" == "daangn" ]; then
     DEFAULT="${GIT_USERNAME}@daangn.com"
   else
     DEFAULT="${GIT_USERNAME}@gmail.com"
@@ -339,13 +339,13 @@ fi
 #   git clone https://github.com/tfutils/tfenv.git ~/.tfenv
 # fi
 
-# if [ ! -d ~/.oh-my-zsh/plugins/zsh-autosuggestions ]; then
-#   git clone https://github.com/zsh-users/zsh-autosuggestions.git ~/.oh-my-zsh/plugins/zsh-autosuggestions
-# fi
+if [ ! -d ~/.oh-my-zsh/plugins/zsh-autosuggestions ]; then
+  git clone https://github.com/zsh-users/zsh-autosuggestions.git ~/.oh-my-zsh/plugins/zsh-autosuggestions
+fi
 
-# if [ ! -d ~/.oh-my-zsh/plugins/zsh-syntax-highlighting ]; then
-#   git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/plugins/zsh-syntax-highlighting
-# fi
+if [ ! -d ~/.oh-my-zsh/plugins/zsh-syntax-highlighting ]; then
+  git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/plugins/zsh-syntax-highlighting
+fi
 
 # .bashrc
 _download .bashrc
@@ -359,12 +359,10 @@ _download .zshrc
 # .zprofile
 _download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
 
-# .gitconfig
-
-_command "check versions..."
-_result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
-_result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
-_result "helm:    $(helm version --client --short | cut -d'+' -f1)"
-_result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
+# _command "check versions..."
+# _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
+# _result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
+# _result "helm:    $(helm version --client --short | cut -d'+' -f1)"
+# _result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
 
 _success
