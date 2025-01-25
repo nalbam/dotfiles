@@ -154,9 +154,22 @@ _download() {
     else
       cp ~/.dotfiles/${2:-$1} ~/$1
     fi
-  # else
-  #   _backup ~/$1
-  #   curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
+  else
+    _backup ~/$1
+    curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
+  fi
+}
+
+_dotfiles() {
+  command -v git >/dev/null || HAS_GIT=false
+  if [ ! -z ${HAS_GIT} ]; then
+    if [ ! -d ~/.dotfiles ]; then
+      git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles
+    else
+      cd ~/.dotfiles
+      git pull
+      cd -
+    fi
   fi
 }
 
@@ -168,11 +181,6 @@ if [ "${INSTALLER}" == "" ]; then
   _error "Not supported OS."
 fi
 
-# sudo -v
-
-# # Keep-alive: update existing `sudo` time stamp
-# while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
-
 mkdir -p ~/.aws
 mkdir -p ~/.ssh
 
@@ -181,13 +189,7 @@ mkdir -p ~/.ssh
 [ ! -f ~/.ssh/id_ed25519 ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
 
 # dotfiles
-if [ ! -d ~/.dotfiles ]; then
-  git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles
-else
-  cd ~/.dotfiles
-  git pull
-  cd -
-fi
+_dotfiles
 
 # ssh config
 if [ ! -f ~/.ssh/config ]; then
@@ -285,21 +287,6 @@ brew update
 _command "brew upgrade..."
 brew upgrade
 
-# zsh
-command -v zsh >/dev/null || HAS_ZSH=false
-if [ ! -z ${HAS_ZSH} ]; then
-  _command "brew install zsh"
-  brew install zsh
-fi
-
-# getopt
-GETOPT=$(getopt 2>&1 | head -1 | xargs)
-if [ "${GETOPT}" == "--" ]; then
-  _command "brew install gnu-getopt"
-  brew install gnu-getopt
-  brew link --force gnu-getopt
-fi
-
 # Brewfile
 _download .Brewfile $OS_NAME/Brewfile
 
@@ -308,6 +295,21 @@ brew bundle --file=~/.Brewfile
 
 _command "brew cleanup..."
 brew cleanup
+
+# # zsh
+# command -v zsh >/dev/null || HAS_ZSH=false
+# if [ ! -z ${HAS_ZSH} ]; then
+#   _command "brew install zsh"
+#   brew install zsh
+# fi
+
+# getopt
+GETOPT=$(getopt 2>&1 | head -1 | xargs)
+if [ "${GETOPT}" == "--" ]; then
+  # _command "brew install gnu-getopt"
+  # brew install gnu-getopt
+  brew link --force gnu-getopt
+fi
 
 # oh-my-zsh
 if [ ! -d ~/.oh-my-zsh ]; then
@@ -327,8 +329,10 @@ if [ ! -d ~/.dracula ]; then
   git clone https://github.com/dracula/zsh.git ~/.dracula/zsh
   ln -s ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
 
-  git clone https://github.com/dracula/iterm.git ~/.dracula/iterm
-  ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
+  if [ "${OS_NAME}" == "darwin" ]; then
+    git clone https://github.com/dracula/iterm.git ~/.dracula/iterm
+    ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
+  fi
 fi
 
 # .bashrc

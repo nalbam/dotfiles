@@ -4,7 +4,6 @@ alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
 alias e='toaster env'
 alias n='toaster git'
-# alias q='toaster assume'
 alias s='toaster ssh'
 alias x='toaster ctx'
 alias z='toaster ns'
@@ -43,8 +42,6 @@ alias avk='export AWS_VAULT= && av exec awskrug-team --'
 alias avo='export AWS_VAULT= && av exec opspresso --'
 alias avb='export AWS_VAULT= && av exec bruce --'
 alias avc='av clear'
-
-alias kn='kubens'
 
 alias tf='terraform'
 alias tfc='rm -rf .terraform .terraform.lock.hcl'
