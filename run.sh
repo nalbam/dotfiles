@@ -203,18 +203,6 @@ if [ ! -f ~/.aws/config ]; then
   chmod 600 ~/.aws/config
 fi
 
-# .bashrc
-_download .bashrc
-
-# .profile
-_download .profile
-
-# .aliases
-_download .aliases
-
-# .vimrc
-_download .vimrc
-
 # .gitconfig
 if [ ! -f ~/.gitconfig ]; then
   _download .gitconfig
@@ -338,6 +326,18 @@ if [ ! -d ~/.dracula ]; then
     ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
   fi
 fi
+
+# .bashrc
+_download .bashrc
+
+# .profile
+_download .profile
+
+# .aliases
+_download .aliases
+
+# .vimrc
+_download .vimrc
 
 # .zshrc
 _download .zshrc
