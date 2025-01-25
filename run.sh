@@ -80,63 +80,63 @@ _git_config() {
   git config --list
 }
 
-_install_brew() {
-  INSTALLED=
-  command -v $1 >/dev/null || INSTALLED=false
-  if [ ! -z ${INSTALLED} ]; then
-    _command "brew install ${2:-$1}"
-    brew install ${2:-$1}
-  fi
-}
+# _install_brew() {
+#   INSTALLED=
+#   command -v $1 >/dev/null || INSTALLED=false
+#   if [ ! -z ${INSTALLED} ]; then
+#     _command "brew install ${2:-$1}"
+#     brew install ${2:-$1}
+#   fi
+# }
 
-_install_brew_path() {
-  INSTALLED=$(cat /tmp/brew_list | grep "$1" | wc -l | xargs)
+# _install_brew_path() {
+#   INSTALLED=$(cat /tmp/brew_list | grep "$1" | wc -l | xargs)
 
-  if [ "x${INSTALLED}" == "x0" ]; then
-    _command "brew install ${2:-$1}"
-    brew install ${2:-$1}
-  fi
-}
+#   if [ "x${INSTALLED}" == "x0" ]; then
+#     _command "brew install ${2:-$1}"
+#     brew install ${2:-$1}
+#   fi
+# }
 
-_install_brew_apps() {
-  INSTALLED=$(ls /Applications/ | grep "$1" | wc -l | xargs)
+# _install_brew_apps() {
+#   INSTALLED=$(ls /Applications/ | grep "$1" | wc -l | xargs)
 
-  if [ "x${INSTALLED}" == "x0" ]; then
-    _command "brew install -cask ${2:-$1}"
-    brew install -cask ${2:-$1}
-  fi
-}
+#   if [ "x${INSTALLED}" == "x0" ]; then
+#     _command "brew install -cask ${2:-$1}"
+#     brew install -cask ${2:-$1}
+#   fi
+# }
 
-_install_apt() {
-  INSTALLED=
-  command -v $1 >/dev/null || INSTALLED=false
-  if [ ! -z ${INSTALLED} ]; then
-    _command "sudo apt install -y ${2:-$1}"
-    apt install -y ${2:-$1}
-  fi
-}
+# _install_apt() {
+#   INSTALLED=
+#   command -v $1 >/dev/null || INSTALLED=false
+#   if [ ! -z ${INSTALLED} ]; then
+#     _command "sudo apt install -y ${2:-$1}"
+#     apt install -y ${2:-$1}
+#   fi
+# }
 
-_install_npm() {
-  INSTALLED=
-  command -v $1 >/dev/null || INSTALLED=false
-  if [ ! -z ${INSTALLED} ]; then
-    _command "npm install -g ${2:-$1}"
-    npm install -g ${2:-$1}
-  fi
-}
+# _install_npm() {
+#   INSTALLED=
+#   command -v $1 >/dev/null || INSTALLED=false
+#   if [ ! -z ${INSTALLED} ]; then
+#     _command "npm install -g ${2:-$1}"
+#     npm install -g ${2:-$1}
+#   fi
+# }
 
-_install_npm_path() {
-  if [ -d /usr/local/lib/node_modules/ ]; then
-    INSTALLED=$(ls /usr/local/lib/node_modules/ | grep "$1" | wc -l | xargs)
-  else
-    INSTALLED=
-  fi
+# _install_npm_path() {
+#   if [ -d /usr/local/lib/node_modules/ ]; then
+#     INSTALLED=$(ls /usr/local/lib/node_modules/ | grep "$1" | wc -l | xargs)
+#   else
+#     INSTALLED=
+#   fi
 
-  if [ "x${INSTALLED}" == "x0" ]; then
-    _command "npm install -g ${2:-$1}"
-    npm install -g ${2:-$1}
-  fi
-}
+#   if [ "x${INSTALLED}" == "x0" ]; then
+#     _command "npm install -g ${2:-$1}"
+#     npm install -g ${2:-$1}
+#   fi
+# }
 
 _backup() {
   if [ -f $1 ]; then
@@ -202,6 +202,12 @@ if [ ! -f ~/.aws/config ]; then
   _download .aws/config
   chmod 600 ~/.aws/config
 fi
+
+# .bashrc
+_download .bashrc
+
+# .profile
+_download .profile
 
 # .aliases
 _download .aliases
@@ -334,12 +340,6 @@ if [ ! -d ~/.dracula ]; then
     ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
   fi
 fi
-
-# .bashrc
-_download .bashrc
-
-# .profile
-_download .profile
 
 # .zshrc
 _download .zshrc

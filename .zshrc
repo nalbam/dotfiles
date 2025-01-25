@@ -23,28 +23,28 @@ export PATH="$HOME/.local/bin${PATH+:$PATH}"
 
 if [ -d "/opt/homebrew/bin" ]; then
   export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+  export BREWPATH="/opt/homebrew"
+elif [ -d "/home/linuxbrew/.linuxbrew/bin" ]; then
+  export PATH="/home/linuxbrew/.linuxbrew/bin:$PATH"
+  export BREWPATH="/home/linuxbrew/.linuxbrew"
+else
+  export BREWPATH="/usr/local"
 fi
 
-if [ -d "/opt/homebrew/opt/gnu-getopt/bin" ]; then
-  export PATH="/opt/homebrew/opt/gnu-getopt/bin:$PATH"
-elif [ -d "/usr/local/opt/gnu-getopt/bin" ]; then
-  export PATH="/usr/local/opt/gnu-getopt/bin:$PATH"
+if [ -d "${BREWPATH}/opt/gnu-getopt/bin" ]; then
+  export PATH="${BREWPATH}/opt/gnu-getopt/bin:$PATH"
 fi
 
 PS1='$(kube_ps1)'$PS1
 
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
 
-if [ -d "/opt/homebrew/share/zsh-autosuggestions" ]; then
-  source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
-elif [ -d "/usr/local/share/zsh-autosuggestions" ]; then
-  source /usr/local/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+if [ -d "${BREWPATH}/share/zsh-autosuggestions" ]; then
+  source ${BREWPATH}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
 
-if [ -d "/opt/homebrew/share/zsh-syntax-highlighting" ]; then
-  source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-elif [ -d "/usr/local/share/zsh-syntax-highlighting" ]; then
-  source /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+if [ -d "${BREWPATH}/share/zsh-syntax-highlighting" ]; then
+  source ${BREWPATH}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
 
 # gopath
