@@ -162,7 +162,7 @@ _download() {
 
 _dotfiles() {
   command -v git >/dev/null || HAS_GIT=false
-  if [ ! -z ${HAS_GIT} ]; then
+  if [ -z ${HAS_GIT} ]; then
     if [ ! -d ~/.dotfiles ]; then
       git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles
     else
