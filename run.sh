@@ -265,7 +265,7 @@ if [ "${OS_NAME}" == "linux" ]; then
 
   command -v jq >/dev/null || HAS_JQ=false
   if [ ! -z ${HAS_JQ} ]; then
-    sudo apt install -y build-essential procps curl file git unzip jq
+    sudo apt install -y build-essential procps curl file git unzip jq zsh
 
     # sudo apt install -y make build-essential git fzf zsh file wget curl llvm procps unzip jq apt-transport-https ca-certificates \
     #                     libreadline-dev libsqlite3-dev  libncurses5-dev libncursesw5-dev libssl-dev zlib1g-dev libbz2-dev \
@@ -312,8 +312,6 @@ brew cleanup
 # getopt
 GETOPT=$(getopt 2>&1 | head -1 | xargs)
 if [ "${GETOPT}" == "--" ]; then
-  # _command "brew install gnu-getopt"
-  # brew install gnu-getopt
   brew link --force gnu-getopt
 fi
 
