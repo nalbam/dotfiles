@@ -321,7 +321,7 @@ fi
 if [ ! -d ~/.oh-my-zsh ]; then
   # chsh zsh
   THIS_SHELL="$(grep $(whoami) /etc/passwd | cut -d':' -f7)"
-  if [[ "${THIS_SHELL}" == "/bin/zsh" ]]; then
+  if [[ "${THIS_SHELL}" != "/bin/zsh" ]]; then
     chsh -s /bin/zsh
   fi
 
