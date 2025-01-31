@@ -164,9 +164,11 @@ _dotfiles() {
   command -v git >/dev/null || HAS_GIT=false
   if [ -z ${HAS_GIT} ]; then
     if [ ! -d ~/.dotfiles ]; then
+      _command "git clone .dotfiles"
       git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles
     else
       cd ~/.dotfiles
+      _command "git pull .dotfiles"
       git pull
       cd -
     fi
