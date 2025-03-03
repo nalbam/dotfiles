@@ -33,7 +33,6 @@ brew "tree"
 brew "wget"
 brew "yq"
 brew "xz"
+brew "zsh"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
-
-cask "font-dejavu-sans-mono-nerd-font"
