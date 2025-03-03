@@ -35,4 +35,5 @@ brew "yq"
 brew "xz"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
-brew "font-dejavu-sans-mono-nerd-font"
+
+cask "font-dejavu-sans-mono-nerd-font"
