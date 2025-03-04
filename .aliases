@@ -10,6 +10,14 @@ c() {
   fi
 }
 
+av() {
+  local profile="$(toaster av $@)"
+  if [ -n "$profile" ]; then
+    export AWS_VAULT=$profile
+    aws-vault exec $profile --
+  fi
+}
+
 alias e='toaster env'
 alias n='toaster git'
 alias s='toaster ssh'
@@ -23,17 +31,17 @@ alias a='aws'
 alias k='kubectl'
 alias h='helm'
 
-alias av='aws-vault'
-alias ave='export AWS_VAULT= && av exec'
-alias ava='export AWS_VAULT= && av exec daangn-alpha --'
-alias avd='export AWS_VAULT= && av exec daangn-data --'
-alias avp='export AWS_VAULT= && av exec daangn-prod --'
-alias avn='export AWS_VAULT= && av exec nalbam --'
-alias avt='export AWS_VAULT= && av exec nalbam-two --'
-alias avk='export AWS_VAULT= && av exec awskrug-team --'
-alias avo='export AWS_VAULT= && av exec opspresso --'
-alias avb='export AWS_VAULT= && av exec bruce --'
-alias avc='av clear'
+# alias av='aws-vault'
+alias ave='export AWS_VAULT= && aws-vault exec'
+alias ava='export AWS_VAULT= && aws-vault exec daangn-alpha --'
+alias avd='export AWS_VAULT= && aws-vault exec daangn-data --'
+alias avp='export AWS_VAULT= && aws-vault exec daangn-prod --'
+alias avn='export AWS_VAULT= && aws-vault exec nalbam --'
+alias avt='export AWS_VAULT= && aws-vault exec nalbam-two --'
+alias avk='export AWS_VAULT= && aws-vault exec awskrug-team --'
+alias avo='export AWS_VAULT= && aws-vault exec opspresso --'
+alias avb='export AWS_VAULT= && aws-vault exec bruce --'
+alias avc='aws-vault clear'
 
 alias tf='terraform'
 alias tfc='rm -rf .terraform .terraform.lock.hcl'
