@@ -12,7 +12,7 @@ alias z='toaster ns'
 c() {
   local dir="$(toaster cdw $@)"
   if [ -n "$dir" ]; then
-    echo "cd $dir"
+    echo "$dir"
     cd "$dir"
   fi
 }
