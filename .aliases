@@ -5,25 +5,15 @@ alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 alias e='toaster env'
 alias n='toaster git'
 alias s='toaster ssh'
+alias r='toaster region'
 alias x='toaster ctx'
 alias z='toaster ns'
-
-# alias c='toaster cdw'
-# alias r='toaster region'
 
 c() {
   local dir="$(toaster cdw $@)"
   if [ -n "$dir" ]; then
     echo "cd $dir"
     cd "$dir"
-  fi
-}
-
-r() {
-  local region="$(toaster region ${1})"
-  if [ -n "$region" ]; then
-    echo "export AWS_REGION=$region"
-    export AWS_REGION="$region"
   fi
 }
 
