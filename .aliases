@@ -12,16 +12,16 @@ alias z='toaster ns'
 # alias r='toaster region'
 
 c() {
-  toaster cdw ${1}
-  if [ -f /tmp/toaster-temp-result ]; then
-    cd $(cat /tmp/toaster-temp-result)
+  local dir="$(toaster cdw $@)"
+  if [ -n "$dir" ]; then
+    cd "$dir"
   fi
 }
 
 r() {
-  toaster region ${1}
-  if [ -f /tmp/toaster-temp-result ]; then
-    export AWS_REGION=$(cat /tmp/toaster-temp-result)
+  local region="$(toaster region ${1})"
+  if [ -n "$region" ]; then
+    export AWS_REGION="$region"
   fi
 }
 
