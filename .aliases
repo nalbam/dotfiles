@@ -2,13 +2,6 @@ alias t='toaster'
 alias tu='bash -c "$(curl -fsSL opspresso.github.io/toaster/install.sh)"'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
-alias e='toaster env'
-alias n='toaster git'
-alias s='toaster ssh'
-alias r='toaster region'
-alias x='toaster ctx'
-alias z='toaster ns'
-
 c() {
   local dir="$(toaster cdw $@)"
   if [ -n "$dir" ]; then
@@ -17,11 +10,18 @@ c() {
   fi
 }
 
+alias e='toaster env'
+alias n='toaster git'
+alias s='toaster ssh'
+alias r='toaster region'
+alias x='toaster ctx'
+alias z='toaster ns'
+
+alias am='toaster am'
+
 alias a='aws'
 alias k='kubectl'
 alias h='helm'
-
-alias am='aws sts get-caller-identity | jq .'
 
 alias av='aws-vault'
 alias ave='export AWS_VAULT= && av exec'
