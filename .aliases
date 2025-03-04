@@ -10,7 +10,7 @@ c() {
   fi
 }
 
-av() {
+v() {
   local profile="$(toast av $@)"
   if [ -n "$profile" ]; then
     export AWS_VAULT= && aws-vault exec $profile --
@@ -29,7 +29,7 @@ alias a='aws'
 alias k='kubectl'
 alias h='helm'
 
-# alias av='aws-vault'
+alias av='aws-vault'
 alias ave='export AWS_VAULT= && aws-vault exec'
 alias ava='export AWS_VAULT= && aws-vault exec daangn-alpha --'
 alias avd='export AWS_VAULT= && aws-vault exec daangn-data --'
