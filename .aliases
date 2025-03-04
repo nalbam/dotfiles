@@ -13,6 +13,7 @@ c() {
 av() {
   local profile="$(toaster av $@)"
   if [ -n "$profile" ]; then
+    echo "aws-vault exec $profile"
     export AWS_VAULT= && aws-vault exec $profile --
   fi
 }
