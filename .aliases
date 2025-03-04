@@ -10,13 +10,13 @@ c() {
   fi
 }
 
-# av() {
-#   local profile="$(toaster av $@)"
-#   if [ -n "$profile" ]; then
-#     echo "aws-vault exec $profile"
-#     export AWS_VAULT= && aws-vault exec $profile --
-#   fi
-# }
+av() {
+  local profile="$(toaster av $@)"
+  if [ -n "$profile" ]; then
+    # echo "aws-vault exec $profile"
+    export AWS_VAULT= && aws-vault exec $profile --
+  fi
+}
 
 alias e='toaster env'
 alias n='toaster git'
@@ -26,7 +26,7 @@ alias x='toaster ctx'
 alias z='toaster ns'
 
 alias am='toaster am'
-alias av='toaster av'
+# alias av='toaster av'
 
 alias a='aws'
 alias k='kubectl'
