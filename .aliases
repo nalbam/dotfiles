@@ -1,5 +1,5 @@
 alias t='toast'
-alias tu='bash -c "$(curl -fsSL opspresso.github.io/toast.sh/install.sh)"'
+alias tu='bash -c "$(curl -fsSL toast.sh/install)"'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
 c() {
