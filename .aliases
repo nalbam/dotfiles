@@ -14,6 +14,7 @@ alias z='toaster ns'
 c() {
   local dir="$(toaster cdw $@)"
   if [ -n "$dir" ]; then
+    echo "cd $dir"
     cd "$dir"
   fi
 }
@@ -21,6 +22,7 @@ c() {
 r() {
   local region="$(toaster region ${1})"
   if [ -n "$region" ]; then
+    echo "export AWS_REGION=$region"
     export AWS_REGION="$region"
   fi
 }
