@@ -1,9 +1,9 @@
-alias t='toaster'
-alias tu='bash -c "$(curl -fsSL opspresso.github.io/toaster/install.sh)"'
+alias t='toast'
+alias tu='bash -c "$(curl -fsSL opspresso.github.io/toast.sh/install.sh)"'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
 c() {
-  local dir="$(toaster cdw $@)"
+  local dir="$(toast cdw $@)"
   if [ -n "$dir" ]; then
     echo "$dir"
     cd "$dir"
@@ -11,22 +11,22 @@ c() {
 }
 
 av() {
-  local profile="$(toaster av $@)"
+  local profile="$(toast av $@)"
   if [ -n "$profile" ]; then
     # echo "aws-vault exec $profile"
     export AWS_VAULT= && aws-vault exec $profile --
   fi
 }
 
-alias e='toaster env'
-alias n='toaster git'
-alias s='toaster ssh'
-alias r='toaster region'
-alias x='toaster ctx'
-alias z='toaster ns'
+alias e='toast env'
+alias n='toast git'
+alias s='toast ssh'
+alias r='toast region'
+alias x='toast ctx'
+alias z='toast ns'
 
-alias am='toaster am'
-# alias av='toaster av'
+alias am='toast am'
+# alias av='toast av'
 
 alias a='aws'
 alias k='kubectl'
