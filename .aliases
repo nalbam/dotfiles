@@ -13,20 +13,17 @@ c() {
 av() {
   local profile="$(toast av $@)"
   if [ -n "$profile" ]; then
-    # echo "aws-vault exec $profile"
     export AWS_VAULT= && aws-vault exec $profile --
   fi
 }
 
+alias m='toast am'
 alias e='toast env'
 alias n='toast git'
 alias s='toast ssh'
 alias r='toast region'
 alias x='toast ctx'
 alias z='toast ns'
-
-alias am='toast am'
-# alias av='toast av'
 
 alias a='aws'
 alias k='kubectl'
