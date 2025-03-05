@@ -17,7 +17,7 @@ v() {
   fi
 }
 
-alias m='toast am'
+alias i='toast am'
 alias e='toast env'
 alias n='toast git'
 alias s='toast ssh'
