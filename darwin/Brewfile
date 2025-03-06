@@ -52,9 +52,9 @@ end
 
 cask "aws-vault"
 cask "cursor"
-cask "docker"
 cask "font-dejavu-sans-mono-nerd-font"
 cask "google-drive"
 cask "iterm2"
+cask "orbstack"
 cask "raycast"
 cask "visual-studio-code"
