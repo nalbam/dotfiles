@@ -258,6 +258,8 @@ if [ "${OS_NAME}" == "darwin" ]; then
   fi
 fi
 
+SECONDS_IN_DAY=86400
+
 # apt for linux
 if [ "${OS_NAME}" == "linux" ]; then
   APT_TIMESTAMP_FILE=~/.apt_last_update
@@ -316,7 +318,6 @@ fi
 
 # Check last brew update time
 BREW_TIMESTAMP_FILE=~/.brew_last_update
-SECONDS_IN_DAY=86400
 
 should_run_brew_update() {
   if [ ! -f "$BREW_TIMESTAMP_FILE" ]; then
