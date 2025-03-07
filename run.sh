@@ -17,7 +17,16 @@ ORG="$(echo ${HOSTNAME} | cut -d'-' -f1)"
 
 ################################################################################
 
+# Total installation steps
+TOTAL_STEPS=10
+CURRENT_STEP=0
+
 command -v tput >/dev/null && TPUT=true
+
+_progress() {
+  CURRENT_STEP=$((CURRENT_STEP + 1))
+  _echo "[$CURRENT_STEP/$TOTAL_STEPS] $@" 6
+}
 
 _echo() {
   if [ "${TPUT}" != "" ] && [ "$2" != "" ]; then
@@ -119,19 +128,22 @@ _dotfiles() {
 
 ################################################################################
 
+_progress "Checking system environment..."
 _result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
 
 if [ "${INSTALLER}" == "" ]; then
-  _error "Not supported OS."
+  _error "Unsupported operating system."
 fi
 
+_progress "Creating directories and setting up SSH keys..."
 mkdir -p ~/.aws
 mkdir -p ~/.ssh
 
-# ssh keygen
+# Generate SSH keys
 [ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
 [ ! -f ~/.ssh/id_ed25519 ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
 
+_progress "Cloning dotfiles repository..."
 # dotfiles
 _dotfiles
 
@@ -155,6 +167,7 @@ if [ ! -f ~/.gitconfig ]; then
   _git_config
 fi
 
+_progress "Configuring OS-specific settings..."
 # brew for mac
 if [ "${OS_NAME}" == "darwin" ]; then
   command -v xcode-select >/dev/null || HAS_XCODE=false
@@ -205,6 +218,7 @@ if [ "${OS_NAME}" == "linux" ]; then
   fi
 fi
 
+_progress "Installing and configuring Homebrew..."
 # brew
 command -v brew >/dev/null || HAS_BREW=false
 if [ ! -z ${HAS_BREW} ]; then
@@ -247,6 +261,7 @@ if [ "${GETOPT}" == "--" ]; then
   brew link --force gnu-getopt
 fi
 
+_progress "Installing ZSH and Oh My ZSH..."
 # oh-my-zsh
 if [ ! -d ~/.oh-my-zsh ]; then
   # chsh zsh
@@ -258,6 +273,7 @@ if [ ! -d ~/.oh-my-zsh ]; then
   /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 fi
 
+_progress "Installing Dracula theme..."
 # dracula theme
 if [ ! -d ~/.dracula ]; then
   mkdir -p ~/.dracula
@@ -271,6 +287,7 @@ if [ ! -d ~/.dracula ]; then
   fi
 fi
 
+_progress "Downloading configuration files..."
 # .bashrc
 _download .bashrc
 
@@ -295,10 +312,11 @@ if [ ! -d ~/.iterm2 ]; then
 fi
 _download .iterm2/profiles.json
 
-# _command "check versions..."
-# _result "awscli:  $(aws --version | cut -d' ' -f1 | cut -d'/' -f2)"
-# _result "kubectl: $(kubectl version --client -o json | jq .clientVersion.gitVersion -r)"
-# _result "helm:    $(helm version --client --short | cut -d'+' -f1)"
-# _result "argocd:  $(argocd version --client -o json | jq .client.Version -r | cut -d'+' -f1)"
+_progress "Checking installed tool versions..."
+_command "check versions..."
+_result "awscli:  $(aws --version 2>/dev/null | cut -d' ' -f1 | cut -d'/' -f2)"
+_result "kubectl: $(kubectl version --client -o json 2>/dev/null | jq .clientVersion.gitVersion -r)"
+_result "helm:    $(helm version --client --short 2>/dev/null | cut -d'+' -f1)"
+_result "argocd:  $(argocd version --client -o json 2>/dev/null | jq .client.Version -r | cut -d'+' -f1)"
 
-_success
+_success "Installation completed successfully!"
