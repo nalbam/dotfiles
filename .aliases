@@ -64,16 +64,14 @@ alias tfsr='tf init && tf state rm'
 
 alias tfdoc="terraform-docs markdown"
 
-alias tg='terragrunt'
-
 alias slsd="toast am && sls deploy"
 
 alias amp="amplify"
 
-# alias docker='podman'
-
 alias py='python'
 alias py3='python3'
+
+alias cs='cursor .'
 
 alias dff='colordiff'
 
