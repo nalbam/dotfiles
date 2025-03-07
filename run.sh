@@ -233,20 +233,42 @@ if [ ! -z ${HAS_BREW} ]; then
   fi
 fi
 
-_command "brew update..."
-brew update
+# Check last brew update time
+BREW_TIMESTAMP_FILE=~/.brew_last_update
+SECONDS_IN_DAY=86400
 
-_command "brew upgrade..."
-brew upgrade
+should_run_brew_update() {
+  if [ ! -f "$BREW_TIMESTAMP_FILE" ]; then
+    return 0
+  fi
 
-# Brewfile
-_download .Brewfile $OS_NAME/Brewfile
+  current_time=$(date +%s)
+  last_update=$(cat "$BREW_TIMESTAMP_FILE")
+  time_diff=$((current_time - last_update))
 
-_command "brew bundle..."
-brew bundle --file=~/.Brewfile
+  if [ $time_diff -ge $SECONDS_IN_DAY ]; then
+    return 0
+  else
+    return 1
+  fi
+}
 
-_command "brew cleanup..."
-brew cleanup
+if should_run_brew_update; then
+  _command "Running daily brew updates..."
+
+  brew update
+  brew upgrade
+
+  # Brewfile
+  _download .Brewfile $OS_NAME/Brewfile
+  brew bundle --file=~/.Brewfile
+  brew cleanup
+
+  # Update timestamp
+  date +%s > "$BREW_TIMESTAMP_FILE"
+else
+  _command "Skipping brew updates (last update was less than 24 hours ago)"
+fi
 
 # # zsh
 # command -v zsh >/dev/null || HAS_ZSH=false
@@ -311,12 +333,5 @@ if [ ! -d ~/.iterm2 ]; then
   mkdir -p ~/.iterm2
 fi
 _download .iterm2/profiles.json
-
-_progress "Checking installed tool versions..."
-_command "check versions..."
-_result "awscli:  $(aws --version 2>/dev/null | cut -d' ' -f1 | cut -d'/' -f2)"
-_result "kubectl: $(kubectl version --client -o json 2>/dev/null | jq .clientVersion.gitVersion -r)"
-_result "helm:    $(helm version --client --short 2>/dev/null | cut -d'+' -f1)"
-_result "argocd:  $(argocd version --client -o json 2>/dev/null | jq .client.Version -r | cut -d'+' -f1)"
 
 _success "Installation completed successfully!"
