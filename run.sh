@@ -258,21 +258,44 @@ if [ "${OS_NAME}" == "darwin" ]; then
   fi
 fi
 
-# brew for linux
+# apt for linux
 if [ "${OS_NAME}" == "linux" ]; then
-  _command "apt update..."
-  sudo apt update
+  APT_TIMESTAMP_FILE=~/.apt_last_update
 
-  _command "apt upgrade..."
-  sudo apt upgrade -y
+  should_run_apt_update() {
+    if [ ! -f "$APT_TIMESTAMP_FILE" ]; then
+      return 0
+    fi
 
-  command -v jq >/dev/null || HAS_JQ=false
-  if [ ! -z ${HAS_JQ} ]; then
-    sudo apt install -y build-essential procps curl file git unzip jq zsh
+    current_time=$(date +%s)
+    last_update=$(cat "$APT_TIMESTAMP_FILE")
+    time_diff=$((current_time - last_update))
 
-    # sudo apt install -y make build-essential git fzf zsh file wget curl llvm procps unzip jq apt-transport-https ca-certificates \
-    #                     libreadline-dev libsqlite3-dev  libncurses5-dev libncursesw5-dev libssl-dev zlib1g-dev libbz2-dev \
-    #                     xz-utils tk-dev
+    if [ $time_diff -ge $SECONDS_IN_DAY ]; then
+      return 0
+    else
+      return 1
+    fi
+  }
+
+  if should_run_apt_update; then
+    _command "Running daily apt updates..."
+    sudo apt update
+    sudo apt upgrade -y
+
+    command -v jq >/dev/null || HAS_JQ=false
+    if [ ! -z ${HAS_JQ} ]; then
+      sudo apt install -y build-essential procps curl file git unzip jq zsh
+
+      # sudo apt install -y make build-essential git fzf zsh file wget curl llvm procps unzip jq apt-transport-https ca-certificates \
+      #                     libreadline-dev libsqlite3-dev  libncurses5-dev libncursesw5-dev libssl-dev zlib1g-dev libbz2-dev \
+      #                     xz-utils tk-dev
+    fi
+
+    # Update timestamp
+    date +%s > "$APT_TIMESTAMP_FILE"
+  else
+    _command "Skipping apt updates (last update was less than 24 hours ago)"
   fi
 fi
 
