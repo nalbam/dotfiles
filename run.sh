@@ -90,12 +90,22 @@ _git_config() {
 }
 
 _backup() {
-  if [ -f $1 ]; then
-    cp $1 $1.backup
+  if [ -f "$1" ]; then
+    if ! cp "$1" "$1.backup"; then
+      _error "Failed to create backup of $1"
+      return 1
+    fi
+    # Set secure permissions for backup files
+    chmod 600 "$1.backup"
+    _result "Created backup: $1.backup"
   fi
 }
 
 _download() {
+  local max_retries=3
+  local retry_count=0
+  local wait_time=5
+
   if [ -f ~/.dotfiles/${2:-$1} ]; then
     if [ -f ~/$1 ]; then
       if [ "$(md5sum ~/.dotfiles/${2:-$1} | awk '{print $1}')" != "$(md5sum ~/$1 | awk '{print $1}')" ]; then
@@ -107,21 +117,69 @@ _download() {
     fi
   else
     _backup ~/$1
-    curl -fsSL -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}
+    while [ $retry_count -lt $max_retries ]; do
+      if curl -fsSL --connect-timeout 10 -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}; then
+        break
+      else
+        retry_count=$((retry_count + 1))
+        if [ $retry_count -eq $max_retries ]; then
+          _error "Failed to download ${2:-$1} after $max_retries attempts"
+        fi
+        _echo "Download failed, retrying in $wait_time seconds..." 3
+        sleep $wait_time
+        wait_time=$((wait_time * 2))
+      fi
+    done
   fi
+
+  # Set appropriate permissions for sensitive files
+  case "$1" in
+    .ssh/* | .aws/* | *.backup)
+      chmod 600 ~/$1
+      ;;
+  esac
 }
 
 _dotfiles() {
   command -v git >/dev/null || HAS_GIT=false
   if [ -z ${HAS_GIT} ]; then
+    local max_retries=3
+    local retry_count=0
+    local wait_time=5
+
     if [ ! -d ~/.dotfiles ]; then
       _command "git clone .dotfiles"
-      git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles
+      while [ $retry_count -lt $max_retries ]; do
+        if git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles; then
+          break
+        else
+          retry_count=$((retry_count + 1))
+          if [ $retry_count -eq $max_retries ]; then
+            _error "Failed to clone dotfiles repository after $max_retries attempts"
+          fi
+          _echo "Clone failed, retrying in $wait_time seconds..." 3
+          sleep $wait_time
+          wait_time=$((wait_time * 2))
+        fi
+      done
     else
-      cd ~/.dotfiles
+      cd ~/.dotfiles || _error "Failed to change directory to ~/.dotfiles"
       _command "git pull .dotfiles"
-      git pull
-      cd -
+      while [ $retry_count -lt $max_retries ]; do
+        if git pull; then
+          break
+        else
+          retry_count=$((retry_count + 1))
+          if [ $retry_count -eq $max_retries ]; then
+            cd - || _error "Failed to return to previous directory"
+            _error "Failed to update dotfiles repository after $max_retries attempts"
+          fi
+          _echo "Pull failed, retrying in $wait_time seconds..." 3
+          sleep $wait_time
+          wait_time=$((wait_time * 2))
+        fi
+      done
+      cd - || _error "Failed to return to previous directory"
     fi
   fi
 }
