@@ -18,7 +18,7 @@ ORG="$(echo ${HOSTNAME} | cut -d'-' -f1)"
 ################################################################################
 
 # Total installation steps
-TOTAL_STEPS=10
+TOTAL_STEPS=8
 CURRENT_STEP=0
 
 command -v tput >/dev/null && TPUT=true
