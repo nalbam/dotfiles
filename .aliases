@@ -1,11 +1,11 @@
 alias t='toast'
-alias tu='bash -c "$(curl -fsSL toast.sh/install)"'
+alias tu='bash -c "$(pip install -U toast-cli)"'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
 c() {
   local dir="$(toast cdw $@)"
   if [ -n "$dir" ]; then
-    echo "$dir"
+    echo "Change directory to $dir"
     cd "$dir"
   fi
 }
