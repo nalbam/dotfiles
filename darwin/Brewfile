@@ -42,7 +42,6 @@ brew "xz"
 brew "zsh"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
-brew "1password-cli"
 
 if ENV['USER'] == "nalbam"
   cask "1password"
@@ -51,6 +50,7 @@ if ENV['USER'] == "nalbam"
   cask "zoom"
 end
 
+cask "1password-cli"
 cask "aws-vault"
 cask "cursor"
 cask "font-dejavu-sans-mono-nerd-font"
