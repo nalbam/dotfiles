@@ -69,13 +69,17 @@ alias tfdoc="terraform-docs markdown"
 
 alias slsd="toast am && sls deploy"
 
+alias cs='cursor .'
+alias cx='claude'
+
 alias amp="amplify"
+
+alias nn='rm -rf pnpm-lock.yaml node_modules .next && pnpm install'
+alias nr='pnpm run'
+alias nb='pnpm build'
 
 alias py='python'
 alias py3='python3'
-
-alias cs='cursor .'
-alias cx='claude'
 
 alias dff='colordiff'
 
