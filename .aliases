@@ -75,7 +75,7 @@ alias cx='claude'
 alias amp="amplify"
 
 alias nn='rm -rf pnpm-lock.yaml node_modules .next && pnpm install'
-alias nr='pnpm run'
+alias nr='pnpm dev'
 alias nb='pnpm build'
 
 alias py='python'
