@@ -74,6 +74,6 @@ fi
 mkdir -p "$HOME/.nvm"
 if [ -d "$HOME/.nvm" ]; then
   export NVM_DIR="$HOME/.nvm"
-  [ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
-  [ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+  [ -s "${BREWPATH}/opt/nvm/nvm.sh" ] && \. "${BREWPATH}/opt/nvm/nvm.sh"  # This loads nvm
+  [ -s "${BREWPATH}/opt/nvm/etc/bash_completion.d/nvm" ] && \. "${BREWPATH}/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
 fi
