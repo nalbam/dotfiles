@@ -25,6 +25,7 @@ v() {
 alias m='toast am'
 alias e='toast env'
 alias x='toast ctx'
+alias d='toast dot'
 alias g='toast git'
 alias r='toast region'
 
