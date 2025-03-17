@@ -22,10 +22,10 @@ v() {
 #   op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials
 # }
 
-alias i='toast am'
+alias m='toast am'
 alias e='toast env'
 alias x='toast ctx'
-alias n='toast git'
+alias g='toast git'
 alias r='toast region'
 
 alias a='aws'
