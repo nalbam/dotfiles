@@ -10,12 +10,12 @@ c() {
   fi
 }
 
-v() {
-  local profile="$(toast av $@)"
-  if [ -n "$profile" ]; then
-    export AWS_VAULT= && aws-vault exec $profile --
-  fi
-}
+# v() {
+#   local profile="$(toast av $@)"
+#   if [ -n "$profile" ]; then
+#     export AWS_VAULT= && aws-vault exec $profile --
+#   fi
+# }
 
 # e() {
 #   op read op://keys/aws-config/notesPlain > ~/.aws/config
@@ -23,9 +23,9 @@ v() {
 # }
 
 alias m='toast am'
-alias e='toast env'
 alias x='toast ctx'
 alias d='toast dot'
+alias e='toast env'
 alias g='toast git'
 alias r='toast region'
 
