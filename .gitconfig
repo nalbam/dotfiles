@@ -33,3 +33,5 @@
   path = .gitconfig-daangn
 [includeIf "gitdir:~/workspace/github.com/nalbam/"]
   path = .gitconfig-nalbam
+[includeIf "gitdir:~/workspace/github.com/opspresso/"]
+  path = .gitconfig-nalbam
