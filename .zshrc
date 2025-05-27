@@ -77,3 +77,6 @@ if [ -d "$HOME/.nvm" ]; then
   [ -s "${BREWPATH}/opt/nvm/nvm.sh" ] && \. "${BREWPATH}/opt/nvm/nvm.sh"  # This loads nvm
   [ -s "${BREWPATH}/opt/nvm/etc/bash_completion.d/nvm" ] && \. "${BREWPATH}/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
 fi
+
+# vscode
+[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path zsh)"
