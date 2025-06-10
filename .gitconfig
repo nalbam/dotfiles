@@ -31,6 +31,8 @@
 
 [includeIf "gitdir:~/workspace/github.com/daangn/"]
   path = .gitconfig-daangn
+[includeIf "gitdir:~/workspace/github.com/karrot-emu/"]
+  path = .gitconfig-daangn
 [includeIf "gitdir:~/workspace/github.com/nalbam/"]
   path = .gitconfig-nalbam
 [includeIf "gitdir:~/workspace/github.com/opspresso/"]
