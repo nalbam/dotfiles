@@ -61,3 +61,9 @@ cask "raycast"
 cask "unity-hub"
 cask "visual-studio-code"
 cask "warp"
+
+tap "opspresso/tap"
+cask "opspresso/tap/toast"
+
+tap "pakerwreah/calendr"
+cask "pakerwreah/calendr/calendr"
