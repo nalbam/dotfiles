@@ -18,8 +18,8 @@ c() {
 # }
 
 # e() {
-#   op read op://keys/aws-config/notesPlain > ~/.aws/config
-#   op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials
+#   op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config
+#   op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials
 # }
 
 alias m='toast am'
