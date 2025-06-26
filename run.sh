@@ -220,7 +220,7 @@ fi
 # .gitconfig
 if [ ! -f ~/.gitconfig ]; then
   _download .gitconfig
-  _download .gitconfig-daangn
+  _download .gitconfig-bruce
   _download .gitconfig-nalbam
   _git_config
 fi
@@ -421,5 +421,10 @@ if [ ! -d ~/.claude ]; then
   mkdir -p ~/.claude
 fi
 _download .claude/CLAUDE.md
+
+# claude
+npm i -g @anthropic-ai/claude-code
+# gemini
+npm i -g @google/gemini-cli
 
 _success "Installation completed successfully!"
