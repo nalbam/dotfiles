@@ -424,6 +424,7 @@ _download .claude/CLAUDE.md
 
 # claude
 npm i -g @anthropic-ai/claude-code
+
 # gemini
 npm i -g @google/gemini-cli
 
