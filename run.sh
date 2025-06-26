@@ -416,4 +416,10 @@ if [ ! -d ~/.iterm2 ]; then
 fi
 _download .iterm2/profiles.json
 
+# claude
+if [ ! -d ~/.claude ]; then
+  mkdir -p ~/.claude
+fi
+_download .claude/CLAUDE.md
+
 _success "Installation completed successfully!"
