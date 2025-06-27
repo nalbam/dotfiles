@@ -301,13 +301,11 @@ _progress "Setting up basic configuration files..."
 # SSH 설정 파일 다운로드
 if [ ! -f ~/.ssh/config ]; then
   _download .ssh/config
-  chmod 600 ~/.ssh/config
 fi
 
 # AWS 설정 파일 다운로드
 if [ ! -f ~/.aws/config ]; then
   _download .aws/config
-  chmod 600 ~/.aws/config
 fi
 
 # Git 설정 파일 다운로드 및 설정
