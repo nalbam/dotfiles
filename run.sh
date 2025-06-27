@@ -123,6 +123,13 @@ _download() {
   local retry_count=0
   local wait_time=5
 
+  # 대상 파일의 디렉토리 자동 생성
+  local target_file=~/$1
+  local target_dir=$(dirname "$target_file")
+  if [ "$target_dir" != "$HOME" ] && [ ! -d "$target_dir" ]; then
+    mkdir -p "$target_dir"
+  fi
+
   if [ -f ~/.dotfiles/${2:-$1} ]; then
     if [ -f ~/$1 ]; then
       if [ "$(md5sum ~/.dotfiles/${2:-$1} | awk '{print $1}')" != "$(md5sum ~/$1 | awk '{print $1}')" ]; then
@@ -400,7 +407,6 @@ if [ "${OS_NAME}" == "darwin" ]; then
 
   # ₩ -> ` 키 바인딩 설정
   if [ ! -f ~/Library/KeyBindings/DefaultkeyBinding.dict ]; then
-    mkdir -p ~/Library/KeyBindings/
     _download Library/KeyBindings/DefaultkeyBinding.dict .mac/DefaultkeyBinding.dict
   fi
 
@@ -448,9 +454,6 @@ if [ ! -d ~/.dracula ]; then
 fi
 
 # iTerm2 설정 파일
-if [ ! -d ~/.iterm2 ]; then
-  mkdir -p ~/.iterm2
-fi
 _download .iterm2/profiles.json
 
 # Step 10: 사용자 설정 파일 적용
@@ -465,9 +468,6 @@ _download .zshrc
 _download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
 
 # Claude AI 설정
-if [ ! -d ~/.claude ]; then
-  mkdir -p ~/.claude
-fi
 _download .claude/CLAUDE.md
 
 _success "Installation completed successfully!"
