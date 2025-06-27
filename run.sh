@@ -184,6 +184,33 @@ _dotfiles() {
   fi
 }
 
+# Install npm packages with version checking
+_install_npm_package() {
+  local package_name="$1"
+  local package_spec="$2"
+
+  # Check if package is installed
+  if npm list -g "$package_name" >/dev/null 2>&1; then
+    local installed_version=$(npm list -g "$package_spec" --depth=0 2>/dev/null | grep "$package_name" | sed 's/.*@\([0-9.]*\).*/\1/')
+    local latest_version=$(npm view "$package_spec" version 2>/dev/null)
+
+    if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
+      if [ "$installed_version" != "$latest_version" ]; then
+        _command "Updating $package_name from $installed_version to $latest_version"
+        npm update -g "$package_spec"
+      else
+        _result "$package_name is already up to date ($installed_version)"
+      fi
+    else
+      _command "Installing $package_name (version check failed)"
+      npm install -g "$package_spec"
+    fi
+  else
+    _command "Installing $package_name"
+    npm install -g "$package_spec"
+  fi
+}
+
 ################################################################################
 
 _progress "Checking system environment..."
@@ -423,9 +450,9 @@ fi
 _download .claude/CLAUDE.md
 
 # claude
-npm i -g @anthropic-ai/claude-code
+_install_npm_package "claude-code" "@anthropic-ai/claude-code"
 
 # gemini
-npm i -g @google/gemini-cli
+_install_npm_package "gemini-cli" "@google/gemini-cli"
 
 _success "Installation completed successfully!"
