@@ -1,5 +1,10 @@
 #!/bin/bash
 
+################################################################################
+# 선언 영역 (Declaration Section)
+################################################################################
+
+# OS 정보 및 설치 도구 설정
 OS_NAME="$(uname | awk '{print tolower($0)}' | cut -d'-' -f1)"
 OS_ARCH="$(uname -m)"
 
@@ -12,22 +17,29 @@ elif [ "${OS_NAME}" == "mingw64_nt" ]; then
 fi
 
 HOSTNAME="$(hostname)"
-
 ORG="$(echo ${HOSTNAME} | cut -d'-' -f1)"
 
-################################################################################
-
-# Total installation steps
-TOTAL_STEPS=8
+# 설치 진행 단계 설정
+TOTAL_STEPS=10
 CURRENT_STEP=0
 
+# 타이머 설정
+SECONDS_IN_DAY=86400
+
+# 컬러 출력 설정
 command -v tput >/dev/null && TPUT=true
 
+################################################################################
+# 함수 영역 (Function Section)
+################################################################################
+
+# 진행률 표시 함수
 _progress() {
   CURRENT_STEP=$((CURRENT_STEP + 1))
   _echo "[$CURRENT_STEP/$TOTAL_STEPS] $@" 6
 }
 
+# 컬러 출력 함수
 _echo() {
   if [ "${TPUT}" != "" ] && [ "$2" != "" ]; then
     echo -e "$(tput setaf $2)$1$(tput sgr0)"
@@ -36,6 +48,7 @@ _echo() {
   fi
 }
 
+# 사용자 입력 함수
 _read() {
   if [ "${TPUT}" != "" ]; then
     printf "$(tput setaf 6)$1$(tput sgr0)"
@@ -45,28 +58,30 @@ _read() {
   read ANSWER
 }
 
+# 결과 출력 함수
 _result() {
   _echo "# $@" 4
 }
 
+# 명령어 출력 함수
 _command() {
   _echo "$ $@" 3
 }
 
+# 성공 메시지 출력 함수
 _success() {
   _echo "+ $@" 2
   exit 0
 }
 
+# 에러 메시지 출력 함수
 _error() {
   _echo "- $@" 1
   exit 1
 }
 
+# Git 설정 함수
 _git_config() {
-  # git config --global user.name "nalbam"
-  # git config --global user.email "me@nalbam.com"
-
   DEFAULT="$(whoami)"
   _read "Please input git user name [${DEFAULT}]: "
 
@@ -89,6 +104,7 @@ _git_config() {
   git config --list
 }
 
+# 백업 생성 함수
 _backup() {
   if [ -f "$1" ]; then
     if ! cp "$1" "$1.backup"; then
@@ -101,6 +117,7 @@ _backup() {
   fi
 }
 
+# 파일 다운로드 함수
 _download() {
   local max_retries=3
   local retry_count=0
@@ -140,6 +157,7 @@ _download() {
   esac
 }
 
+# Dotfiles 저장소 관리 함수
 _dotfiles() {
   command -v git >/dev/null || HAS_GIT=false
   if [ -z ${HAS_GIT} ]; then
@@ -184,7 +202,7 @@ _dotfiles() {
   fi
 }
 
-# Install npm packages with version checking
+# NPM 패키지 설치 함수 (버전 체크 포함)
 _install_npm_package() {
   local package_name="$1"
   local package_spec="$2"
@@ -198,8 +216,8 @@ _install_npm_package() {
       if [ "$installed_version" != "$latest_version" ]; then
         _command "Updating $package_name from $installed_version to $latest_version"
         npm update -g "$package_spec"
-      else
-        _result "$package_name is already up to date ($installed_version)"
+      # else
+      #   _result "$package_name is already up to date ($installed_version)"
       fi
     else
       _command "Installing $package_name (version check failed)"
@@ -211,141 +229,24 @@ _install_npm_package() {
   fi
 }
 
-################################################################################
-
-_progress "Checking system environment..."
-_result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
-
-if [ "${INSTALLER}" == "" ]; then
-  _error "Unsupported operating system."
-fi
-
-_progress "Creating directories and setting up SSH keys..."
-mkdir -p ~/.aws
-mkdir -p ~/.ssh
-
-# Generate SSH keys
-[ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
-[ ! -f ~/.ssh/id_ed25519 ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
-
-_progress "Cloning dotfiles repository..."
-# dotfiles
-_dotfiles
-
-# ssh config
-if [ ! -f ~/.ssh/config ]; then
-  _download .ssh/config
-  chmod 600 ~/.ssh/config
-fi
-
-# aws config
-if [ ! -f ~/.aws/config ]; then
-  _download .aws/config
-  chmod 600 ~/.aws/config
-fi
-
-# .gitconfig
-if [ ! -f ~/.gitconfig ]; then
-  _download .gitconfig
-  _download .gitconfig-bruce
-  _download .gitconfig-nalbam
-  _git_config
-fi
-
-_progress "Configuring OS-specific settings..."
-# brew for mac
-if [ "${OS_NAME}" == "darwin" ]; then
-  command -v xcode-select >/dev/null || HAS_XCODE=false
-  if [ ! -z ${HAS_XCODE} ]; then
-    _command "xcode-select --install"
-    sudo xcodebuild -license
-    xcode-select --install
-
-    if [ "${OS_ARCH}" == "arm64" ]; then
-      sudo softwareupdate --install-rosetta --agree-to-license
-    fi
+# APT 업데이트 체크 함수
+should_run_apt_update() {
+  if [ ! -f "$APT_TIMESTAMP_FILE" ]; then
+    return 0
   fi
 
-  # ₩ -> `
-  if [ ! -f ~/Library/KeyBindings/DefaultkeyBinding.dict ]; then
-    mkdir -p ~/Library/KeyBindings/
-    _download Library/KeyBindings/DefaultkeyBinding.dict .mac/DefaultkeyBinding.dict
-  fi
+  current_time=$(date +%s)
+  last_update=$(cat "$APT_TIMESTAMP_FILE")
+  time_diff=$((current_time - last_update))
 
-  # .macos
-  _download .macos
-  if [ ! -f ~/.macos.backup ]; then
-    /bin/bash ~/.macos
-    _backup ~/.macos
+  if [ $time_diff -ge $SECONDS_IN_DAY ]; then
+    return 0
   else
-    if [ "$(md5sum ~/.dotfiles/.macos | awk '{print $1}')" != "$(md5sum ~/.macos.backup | awk '{print $1}')" ]; then
-      /bin/bash ~/.macos
-      _backup ~/.macos
-    fi
+    return 1
   fi
-fi
+}
 
-SECONDS_IN_DAY=86400
-
-# apt for linux
-if [ "${OS_NAME}" == "linux" ]; then
-  APT_TIMESTAMP_FILE=~/.apt_last_update
-
-  should_run_apt_update() {
-    if [ ! -f "$APT_TIMESTAMP_FILE" ]; then
-      return 0
-    fi
-
-    current_time=$(date +%s)
-    last_update=$(cat "$APT_TIMESTAMP_FILE")
-    time_diff=$((current_time - last_update))
-
-    if [ $time_diff -ge $SECONDS_IN_DAY ]; then
-      return 0
-    else
-      return 1
-    fi
-  }
-
-  if should_run_apt_update; then
-    _command "Running daily apt updates..."
-    sudo apt update
-    sudo apt upgrade -y
-
-    command -v jq >/dev/null || HAS_JQ=false
-    if [ ! -z ${HAS_JQ} ]; then
-      sudo apt install -y build-essential procps curl file git unzip jq zsh
-
-      # sudo apt install -y make build-essential git fzf zsh file wget curl llvm procps unzip jq apt-transport-https ca-certificates \
-      #                     libreadline-dev libsqlite3-dev  libncurses5-dev libncursesw5-dev libssl-dev zlib1g-dev libbz2-dev \
-      #                     xz-utils tk-dev
-    fi
-
-    # Update timestamp
-    date +%s > "$APT_TIMESTAMP_FILE"
-  else
-    _command "Skipping apt updates (last update was less than 24 hours ago)"
-  fi
-fi
-
-_progress "Installing and configuring Homebrew..."
-# brew
-command -v brew >/dev/null || HAS_BREW=false
-if [ ! -z ${HAS_BREW} ]; then
-  _command "brew install..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  if [ -d /opt/homebrew/bin ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-  elif [ -d /home/linuxbrew ]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  else
-    eval "$(brew shellenv)"
-  fi
-fi
-
-# Check last brew update time
-BREW_TIMESTAMP_FILE=~/.brew_last_update
-
+# Homebrew 업데이트 체크 함수
 should_run_brew_update() {
   if [ ! -f "$BREW_TIMESTAMP_FILE" ]; then
     return 0
@@ -362,13 +263,105 @@ should_run_brew_update() {
   fi
 }
 
+################################################################################
+# 실행 영역 (Execution Section)
+################################################################################
+
+# Step 1: 시스템 환경 확인
+_progress "Checking system environment..."
+_result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
+
+if [ "${INSTALLER}" == "" ]; then
+  _error "Unsupported operating system."
+fi
+
+# Step 2: 디렉토리 생성 및 SSH 키 설정
+_progress "Creating directories and setting up SSH keys..."
+mkdir -p ~/.aws
+mkdir -p ~/.ssh
+
+# Generate SSH keys
+[ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
+[ ! -f ~/.ssh/id_ed25519 ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
+
+# Step 3: Dotfiles 저장소 클론
+_progress "Cloning dotfiles repository..."
+_dotfiles
+
+# Step 4: 기본 설정 파일 다운로드
+_progress "Setting up basic configuration files..."
+
+# SSH 설정 파일 다운로드
+if [ ! -f ~/.ssh/config ]; then
+  _download .ssh/config
+  chmod 600 ~/.ssh/config
+fi
+
+# AWS 설정 파일 다운로드
+if [ ! -f ~/.aws/config ]; then
+  _download .aws/config
+  chmod 600 ~/.aws/config
+fi
+
+# Git 설정 파일 다운로드 및 설정
+if [ ! -f ~/.gitconfig ]; then
+  _download .gitconfig
+  _download .gitconfig-bruce
+  _download .gitconfig-nalbam
+  _git_config
+fi
+
+# Step 5: OS별 패키지 관리자 설정
+_progress "Setting up package managers..."
+
+# Linux 설정 (APT 패키지 관리)
+if [ "${OS_NAME}" == "linux" ]; then
+  APT_TIMESTAMP_FILE=~/.apt_last_update
+
+  if should_run_apt_update; then
+    _command "Running daily apt updates..."
+    sudo apt update
+    sudo apt upgrade -y
+
+    command -v jq >/dev/null || HAS_JQ=false
+    if [ ! -z ${HAS_JQ} ]; then
+      sudo apt install -y build-essential procps curl file git unzip jq zsh
+    fi
+
+    # Update timestamp
+    date +%s > "$APT_TIMESTAMP_FILE"
+  else
+    _command "Skipping apt updates (last update was less than 24 hours ago)"
+  fi
+fi
+
+# Homebrew 설치
+command -v brew >/dev/null || HAS_BREW=false
+if [ ! -z ${HAS_BREW} ]; then
+  _command "brew install..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  if [ -d /opt/homebrew/bin ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  elif [ -d /home/linuxbrew ]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  else
+    eval "$(brew shellenv)"
+  fi
+fi
+
+# Step 6: 개발 도구 패키지 설치
+_progress "Installing development packages..."
+
+# Homebrew 패키지 업데이트
+BREW_TIMESTAMP_FILE=~/.brew_last_update
+
 if should_run_brew_update; then
   _command "Running daily brew updates..."
 
   brew update
   brew upgrade
 
-  # Brewfile
+  # Brewfile 기반 패키지 설치
   _download .Brewfile $OS_NAME/Brewfile
   brew bundle --file=~/.Brewfile
   brew cleanup
@@ -379,23 +372,57 @@ else
   _command "Skipping brew updates (last update was less than 24 hours ago)"
 fi
 
-# # zsh
-# command -v zsh >/dev/null || HAS_ZSH=false
-# if [ ! -z ${HAS_ZSH} ]; then
-#   _command "brew install zsh"
-#   brew install zsh
-# fi
-
-# getopt
+# getopt 설정
 GETOPT=$(getopt 2>&1 | head -1 | xargs)
 if [ "${GETOPT}" == "--" ]; then
   brew link --force gnu-getopt
 fi
 
+# NPM 패키지 설치 (버전 체크 포함)
+_install_npm_package "claude-code" "@anthropic-ai/claude-code"
+_install_npm_package "gemini-cli" "@google/gemini-cli"
+
+# Step 7: OS별 시스템 설정
+_progress "Configuring OS-specific settings..."
+
+# macOS 설정
+if [ "${OS_NAME}" == "darwin" ]; then
+  command -v xcode-select >/dev/null || HAS_XCODE=false
+  if [ ! -z ${HAS_XCODE} ]; then
+    _command "xcode-select --install"
+    sudo xcodebuild -license
+    xcode-select --install
+
+    if [ "${OS_ARCH}" == "arm64" ]; then
+      sudo softwareupdate --install-rosetta --agree-to-license
+    fi
+  fi
+
+  # ₩ -> ` 키 바인딩 설정
+  if [ ! -f ~/Library/KeyBindings/DefaultkeyBinding.dict ]; then
+    mkdir -p ~/Library/KeyBindings/
+    _download Library/KeyBindings/DefaultkeyBinding.dict .mac/DefaultkeyBinding.dict
+  fi
+
+  # macOS 시스템 설정
+  _download .macos
+  if [ ! -f ~/.macos.backup ]; then
+    /bin/bash ~/.macos
+    _backup ~/.macos
+  else
+    if [ "$(md5sum ~/.dotfiles/.macos | awk '{print $1}')" != "$(md5sum ~/.macos.backup | awk '{print $1}')" ]; then
+      /bin/bash ~/.macos
+      _backup ~/.macos
+    fi
+  fi
+fi
+
+# Step 8: 셸 환경 설정
 _progress "Installing ZSH and Oh My ZSH..."
-# oh-my-zsh
+
+# Oh My ZSH 설치 및 셸 변경
 if [ ! -d ~/.oh-my-zsh ]; then
-  # chsh zsh
+  # 기본 셸을 ZSH로 변경
   THIS_SHELL="$(grep $(whoami) /etc/passwd | cut -d':' -f7)"
   if [[ "${THIS_SHELL}" != "/bin/zsh" ]]; then
     chsh -s /bin/zsh
@@ -404,8 +431,10 @@ if [ ! -d ~/.oh-my-zsh ]; then
   /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
 fi
 
-_progress "Installing Dracula theme..."
-# dracula theme
+# Step 9: 테마 및 UI 설정
+_progress "Installing theme and UI settings..."
+
+# Dracula 테마 설치
 if [ ! -d ~/.dracula ]; then
   mkdir -p ~/.dracula
 
@@ -418,41 +447,27 @@ if [ ! -d ~/.dracula ]; then
   fi
 fi
 
-_progress "Downloading configuration files..."
-# .bashrc
-_download .bashrc
-
-# .profile
-_download .profile
-
-# .aliases
-_download .aliases
-
-# .vimrc
-_download .vimrc
-
-# .zshrc
-_download .zshrc
-
-# .zprofile
-_download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
-
-# .iterm2
+# iTerm2 설정 파일
 if [ ! -d ~/.iterm2 ]; then
   mkdir -p ~/.iterm2
 fi
 _download .iterm2/profiles.json
 
-# claude
+# Step 10: 사용자 설정 파일 적용
+_progress "Applying user configuration files..."
+
+# 셸 설정 파일들
+_download .bashrc
+_download .profile
+_download .aliases
+_download .vimrc
+_download .zshrc
+_download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
+
+# Claude AI 설정
 if [ ! -d ~/.claude ]; then
   mkdir -p ~/.claude
 fi
 _download .claude/CLAUDE.md
-
-# claude
-_install_npm_package "claude-code" "@anthropic-ai/claude-code"
-
-# gemini
-_install_npm_package "gemini-cli" "@google/gemini-cli"
 
 _success "Installation completed successfully!"
