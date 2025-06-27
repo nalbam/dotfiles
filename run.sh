@@ -190,7 +190,7 @@ _install_npm_package() {
   local package_spec="$2"
 
   # Check if package is installed
-  if npm list -g "$package_name" >/dev/null 2>&1; then
+  if npm list -g "$package_spec" >/dev/null 2>&1; then
     local installed_version=$(npm list -g "$package_spec" --depth=0 2>/dev/null | grep "$package_name" | sed 's/.*@\([0-9.]*\).*/\1/')
     local latest_version=$(npm view "$package_spec" version 2>/dev/null)
 
