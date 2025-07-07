@@ -236,6 +236,38 @@ _install_npm_package() {
   fi
 }
 
+# PIP 패키지 설치 함수 (버전 체크 포함)
+_install_pip_package() {
+  local package_name="$1"
+
+  command -v python3 >/dev/null || HAS_PYTHON=false
+  if [ ! -z ${HAS_PYTHON} ]; then
+    _result "Python3 not found, skipping pip package installation"
+    return 1
+  fi
+
+  # Check if package is installed
+  if python3 -m pip show "$package_name" >/dev/null 2>&1; then
+    local installed_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
+    local latest_version=$(python3 -m pip index versions "$package_name" 2>/dev/null | grep "LATEST:" | awk '{print $2}')
+
+    if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
+      if [ "$installed_version" != "$latest_version" ]; then
+        _command "Updating $package_name from $installed_version to $latest_version"
+        python3 -m pip install --upgrade "$package_name"
+      # else
+      #   _result "$package_name is already up to date ($installed_version)"
+      fi
+    else
+      _command "Installing $package_name (version check failed)"
+      python3 -m pip install "$package_name"
+    fi
+  else
+    _command "Installing $package_name"
+    python3 -m pip install "$package_name"
+  fi
+}
+
 # APT 업데이트 체크 함수
 should_run_apt_update() {
   if [ ! -f "$APT_TIMESTAMP_FILE" ]; then
@@ -386,6 +418,9 @@ fi
 # NPM 패키지 설치 (버전 체크 포함)
 _install_npm_package "claude-code" "@anthropic-ai/claude-code"
 _install_npm_package "gemini-cli" "@google/gemini-cli"
+
+# PIP 패키지 설치 (버전 체크 포함)
+_install_pip_package "toast-cli"
 
 # Step 7: OS별 시스템 설정
 _progress "Configuring OS-specific settings..."
