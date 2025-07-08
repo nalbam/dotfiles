@@ -483,4 +483,8 @@ _download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
 # Claude AI 설정
 _download .claude/CLAUDE.md
 
+# Cursor AI 설정
+_download .cursor/mcp.json
+
+# Success
 _success "Installation completed successfully!"
