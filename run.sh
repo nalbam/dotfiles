@@ -80,30 +80,6 @@ _error() {
   exit 1
 }
 
-# Git 설정 함수
-_git_config() {
-  DEFAULT="$(whoami)"
-  _read "Please input git user name [${DEFAULT}]: "
-
-  GIT_USERNAME="${ANSWER:-${DEFAULT}}"
-  git config --global user.name "${GIT_USERNAME}"
-
-  if [ "${ORG}" == "nalbam" ]; then
-    DEFAULT="me@nalbam.com"
-  elif [ "${ORG}" == "Karrot" ] || [ "${ORG}" == "daangn" ]; then
-    DEFAULT="${GIT_USERNAME}@daangn.com"
-  else
-    DEFAULT="${GIT_USERNAME}@gmail.com"
-  fi
-  _read "Please input git user email [${DEFAULT}]: "
-
-  GIT_USEREMAIL="${ANSWER:-${DEFAULT}}"
-  git config --global user.email "${GIT_USEREMAIL}"
-
-  _command "git config --list"
-  git config --list
-}
-
 # 백업 생성 함수
 _backup() {
   if [ -f "$1" ]; then
@@ -333,20 +309,22 @@ _progress "Setting up basic configuration files..."
 # SSH 설정 파일 다운로드
 if [ ! -f ~/.ssh/config ]; then
   _download .ssh/config
+
+  _command "Run: op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config"
 fi
 
 # AWS 설정 파일 다운로드
 if [ ! -f ~/.aws/config ]; then
   _download .aws/config
+
+  _command "Run: op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config"
+  _command "Run: op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials"
 fi
 
-# Git 설정 파일 다운로드 및 설정
-if [ ! -f ~/.gitconfig ]; then
-  _download .gitconfig
-  _download .gitconfig-bruce
-  _download .gitconfig-nalbam
-  _git_config
-fi
+# Git 설정 파일 다운로드
+_download .gitconfig
+_download .gitconfig-bruce
+_download .gitconfig-nalbam
 
 # Step 5: OS별 패키지 관리자 설정
 _progress "Setting up package managers..."
