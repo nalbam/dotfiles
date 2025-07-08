@@ -10,18 +10,6 @@ c() {
   fi
 }
 
-# v() {
-#   local profile="$(toast av $@)"
-#   if [ -n "$profile" ]; then
-#     export AWS_VAULT= && aws-vault exec $profile --
-#   fi
-# }
-
-# e() {
-#   op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config
-#   op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials
-# }
-
 alias m='toast am'
 alias x='toast ctx'
 alias d='toast dot'
@@ -69,9 +57,6 @@ alias tfsr='tf init && tf state rm'
 alias tfdoc="terraform-docs markdown"
 
 alias slsd="toast am && sls deploy"
-
-alias cs='cursor .'
-alias cx='claude'
 
 alias amp="amplify"
 

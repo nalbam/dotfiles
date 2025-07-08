@@ -464,8 +464,10 @@ if [ ! -d ~/.dracula ]; then
   fi
 fi
 
-# iTerm2 설정 파일
-_download .iterm2/profiles.json
+if [ "${OS_NAME}" == "darwin" ]; then
+  # iTerm2 설정 파일
+  _download .iterm2/profiles.json
+fi
 
 # Step 10: 사용자 설정 파일 적용
 _progress "Applying user configuration files..."
