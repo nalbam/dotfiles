@@ -21,6 +21,8 @@ alias a='aws'
 alias k='kubectl'
 alias h='helm'
 
+alias cc='claude'
+
 alias av='aws-vault'
 alias ave='export AWS_VAULT= && aws-vault exec'
 alias ava='export AWS_VAULT= && aws-vault exec daangn-alpha --'
