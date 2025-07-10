@@ -394,8 +394,11 @@ if [ "${GETOPT}" == "--" ]; then
 fi
 
 # NPM 패키지 설치 (버전 체크 포함)
+_install_npm_package "npm" "npm"
+_install_npm_package "serverless" "serverless"
 _install_npm_package "claude-code" "@anthropic-ai/claude-code"
-_install_npm_package "gemini-cli" "@google/gemini-cli"
+_install_npm_package "ccusage" "ccusage"
+# _install_npm_package "gemini-cli" "@google/gemini-cli"
 
 # PIP 패키지 설치 (버전 체크 포함)
 _install_pip_package "toast-cli"
