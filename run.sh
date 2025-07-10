@@ -395,6 +395,7 @@ fi
 
 # NPM 패키지 설치 (버전 체크 포함)
 _install_npm_package "npm" "npm"
+_install_npm_package "corepack" "corepack"
 _install_npm_package "serverless" "serverless"
 _install_npm_package "claude-code" "@anthropic-ai/claude-code"
 _install_npm_package "ccusage" "ccusage"
