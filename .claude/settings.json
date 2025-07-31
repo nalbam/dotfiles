@@ -1,0 +1,22 @@
+{
+  "env": {
+    "MAX_THINKING_TOKENS": "31999"
+  },
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(chgrp:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)",
+      "Bash(cp:*)",
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(ln:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(touch:*)"
+    ]
+  }
+}
