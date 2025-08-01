@@ -35,7 +35,7 @@ if [ -d "${BREWPATH}/opt/gnu-getopt/bin" ]; then
   export PATH="${BREWPATH}/opt/gnu-getopt/bin:$PATH"
 fi
 
-PS1='$(kube_ps1)'$PS1
+PS1="$(kube_ps1)${PS1}"
 
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
 
