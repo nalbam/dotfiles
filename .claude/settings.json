@@ -16,7 +16,11 @@
       "Bash(ls:*)",
       "Bash(mkdir:*)",
       "Bash(mv:*)",
+      "Bash(node:*)",
+      "Bash(npm:*)",
+      "Bash(pnpm:*)",
       "Bash(touch:*)",
+      "Bash(yarn:*)",
       "WebFetch(domain:docs.anthropic.com)"
     ],
     "defaultMode": "acceptEdits"
