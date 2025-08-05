@@ -18,6 +18,7 @@
       "Bash(mv:*)",
       "Bash(node:*)",
       "Bash(npm:*)",
+      "Bash(npx:*)",
       "Bash(pnpm:*)",
       "Bash(touch:*)",
       "Bash(yarn:*)",
