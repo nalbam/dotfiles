@@ -60,7 +60,6 @@ cask "orbstack"
 cask "raycast"
 cask "unity-hub"
 cask "visual-studio-code"
-cask "warp"
 
 tap "opspresso/tap"
 cask "opspresso/tap/toast"
