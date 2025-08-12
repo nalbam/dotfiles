@@ -24,7 +24,7 @@ TOTAL_STEPS=10
 CURRENT_STEP=0
 
 # 타이머 설정
-SECONDS_IN_DAY=86400
+UPDATE_INTERVAL=43200  # 12시간 (초 단위)
 
 # 컬러 출력 설정
 command -v tput >/dev/null && TPUT=true
@@ -254,7 +254,7 @@ should_run_apt_update() {
   last_update=$(cat "$APT_TIMESTAMP_FILE")
   time_diff=$((current_time - last_update))
 
-  if [ $time_diff -ge $SECONDS_IN_DAY ]; then
+  if [ $time_diff -ge $UPDATE_INTERVAL ]; then
     return 0
   else
     return 1
@@ -271,7 +271,7 @@ should_run_brew_update() {
   last_update=$(cat "$BREW_TIMESTAMP_FILE")
   time_diff=$((current_time - last_update))
 
-  if [ $time_diff -ge $SECONDS_IN_DAY ]; then
+  if [ $time_diff -ge $UPDATE_INTERVAL ]; then
     return 0
   else
     return 1
@@ -346,7 +346,7 @@ if [ "${OS_NAME}" == "linux" ]; then
     # Update timestamp
     date +%s > "$APT_TIMESTAMP_FILE"
   else
-    _command "Skipping apt updates (last update was less than 24 hours ago)"
+    _command "Skipping apt updates (last update was less than 12 hours ago)"
   fi
 fi
 
@@ -384,7 +384,7 @@ if should_run_brew_update; then
   # Update timestamp
   date +%s > "$BREW_TIMESTAMP_FILE"
 else
-  _command "Skipping brew updates (last update was less than 24 hours ago)"
+  _command "Skipping brew updates (last update was less than 12 hours ago)"
 fi
 
 # getopt 설정
