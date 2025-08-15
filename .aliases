@@ -73,7 +73,8 @@ alias py3='python3'
 alias dff='colordiff'
 
 alias http-docs='python3 -m http.server 8000 --directory docs > /dev/null 2>&1 & disown && echo "Serving docs at http://localhost:8000"'
-alias kill-docs='lsof -ti:8000 | xargs -r kill && echo "Killed process on port 8000" || echo "No process on port 8000"'
+alias kill-8000='lsof -ti:8000 | xargs -r kill && echo "Killed process on port 8000" || echo "No process on port 8000"'
+alias kill-3000='lsof -ti:3000 | xargs -r kill && echo "Killed process on port 3000" || echo "No process on port 3000"'
 
 alias p='reveal-md -w --port 8888 --theme night'
 
