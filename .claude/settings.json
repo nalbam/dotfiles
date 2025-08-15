@@ -22,7 +22,9 @@
       "Bash(pnpm:*)",
       "Bash(touch:*)",
       "Bash(yarn:*)",
-      "WebFetch(domain:docs.anthropic.com)"
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:docs.tosspayments.com)",
+      "WebFetch(domain:developer.paypal.com)"
     ],
     "defaultMode": "acceptEdits"
   },
