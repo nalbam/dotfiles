@@ -22,6 +22,7 @@
       "Bash(npx:*)",
       "Bash(pnpm:*)",
       "Bash(touch:*)",
+      "Bash(tsc:*)",
       "Bash(yarn:*)",
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:docs.tosspayments.com)",
