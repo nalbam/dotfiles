@@ -26,7 +26,8 @@
       "Bash(yarn:*)",
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:docs.tosspayments.com)",
-      "WebFetch(domain:developer.paypal.com)"
+      "WebFetch(domain:developer.paypal.com)",
+      "WebFetch(domain:jestjs.io)"
     ],
     "defaultMode": "acceptEdits"
   },
