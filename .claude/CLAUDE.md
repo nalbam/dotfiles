@@ -49,11 +49,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - New team members should thoroughly review all documentation in the `docs/` directory as part of onboarding.
 - Each document should serve a clear purpose:
 
-### `README.md`
-- Project overview and purpose
-- Setup and installation steps
-- Usage instructions or examples
-
 ## Testing Strategy
 
 - Write automated tests for important logic and user flows.
