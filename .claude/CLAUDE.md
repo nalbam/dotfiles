@@ -4,7 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Project Code Guidelines
 
-**Important: Before writing new code, search for similar existing code and maintain consistent logic and style patterns. Always refer to the main development documentation and documents in the `docs/` directory.**
+**Important: Always refer to the main development documentation and documents in the `docs/` directory.**
+
+**Important: Before writing new code, search for similar existing code and maintain consistent logic and style patterns.**
+
+**Important: 필요한 작업만 수행하세요. 작업이 필요하지 않으면 중단하세요.**
 
 ## Core Principles
 
