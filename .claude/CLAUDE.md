@@ -27,7 +27,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Automate where practical**: Use automation for formatting, testing, and deployment to reduce manual effort and error.
 - **Address Root Causes**: When encountering issues or bugs, prioritize identifying and resolving the root cause rather than implementing temporary workarounds. This ensures long-term stability and maintainability.
 - **Use Realistic Data**: Avoid using placeholder or dummy data in development and testing environments where possible. Strive to use data that accurately reflects real-world scenarios to ensure robustness and identify potential issues early. (Sensitive production data should never be used directly in non-production environments without proper anonymization and security measures.)
-- **Maintain file size limits**: Keep files under 500 lines to improve readability, maintainability, and collaboration. Keep source code files under 500 lines for readability, maintainability, and collaboration efficiency. (See 'File Size Guidelines' for details)
+- **Maintain file size limits**: Keep source code files under 500 lines for readability, maintainability, and collaboration efficiency. (See 'File Size Guidelines' for details)
 
 ## SOLID Principles
 
@@ -51,7 +51,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Keep all documentation up to date and version-controlled. Code changes impacting documented features or architecture must be accompanied by corresponding updates to the relevant documents in the `docs/` directory. Pull requests should include documentation changes if applicable.
 - Always check the existing documentation in the `docs/` directory for reference before creating new content.
 - New team members should thoroughly review all documentation in the `docs/` directory as part of onboarding.
-- Each document should serve a clear purpose:
+- Each document should serve a clear purpose.
 
 ## Testing Strategy
 
