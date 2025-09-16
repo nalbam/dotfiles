@@ -63,9 +63,38 @@ alias slsd="toast am && sls deploy"
 
 alias amp="amplify"
 
-alias nn='rm -rf node_modules .next package-lock.json pnpm-lock.yaml && pnpm install'
-alias nd='lsof -ti:3000 | xargs -r kill && pnpm dev'
-alias nb='pnpm build'
+nn() {
+  if [ -f "pnpm-lock.yaml" ]; then
+    echo "Found pnpm-lock.yaml, cleaning and reinstalling with pnpm..."
+    rm -rf node_modules pnpm-lock.yaml .next && pnpm install
+  elif [ -f "package-lock.json" ]; then
+    echo "Found package-lock.json, cleaning and reinstalling with npm..."
+    rm -rf node_modules package-lock.json && npm install
+  else
+    echo "No lock file found, installing with npm..."
+    npm install
+  fi
+}
+nb() {
+  if [ -f "pnpm-lock.yaml" ]; then
+    pnpm build
+  elif [ -f "package-lock.json" ]; then
+    npm run build
+  else
+    npm run build
+  fi
+}
+nd() {
+  lsof -ti:3000 | xargs -r kill
+  lsof -ti:3001 | xargs -r kill
+  if [ -f "pnpm-lock.yaml" ]; then
+    pnpm dev
+  elif [ -f "package-lock.json" ]; then
+    npm run dev
+  else
+    npm run dev
+  fi
+}
 
 alias py='python'
 alias py3='python3'
