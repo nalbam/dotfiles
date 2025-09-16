@@ -1,7 +1,11 @@
+#!/bin/bash
+
+# Toast CLI shortcuts
 alias t='toast'
 alias tu='pip install -U toast-cli'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
+# Change directory with toast cdw
 c() {
   local dir="$(toast cdw $@)"
   if [ -n "$dir" ]; then
@@ -10,6 +14,7 @@ c() {
   fi
 }
 
+# Shortcuts for toast commands
 alias m='toast am'
 alias x='toast ctx'
 alias d='toast dot'
@@ -21,21 +26,55 @@ alias a='aws'
 alias k='kubectl'
 alias h='helm'
 
+# Claude CLI shortcuts
 alias cc='claude'
 alias ccu='ccusage'
 
-alias av='aws-vault'
-alias ave='export AWS_VAULT= && aws-vault exec'
-alias ava='export AWS_VAULT= && aws-vault exec daangn-alpha --'
-alias avd='export AWS_VAULT= && aws-vault exec daangn-data --'
-alias avp='export AWS_VAULT= && aws-vault exec daangn-prod --'
-alias avn='export AWS_VAULT= && aws-vault exec nalbam --'
-alias avt='export AWS_VAULT= && aws-vault exec nalbam-two --'
-alias avk='export AWS_VAULT= && aws-vault exec awskrug-team --'
-alias avo='export AWS_VAULT= && aws-vault exec opspresso --'
-alias avb='export AWS_VAULT= && aws-vault exec bruce --'
-alias avc='aws-vault clear'
+# AWS Vault helper function
+av() {
+  # AWS Vault helper
+  if [ -z "$1" ]; then
+    echo "Usage: av <profile|command> [args...]"
+    echo "Profiles:"
+    echo "  a|alpha    - daangn-alpha"
+    echo "  d|data     - daangn-data"
+    echo "  p|prod     - daangn-prod"
+    echo "  n|nalbam   - nalbam"
+    echo "  t|two      - nalbam-two"
+    echo "  k|krug     - awskrug-team"
+    echo "  o|ops      - opspresso"
+    echo "  b|bruce    - bruce"
+    echo "Commands:"
+    echo "  c|clear    - clear credentials"
+    echo "  l|list     - list profiles"
+    echo "  s|status   - show current status"
+    return 1
+  fi
 
+  case "$1" in
+    a|alpha)  export AWS_VAULT= && aws-vault exec daangn-alpha -- ${@:2} ;;
+    d|data)   export AWS_VAULT= && aws-vault exec daangn-data -- ${@:2} ;;
+    p|prod)   export AWS_VAULT= && aws-vault exec daangn-prod -- ${@:2} ;;
+    n|nalbam) export AWS_VAULT= && aws-vault exec nalbam -- ${@:2} ;;
+    t|two)    export AWS_VAULT= && aws-vault exec nalbam-two -- ${@:2} ;;
+    k|krug)   export AWS_VAULT= && aws-vault exec awskrug-team -- ${@:2} ;;
+    o|ops)    export AWS_VAULT= && aws-vault exec opspresso -- ${@:2} ;;
+    b|bruce)  export AWS_VAULT= && aws-vault exec bruce -- ${@:2} ;;
+    c|clear)  aws-vault clear ;;
+    l|list)   aws-vault list ;;
+    s|status) aws-vault list | grep -E "^Profile|^=|Session" ;;
+    *)        export AWS_VAULT= && aws-vault exec "$@" ;;
+  esac
+}
+
+# Keep backward compatibility aliases
+alias ava='av alpha'
+alias avd='av data'
+alias avp='av prod'
+alias avn='av nalbam'
+alias avc='av clear'
+
+# Terraform
 alias tf='terraform'
 alias tfc='rm -rf .terraform .terraform.lock.hcl'
 alias tff='toast am && tf init && tf fmt'
@@ -57,12 +96,16 @@ alias tfsl='tf init && tf state list'
 alias tfss='tf init && tf state show'
 alias tfsr='tf init && tf state rm'
 
+# Terraform docs
 alias tfdoc="terraform-docs markdown"
 
+# Serverless
 alias slsd="toast am && sls deploy"
 
+# Amplify
 alias amp="amplify"
 
+# Node.js / JavaScript / TypeScript
 nn() {
   if [ -f "pnpm-lock.yaml" ]; then
     echo "Found pnpm-lock.yaml, cleaning and reinstalling with pnpm..."
@@ -96,11 +139,22 @@ nd() {
   fi
 }
 
+# Python
 alias py='python'
 alias py3='python3'
 
+# Python package management
+alias pip='pip3'
+alias pipi='pip install'
+alias pipu='pip install --upgrade'
+alias pipr='pip install -r requirements.txt'
+alias pipf='pip freeze > requirements.txt'
+alias pipl='pip list'
+
+# Color diff
 alias dff='colordiff'
 
+# Local development servers
 ds() {
   # Doc server - serve any directory with Python http.server
   local dir="${1:-docs}"
@@ -145,10 +199,13 @@ kp() {
   fi
 }
 
+# Markdown preview
 alias p='reveal-md -w --port 8888 --theme night'
 
+# Date in UTC ISO 8601 format
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
+# Commonly used ls aliases
 alias ll='ls -l'
 alias l='ls -al'
 
