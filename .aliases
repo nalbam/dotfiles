@@ -128,7 +128,6 @@ nb() {
   fi
 }
 nk() {
-  # Kill dev servers on port 3000-3999
   local pids=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:3[0-9]{3}(\s|$)' | awk '{print $2}' | sort -u)
   if [ -n "$pids" ]; then
     echo "Killing dev servers on port 3000-3999..."
