@@ -174,12 +174,12 @@ ds() {
 }
 kl() {
   # Kill all local dev servers by port
-  local pids=$(lsof -i -P -n | grep LISTEN | grep -E ':(300[0-9]|400[0-9]|500[0-9]|800[0-9]|808[0-9]|900[0-9])(\s|$)' | awk '{print $2}' | sort -u)
+  local pids=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:(300[0-9]|400[0-9]|500[0-9]|800[0-9]|808[0-9]|900[0-9])(\s|$)' | awk '{print $2}' | sort -u)
   if [ -n "$pids" ]; then
     echo "Killing local servers..."
     echo "$pids" | while read pid; do
-      local info=$(lsof -p $pid -i -P -n | grep LISTEN | head -1)
-      local port=$(echo "$info" | awk '{print $NF}' | awk -F: '{print $NF}')
+      local info=$(lsof -i -P -n | grep LISTEN | grep "^[^ ]*[ ]*$pid" | head -1)
+      local port=$(echo "$info" | awk '{print $(NF-1)}' | awk -F: '{print $NF}')
       local cmd=$(echo "$info" | awk '{print $1}')
       kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
     done
