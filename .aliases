@@ -73,6 +73,7 @@ alias avd='av data'
 alias avp='av prod'
 alias avn='av nalbam'
 alias avc='av clear'
+alias avl='av list'
 
 # Terraform
 alias tf='terraform'
