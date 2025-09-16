@@ -127,8 +127,21 @@ nb() {
     npm run build
   fi
 }
+nk() {
+  # Kill dev servers on port 3000-3999
+  local pids=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:3[0-9]{3}(\s|$)' | awk '{print $2}' | sort -u)
+  if [ -n "$pids" ]; then
+    echo "Killing dev servers on port 3000-3999..."
+    echo "$pids" | while read pid; do
+      local info=$(lsof -i -P -n | grep LISTEN | grep "^[^ ]*[ ]*$pid" | head -1)
+      local port=$(echo "$info" | awk '{print $(NF-1)}' | awk -F: '{print $NF}')
+      local cmd=$(echo "$info" | awk '{print $1}')
+      kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
+    done
+  fi
+}
 nd() {
-  kl
+  nk
   if [ -f "pnpm-lock.yaml" ]; then
     pnpm dev
   elif [ -f "package-lock.json" ]; then
