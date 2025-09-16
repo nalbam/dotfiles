@@ -128,8 +128,7 @@ nb() {
   fi
 }
 nd() {
-  lsof -ti:3000 | xargs -r kill
-  lsof -ti:3001 | xargs -r kill
+  kl
   if [ -f "pnpm-lock.yaml" ]; then
     pnpm dev
   elif [ -f "package-lock.json" ]; then
