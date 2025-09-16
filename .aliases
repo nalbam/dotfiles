@@ -113,7 +113,7 @@ nn() {
     rm -rf node_modules pnpm-lock.yaml .next && pnpm install
   elif [ -f "package-lock.json" ]; then
     echo "Found package-lock.json, cleaning and reinstalling with npm..."
-    rm -rf node_modules package-lock.json && npm install
+    rm -rf node_modules package-lock.json dist && npm install
   else
     echo "No lock file found, installing with npm..."
     npm install
