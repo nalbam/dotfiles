@@ -101,9 +101,49 @@ alias py3='python3'
 
 alias dff='colordiff'
 
-alias http-docs='python3 -m http.server 8000 --directory docs > /dev/null 2>&1 & disown && echo "Serving docs at http://localhost:8000"'
-alias kill-8000='lsof -ti:8000 | xargs -r kill && echo "Killed process on port 8000" || echo "No process on port 8000"'
-alias kill-3000='lsof -ti:3000 | xargs -r kill && echo "Killed process on port 3000" || echo "No process on port 3000"'
+ds() {
+  # Doc server - serve any directory with Python http.server
+  local dir="${1:-docs}"
+  local port="${2:-8000}"
+
+  # Kill existing process on the port if any
+  lsof -ti:$port > /dev/null 2>&1 && lsof -ti:$port | xargs -r kill
+
+  # Resolve absolute path
+  local abs_dir=$(cd "$dir" 2>/dev/null && pwd)
+  if [ -z "$abs_dir" ]; then
+    echo "Directory '$dir' not found"
+    return 1
+  fi
+
+  python3 -m http.server $port --directory "$abs_dir" > /dev/null 2>&1 & disown
+  echo "Serving $abs_dir at http://localhost:$port"
+}
+kl() {
+  # Kill all local dev servers
+  local ports=$(lsof -i -P -n | grep LISTEN | grep -E ':(300[0-9]|400[0-9]|500[0-9]|800[0-9]|808[0-9]|900[0-9])\s' | awk '{print $2}' | sort -u)
+  if [ -n "$ports" ]; then
+    echo "Killing local servers..."
+    echo "$ports" | while read pid; do
+      local port=$(lsof -p $pid -i -P -n | grep LISTEN | awk -F: '{print $2}' | awk '{print $1}' | head -1)
+      kill $pid 2>/dev/null && echo "  Killed PID $pid (port $port)"
+    done
+  else
+    echo "No local servers found"
+  fi
+}
+kp() {
+  # Kill specific port
+  if [ -z "$1" ]; then
+    echo "Usage: kp <port>"
+    return 1
+  fi
+  if lsof -ti:$1 > /dev/null 2>&1; then
+    lsof -ti:$1 | xargs -r kill && echo "Killed process on port $1"
+  else
+    echo "No process found on port $1"
+  fi
+}
 
 alias p='reveal-md -w --port 8888 --theme night'
 
