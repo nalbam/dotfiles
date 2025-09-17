@@ -12,6 +12,7 @@
       "Bash(cp:*)",
       "Bash(curl:*)",
       "Bash(find:*)",
+      "Bash(for:*)",
       "Bash(grep:*)",
       "Bash(ln:*)",
       "Bash(ls:*)",
