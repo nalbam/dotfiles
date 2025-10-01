@@ -51,7 +51,7 @@ if ENV['USER'] == "nalbam"
 end
 
 cask "1password-cli"
-cask "aws-vault"
+cask "aws-vault-binary"
 cask "cursor"
 cask "font-dejavu-sans-mono-nerd-font"
 cask "google-drive"
