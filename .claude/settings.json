@@ -4,6 +4,7 @@
   },
   "permissions": {
     "allow": [
+      "Bash(awk:*)",
       "Bash(bun:*)",
       "Bash(cat:*)",
       "Bash(chgrp:*)",
@@ -11,9 +12,13 @@
       "Bash(chown:*)",
       "Bash(cp:*)",
       "Bash(curl:*)",
+      "Bash(do)",
+      "Bash(done)",
+      "Bash(echo:*)",
       "Bash(find:*)",
       "Bash(for:*)",
       "Bash(grep:*)",
+      "Bash(head:*)",
       "Bash(ln:*)",
       "Bash(ls:*)",
       "Bash(mkdir:*)",
@@ -24,12 +29,14 @@
       "Bash(pnpm:*)",
       "Bash(touch:*)",
       "Bash(tsc:*)",
+      "Bash(while read file)",
       "Bash(xargs:*)",
       "Bash(yarn:*)",
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:docs.tosspayments.com)",
       "WebFetch(domain:developer.paypal.com)",
-      "WebFetch(domain:jestjs.io)"
+      "WebFetch(domain:jestjs.io)",
+      "WebSearch"
     ],
     "defaultMode": "acceptEdits"
   },
