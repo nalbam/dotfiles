@@ -21,6 +21,7 @@ alias d='toast dot'
 alias e='toast env'
 alias g='toast git'
 alias r='toast region'
+alias p='toast prompt'
 
 alias a='aws'
 alias k='kubectl'
@@ -212,9 +213,6 @@ kp() {
     echo "No process found on port $1"
   fi
 }
-
-# Markdown preview
-alias p='reveal-md -w --port 8888 --theme night'
 
 # Date in UTC ISO 8601 format
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
