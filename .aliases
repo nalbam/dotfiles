@@ -68,6 +68,14 @@ av() {
   esac
 }
 
+# Keep backward compatibility aliases
+alias ava='av alpha'
+alias avd='av data'
+alias avp='av prod'
+alias avn='av nalbam'
+alias avc='av clear'
+alias avl='av list'
+
 # AWS SSM Parameter Store helper
 ssm() {
   if [ -z "$1" ]; then
@@ -100,14 +108,6 @@ ssm() {
       ;;
   esac
 }
-
-# Keep backward compatibility aliases
-alias ava='av alpha'
-alias avd='av data'
-alias avp='av prod'
-alias avn='av nalbam'
-alias avc='av clear'
-alias avl='av list'
 
 # Terraform
 alias tf='terraform'
