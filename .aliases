@@ -201,8 +201,8 @@ alias pipl='pip list'
 alias dff='colordiff'
 
 # Local development servers
-ds() {
-  # Doc server - serve any directory with Python http.server
+ss() {
+  # Server start - serve any directory with Python http.server
   local dir="${1:-docs}"
   local port="${2:-8000}"
 
@@ -219,32 +219,55 @@ ds() {
   python3 -m http.server $port --directory "$abs_dir" > /dev/null 2>&1 & disown
   echo "Serving $abs_dir at http://localhost:$port"
 }
-kl() {
-  # Kill all local dev servers by port
-  local pids=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:(300[0-9]|400[0-9]|500[0-9]|800[0-9]|808[0-9]|900[0-9])(\s|$)' | awk '{print $2}' | sort -u)
-  if [ -n "$pids" ]; then
-    echo "Killing local servers..."
-    echo "$pids" | while read pid; do
-      local info=$(lsof -i -P -n | grep LISTEN | grep "^[^ ]*[ ]*$pid" | head -1)
-      local port=$(echo "$info" | awk '{print $(NF-1)}' | awk -F: '{print $NF}')
-      local cmd=$(echo "$info" | awk '{print $1}')
-      kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
+sl() {
+  # Server list - show all local dev servers
+  local servers=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:(300[0-9]|400[0-9]|500[0-9]|800[0-9]|808[0-9]|900[0-9])(\s|$)')
+  if [ -n "$servers" ]; then
+    echo "Local servers:"
+    echo "$servers" | while read line; do
+      local cmd=$(echo "$line" | awk '{print $1}')
+      local pid=$(echo "$line" | awk '{print $2}')
+      local port=$(echo "$line" | awk '{print $(NF-1)}' | awk -F: '{print $NF}')
+      echo "  $cmd (PID $pid) on port $port"
     done
   else
     echo "No local servers found"
   fi
 }
-kp() {
-  # Kill specific port
+sk() {
+  # Server kill - kill specific port or all local dev servers
   if [ -z "$1" ]; then
-    echo "Usage: kp <port>"
+    echo "Usage: sk <port|a|all>"
+    echo "  sk <port>  - Kill server on specific port"
+    echo "  sk a|all   - Kill all local dev servers"
     return 1
   fi
-  if lsof -ti:$1 > /dev/null 2>&1; then
-    lsof -ti:$1 | xargs -r kill && echo "Killed process on port $1"
-  else
-    echo "No process found on port $1"
-  fi
+
+  case "$1" in
+    a|all)
+      # Kill all local dev servers
+      local pids=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:(300[0-9]|400[0-9]|500[0-9]|800[0-9]|808[0-9]|900[0-9])(\s|$)' | awk '{print $2}' | sort -u)
+      if [ -n "$pids" ]; then
+        echo "Killing local servers..."
+        echo "$pids" | while read pid; do
+          local info=$(lsof -i -P -n | grep LISTEN | grep "^[^ ]*[ ]*$pid" | head -1)
+          local port=$(echo "$info" | awk '{print $(NF-1)}' | awk -F: '{print $NF}')
+          local cmd=$(echo "$info" | awk '{print $1}')
+          kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
+        done
+      else
+        echo "No local servers found"
+      fi
+      ;;
+    *)
+      # Kill specific port
+      if lsof -ti:$1 > /dev/null 2>&1; then
+        lsof -ti:$1 | xargs -r kill && echo "Killed process on port $1"
+      else
+        echo "No process found on port $1"
+      fi
+      ;;
+  esac
 }
 
 # Date in UTC ISO 8601 format
