@@ -48,7 +48,6 @@ av() {
     echo "Commands:"
     echo "  c|clear    - clear credentials"
     echo "  l|list     - list profiles"
-    echo "  s|status   - show current status"
     return 1
   fi
 
@@ -63,18 +62,9 @@ av() {
     b|bruce)  export AWS_VAULT= && aws-vault exec bruce -- ${@:2} ;;
     c|clear)  aws-vault clear ;;
     l|list)   aws-vault list ;;
-    s|status) aws-vault list | grep -E "^Profile|^=|Session" ;;
     *)        export AWS_VAULT= && aws-vault exec "$@" ;;
   esac
 }
-
-# Keep backward compatibility aliases
-alias ava='av alpha'
-alias avd='av data'
-alias avp='av prod'
-alias avn='av nalbam'
-alias avc='av clear'
-alias avl='av list'
 
 # AWS SSM Parameter Store helper
 ssm() {
@@ -110,19 +100,26 @@ ssm() {
 }
 
 # Keep backward compatibility aliases
-alias sg='ssm get'
-alias sp='ssm put'
+alias ava='av alpha'
+alias avd='av data'
+alias avp='av prod'
+alias avn='av nalbam'
+alias avc='av clear'
+alias avl='av list'
+
+alias sg='m && ssm get'
+alias sp='m && ssm put'
 
 # Terraform
 alias tf='terraform'
 alias tfc='rm -rf .terraform .terraform.lock.hcl'
-alias tff='toast am && tf init && tf fmt'
-alias tfp='toast am && tf init && tf fmt && tf plan'
-alias tfa='toast am && tf init && tf fmt && tf apply'
-alias tfd='toast am && tf init && tf destroy'
-alias tfs='toast am && tf init && tf state'
-alias tfg='toast am && tf init && tf graph'
-alias tfo='toast am && tf init && tf output'
+alias tff='m && tf init && tf fmt'
+alias tfp='m && tf init && tf fmt && tf plan'
+alias tfa='m && tf init && tf fmt && tf apply'
+alias tfd='m && tf init && tf destroy'
+alias tfs='m && tf init && tf state'
+alias tfg='m && tf init && tf graph'
+alias tfo='m && tf init && tf output'
 
 alias tfcp='tfc && tfp'
 alias tfca='tfc && tfa'
@@ -139,7 +136,7 @@ alias tfsr='tf init && tf state rm'
 alias tfdoc="terraform-docs markdown"
 
 # Serverless
-alias slsd="toast am && sls deploy"
+alias slsd="m && sls deploy"
 
 # Amplify
 alias amp="amplify"
