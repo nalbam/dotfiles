@@ -68,6 +68,39 @@ av() {
   esac
 }
 
+# AWS SSM Parameter Store helper
+ssm() {
+  if [ -z "$1" ]; then
+    echo "Usage: ssm <get|put> [args...]"
+    echo "Commands:"
+    echo "  g|get <name>         - Get parameter value with decryption"
+    echo "  p|put <name> <value> - Put parameter as SecureString"
+    return 1
+  fi
+
+  case "$1" in
+    g|get)
+      if [ -z "$2" ]; then
+        echo "Usage: ssm get <name>"
+        return 1
+      fi
+      aws ssm get-parameter --name "$2" --with-decryption --output json | jq .Parameter.Value
+      ;;
+    p|put)
+      if [ -z "$2" ] || [ -z "$3" ]; then
+        echo "Usage: ssm put <name> <value>"
+        return 1
+      fi
+      aws ssm put-parameter --name "$2" --value "$3" --type SecureString --overwrite | jq .
+      ;;
+    *)
+      echo "Unknown command: $1"
+      echo "Use 'ssm' without arguments for usage"
+      return 1
+      ;;
+  esac
+}
+
 # Keep backward compatibility aliases
 alias ava='av alpha'
 alias avd='av data'
