@@ -109,6 +109,10 @@ ssm() {
   esac
 }
 
+# Keep backward compatibility aliases
+alias sg='ssm get'
+alias sp='ssm put'
+
 # Terraform
 alias tf='terraform'
 alias tfc='rm -rf .terraform .terraform.lock.hcl'
