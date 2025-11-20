@@ -15,7 +15,7 @@ c() {
 }
 
 # Shortcuts for toast commands
-alias m='toast am'
+alias m='aws sts get-caller-identity --output json | jq .'
 alias x='toast ctx'
 alias d='toast dot'
 alias e='toast env'
