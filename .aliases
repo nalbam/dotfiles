@@ -69,30 +69,48 @@ av() {
 # AWS SSM Parameter Store helper
 ssm() {
   if [ -z "$1" ]; then
-    echo "Usage: ssm <get|put> [args...]"
+    echo "Usage: ssm <get|put|delete> [args...]"
     echo "Commands:"
-    echo "  g|get <name>         - Get parameter value with decryption"
-    echo "  p|put <name> <value> - Put parameter as SecureString"
+    echo "  g|get <name> [--region <region>]         - Get parameter value with decryption"
+    echo "  p|put <name> <value> [--region <region>] - Put parameter as SecureString"
+    echo "  d|delete|rm <name> [--region <region>]   - Delete parameter"
     return 1
   fi
 
-  case "$1" in
+  local cmd="$1"
+  shift
+
+  case "$cmd" in
     g|get)
-      if [ -z "$2" ]; then
-        echo "Usage: ssm get <name>"
+      if [ -z "$1" ]; then
+        echo "Usage: ssm get <name> [--region <region>]"
         return 1
       fi
-      aws ssm get-parameter --name "$2" --with-decryption --output json | jq .Parameter.Value
+      local name="$1"
+      shift
+      aws ssm get-parameter --name "$name" --with-decryption --output json "$@" | jq .Parameter.Value
       ;;
     p|put)
-      if [ -z "$2" ] || [ -z "$3" ]; then
-        echo "Usage: ssm put <name> <value>"
+      if [ -z "$1" ] || [ -z "$2" ]; then
+        echo "Usage: ssm put <name> <value> [--region <region>]"
         return 1
       fi
-      aws ssm put-parameter --name "$2" --value "$3" --type SecureString --overwrite | jq .
+      local name="$1"
+      local value="$2"
+      shift 2
+      aws ssm put-parameter --name "$name" --value "$value" --type SecureString --overwrite "$@" | jq .
+      ;;
+    d|delete|rm)
+      if [ -z "$1" ]; then
+        echo "Usage: ssm delete <name> [--region <region>]"
+        return 1
+      fi
+      local name="$1"
+      shift
+      aws ssm delete-parameter --name "$name" "$@" | jq .
       ;;
     *)
-      echo "Unknown command: $1"
+      echo "Unknown command: $cmd"
       echo "Use 'ssm' without arguments for usage"
       return 1
       ;;
