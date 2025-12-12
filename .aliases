@@ -29,6 +29,7 @@ alias h='helm'
 
 # Claude CLI shortcuts
 alias cc='claude'
+alias ccd='claude doctor'
 alias ccu='ccusage'
 
 # AWS Vault helper function
