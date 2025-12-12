@@ -52,13 +52,10 @@ end
 
 cask "1password-cli"
 cask "aws-vault-binary"
-cask "cursor"
 cask "font-dejavu-sans-mono-nerd-font"
 cask "google-drive"
 cask "iterm2"
-cask "orbstack"
 cask "raycast"
-cask "unity-hub"
 cask "visual-studio-code"
 
 tap "opspresso/tap"
