@@ -22,6 +22,7 @@ alias e='toast env'
 alias g='toast git'
 alias r='toast region'
 alias p='toast prompt'
+alias ssm='toast ssm'
 
 alias a='aws'
 alias k='kubectl'
@@ -64,57 +65,6 @@ av() {
     c|clear)  aws-vault clear ;;
     l|list)   aws-vault list ;;
     *)        export AWS_VAULT= && aws-vault exec "$@" ;;
-  esac
-}
-
-# AWS SSM Parameter Store helper
-ssm() {
-  if [ -z "$1" ]; then
-    echo "Usage: ssm <get|put|delete> [args...]"
-    echo "Commands:"
-    echo "  g|get <name> [--region <region>]         - Get parameter value with decryption"
-    echo "  p|put <name> <value> [--region <region>] - Put parameter as SecureString"
-    echo "  d|delete|rm <name> [--region <region>]   - Delete parameter"
-    return 1
-  fi
-
-  local cmd="$1"
-  shift
-
-  case "$cmd" in
-    g|get)
-      if [ -z "$1" ]; then
-        echo "Usage: ssm get <name> [--region <region>]"
-        return 1
-      fi
-      local name="$1"
-      shift
-      aws ssm get-parameter --name "$name" --with-decryption --output json "$@" | jq .Parameter.Value
-      ;;
-    p|put)
-      if [ -z "$1" ] || [ -z "$2" ]; then
-        echo "Usage: ssm put <name> <value> [--region <region>]"
-        return 1
-      fi
-      local name="$1"
-      local value="$2"
-      shift 2
-      aws ssm put-parameter --name "$name" --value "$value" --type SecureString --overwrite "$@" | jq .
-      ;;
-    d|delete|rm)
-      if [ -z "$1" ]; then
-        echo "Usage: ssm delete <name> [--region <region>]"
-        return 1
-      fi
-      local name="$1"
-      shift
-      aws ssm delete-parameter --name "$name" "$@" | jq .
-      ;;
-    *)
-      echo "Unknown command: $cmd"
-      echo "Use 'ssm' without arguments for usage"
-      return 1
-      ;;
   esac
 }
 
