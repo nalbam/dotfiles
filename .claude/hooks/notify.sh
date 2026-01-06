@@ -41,4 +41,12 @@ if [ -n "${SLACK_WEBHOOK_URL}" ]; then
     "${SLACK_WEBHOOK_URL}" > /dev/null 2>&1
 fi
 
+# ntfy.sh 알림 (NTFY_TOPIC이 설정된 경우만)
+if [ -n "${NTFY_TOPIC}" ]; then
+  curl -s -X POST "https://ntfy.sh/${NTFY_TOPIC}" \
+    -H "Title: ${title}" \
+    -H "Tags: robot" \
+    -d "${message}" > /dev/null 2>&1
+fi
+
 exit 0
