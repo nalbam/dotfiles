@@ -71,3 +71,32 @@ The installer detects organization context from hostname:
 - Progress tracking with colored output using `tput`
 - Modular function design for maintainability
 - Cross-platform compatibility (Darwin/Linux/MinGW64)
+
+## Platform-Specific Notes
+
+### macOS (Darwin)
+- **arm64**: Apple Silicon Macs, Homebrew at `/opt/homebrew`
+- **x86_64**: Intel Macs, Homebrew at `/usr/local`
+- Includes Xcode Command Line Tools installation
+- iTerm2 Dracula theme integration
+- System preferences automation via `.macos` script
+
+### Linux
+- **x86_64**: WSL (Windows Subsystem for Linux) or native Ubuntu/Debian
+- **aarch64**: Raspberry Pi 64-bit OS
+- **armv7l**: Raspberry Pi 32-bit OS
+- Homebrew at `/home/linuxbrew/.linuxbrew` (optional)
+- APT package manager with daily update throttling
+- All zprofile files gracefully handle missing brew/pyenv
+
+### WSL-Specific Considerations
+- Detected as Linux with x86_64 architecture
+- Homebrew installation is optional but supported
+- Windows notifications available via notify.sh
+- Network access inherits from Windows host
+
+### Raspberry Pi Considerations
+- ARM architecture (aarch64 or armv7l)
+- May require `sudo` for npm global package installations
+- Homebrew installation optional due to ARM compilation requirements
+- Lower memory footprint - some heavy packages may be skipped

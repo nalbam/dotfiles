@@ -348,15 +348,16 @@ if [ "${OS_NAME}" == "linux" ]; then
     sudo apt update
     sudo apt upgrade -y
 
-    command -v jq >/dev/null || HAS_JQ=false
-    if [ ! -z "${HAS_JQ}" ]; then
-      sudo apt install -y build-essential procps curl file git unzip jq zsh
-    fi
-
     # Update timestamp
     date +%s > "$APT_TIMESTAMP_FILE"
   else
     _command "Skipping apt updates (last update was less than 12 hours ago)"
+  fi
+
+  # 기본 패키지 설치 (없는 경우에만)
+  if ! command -v zsh >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    _command "Installing essential packages..."
+    sudo apt install -y build-essential procps curl file git unzip jq zsh
   fi
 fi
 
@@ -377,34 +378,40 @@ fi
 # Step 6: 개발 도구 패키지 설치
 _progress "Installing development packages..."
 
-# Homebrew 패키지 업데이트
-BREW_TIMESTAMP_FILE=~/.brew_last_update
+# Homebrew 패키지 업데이트 (brew가 설치된 경우에만)
+if command -v brew >/dev/null 2>&1; then
+  BREW_TIMESTAMP_FILE=~/.brew_last_update
 
-if should_run_brew_update; then
-  _command "Running daily brew updates..."
+  if should_run_brew_update; then
+    _command "Running daily brew updates..."
 
-  brew update
-  brew upgrade
+    brew update
+    brew upgrade
 
-  # Brewfile 기반 패키지 설치 (Windows 제외 - Homebrew 미지원)
-  if [ -f ~/.dotfiles/$OS_NAME/Brewfile ]; then
-    _download .Brewfile $OS_NAME/Brewfile
-    brew bundle --file=~/.Brewfile
-    brew cleanup
+    # Brewfile 기반 패키지 설치
+    if [ -f ~/.dotfiles/$OS_NAME/Brewfile ]; then
+      _download .Brewfile $OS_NAME/Brewfile
+      brew bundle --file=~/.Brewfile
+      brew cleanup
+    else
+      _result "Brewfile not found for $OS_NAME, skipping brew bundle"
+    fi
+
+    # Update timestamp
+    date +%s > "$BREW_TIMESTAMP_FILE"
   else
-    _result "Brewfile not found for $OS_NAME, skipping brew bundle"
+    _command "Skipping brew updates (last update was less than 12 hours ago)"
   fi
 
-  # Update timestamp
-  date +%s > "$BREW_TIMESTAMP_FILE"
+  # macOS getopt 설정
+  if [ "${OS_NAME}" == "darwin" ]; then
+    GETOPT=$(getopt 2>&1 | head -1 | xargs)
+    if [ "${GETOPT}" == "--" ]; then
+      brew link --force gnu-getopt
+    fi
+  fi
 else
-  _command "Skipping brew updates (last update was less than 12 hours ago)"
-fi
-
-# getopt 설정
-GETOPT=$(getopt 2>&1 | head -1 | xargs)
-if [ "${GETOPT}" == "--" ]; then
-  brew link --force gnu-getopt
+  _result "Homebrew not found, skipping brew package installation"
 fi
 
 # NPM 패키지 설치 (버전 체크 포함)

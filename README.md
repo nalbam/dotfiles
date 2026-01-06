@@ -4,9 +4,9 @@ Development environment automation tool that helps you quickly set up a consiste
 
 ## Supported Environments
 
-- macOS (darwin) - arm64/x86_64
-- Linux - x86_64
-- Windows (mingw64)
+- **macOS (darwin)** - arm64 (Apple Silicon), x86_64 (Intel)
+- **Linux** - x86_64 (WSL/Ubuntu), aarch64 (Raspberry Pi 64-bit), armv7l (Raspberry Pi 32-bit)
+- **Windows** (mingw64)
 
 ## Key Features
 
