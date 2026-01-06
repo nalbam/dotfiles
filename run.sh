@@ -274,27 +274,8 @@ _install_pip_package() {
     return 1
   fi
 
-  # pip 설치 권한 체크
-  local needs_sudo=false
-  local pip_install_opts=""
-
-  # 시스템 site-packages 경로 확인
-  local site_packages=$(python3 -c "import site; print(site.getsitepackages()[0])" 2>/dev/null)
-
-  # site-packages 경로에 쓰기 권한이 없으면 권한 필요
-  if [ -n "$site_packages" ] && [ -d "$site_packages" ]; then
-    if [ ! -w "$site_packages" ]; then
-      needs_sudo=true
-    fi
-  else
-    # site-packages 경로를 확인할 수 없으면 --user 플래그 사용
-    pip_install_opts="--user"
-  fi
-
+  # pip 기본 명령어
   local pip_cmd="python3 -m pip"
-  if [ "$needs_sudo" = true ]; then
-    pip_cmd="sudo python3 -m pip"
-  fi
 
   # Check if package is installed
   if python3 -m pip show "$package_name" >/dev/null 2>&1; then
@@ -305,21 +286,32 @@ _install_pip_package() {
       if [ "$installed_version" != "$latest_version" ]; then
         _run "Updating $package_name: $installed_version → $latest_version"
         local install_error=$(mktemp)
-        if $pip_cmd install --upgrade $pip_install_opts "$package_name" 2>"$install_error" >/dev/null; then
+
+        # Try normal upgrade first
+        if $pip_cmd install --upgrade "$package_name" 2>"$install_error" >/dev/null; then
           _ok "$package_name updated to $latest_version"
           rm -f "$install_error"
+        # Try with --user
+        elif python3 -m pip install --user --upgrade "$package_name" 2>"$install_error" >/dev/null; then
+          _ok "$package_name updated to $latest_version (user install)"
+          rm -f "$install_error"
+        # Try with --break-system-packages --user (for PEP 668)
+        elif python3 -m pip install --break-system-packages --user --upgrade "$package_name" 2>"$install_error" >/dev/null; then
+          _ok "$package_name updated to $latest_version (user install, break-system-packages)"
+          rm -f "$install_error"
+        # Try with sudo as last resort
+        elif sudo python3 -m pip install --upgrade "$package_name" 2>"$install_error" >/dev/null; then
+          _ok "$package_name updated to $latest_version (system-wide with sudo)"
+          rm -f "$install_error"
         else
-          _warn "$package_name update failed, trying with --user flag..."
-          if python3 -m pip install --user --upgrade "$package_name" 2>"$install_error" >/dev/null; then
-            _ok "$package_name updated to $latest_version (user install)"
-            rm -f "$install_error"
-          else
-            _warn "Failed to update $package_name"
-            if [ -s "$install_error" ]; then
-              _warn "Error: $(tail -3 "$install_error" | head -1)"
+          _warn "Failed to update $package_name after trying all methods"
+          if [ -s "$install_error" ]; then
+            local error_msg=$(grep -i "error" "$install_error" | tail -1)
+            if [ -n "$error_msg" ]; then
+              _warn "Last error: $error_msg"
             fi
-            rm -f "$install_error"
           fi
+          rm -f "$install_error"
         fi
       else
         _skip "$package_name already up to date ($installed_version)"
@@ -327,28 +319,40 @@ _install_pip_package() {
     else
       _run "Installing $package_name..."
       local install_error=$(mktemp)
-      if $pip_cmd install $pip_install_opts "$package_name" 2>"$install_error" >/dev/null; then
+
+      # Try normal install first
+      if $pip_cmd install "$package_name" 2>"$install_error" >/dev/null; then
         _ok "$package_name installed"
         rm -f "$install_error"
+      # Try with --user
+      elif python3 -m pip install --user "$package_name" 2>"$install_error" >/dev/null; then
+        _ok "$package_name installed (user install)"
+        rm -f "$install_error"
+      # Try with --break-system-packages --user (for PEP 668)
+      elif python3 -m pip install --break-system-packages --user "$package_name" 2>"$install_error" >/dev/null; then
+        _ok "$package_name installed (user install, break-system-packages)"
+        rm -f "$install_error"
+      # Try with sudo as last resort
+      elif sudo python3 -m pip install "$package_name" 2>"$install_error" >/dev/null; then
+        _ok "$package_name installed (system-wide with sudo)"
+        rm -f "$install_error"
       else
-        _warn "$package_name install failed, trying with --user flag..."
-        if python3 -m pip install --user "$package_name" 2>"$install_error" >/dev/null; then
-          _ok "$package_name installed (user install)"
-          rm -f "$install_error"
-        else
-          _warn "Failed to install $package_name"
-          if [ -s "$install_error" ]; then
-            _warn "Error: $(tail -3 "$install_error" | head -1)"
+        _warn "Failed to install $package_name after trying all methods"
+        if [ -s "$install_error" ]; then
+          local error_msg=$(grep -i "error" "$install_error" | tail -1)
+          if [ -n "$error_msg" ]; then
+            _warn "Last error: $error_msg"
           fi
-          rm -f "$install_error"
         fi
+        rm -f "$install_error"
       fi
     fi
   else
     _run "Installing $package_name..."
     local install_error=$(mktemp)
-    if $pip_cmd install $pip_install_opts "$package_name" 2>"$install_error" >/dev/null; then
-      # 설치 확인
+
+    # Try normal install first
+    if $pip_cmd install "$package_name" 2>"$install_error" >/dev/null; then
       if python3 -m pip show "$package_name" >/dev/null 2>&1; then
         local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
         _ok "$package_name installed (v$new_version)"
@@ -356,23 +360,42 @@ _install_pip_package() {
         _ok "$package_name installed"
       fi
       rm -f "$install_error"
-    else
-      _warn "$package_name install failed, trying with --user flag..."
-      if python3 -m pip install --user "$package_name" 2>"$install_error" >/dev/null; then
-        if python3 -m pip show "$package_name" >/dev/null 2>&1; then
-          local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
-          _ok "$package_name installed (v$new_version, user install)"
-        else
-          _ok "$package_name installed (user install)"
-        fi
-        rm -f "$install_error"
+    # Try with --user
+    elif python3 -m pip install --user "$package_name" 2>"$install_error" >/dev/null; then
+      if python3 -m pip show "$package_name" >/dev/null 2>&1; then
+        local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
+        _ok "$package_name installed (v$new_version, user install)"
       else
-        _warn "Failed to install $package_name"
-        if [ -s "$install_error" ]; then
-          _warn "Error: $(tail -3 "$install_error" | head -1)"
-        fi
-        rm -f "$install_error"
+        _ok "$package_name installed (user install)"
       fi
+      rm -f "$install_error"
+    # Try with --break-system-packages --user (for PEP 668)
+    elif python3 -m pip install --break-system-packages --user "$package_name" 2>"$install_error" >/dev/null; then
+      if python3 -m pip show "$package_name" >/dev/null 2>&1; then
+        local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
+        _ok "$package_name installed (v$new_version, user install, break-system-packages)"
+      else
+        _ok "$package_name installed (user install, break-system-packages)"
+      fi
+      rm -f "$install_error"
+    # Try with sudo as last resort
+    elif sudo python3 -m pip install "$package_name" 2>"$install_error" >/dev/null; then
+      if python3 -m pip show "$package_name" >/dev/null 2>&1; then
+        local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
+        _ok "$package_name installed (v$new_version, system-wide with sudo)"
+      else
+        _ok "$package_name installed (system-wide with sudo)"
+      fi
+      rm -f "$install_error"
+    else
+      _warn "Failed to install $package_name after trying all methods"
+      if [ -s "$install_error" ]; then
+        local error_msg=$(grep -i "error" "$install_error" | tail -1)
+        if [ -n "$error_msg" ]; then
+          _warn "Last error: $error_msg"
+        fi
+      fi
+      rm -f "$install_error"
     fi
   fi
 }
