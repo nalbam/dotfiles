@@ -28,9 +28,9 @@ esac
 # macOS 시스템 알림 + 사운드
 if [[ "$OSTYPE" == "darwin"* ]]; then
   osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null
-  # 사운드 재생
+  # 사운드 재생 (nohup으로 백그라운드 실행)
   if [ -f ~/.claude/sounds/success.mp3 ]; then
-    afplay ~/.claude/sounds/success.mp3 &
+    nohup afplay ~/.claude/sounds/success.mp3 >/dev/null 2>&1 &
   fi
 fi
 
