@@ -187,6 +187,19 @@ _install_npm_package() {
   local package_name="$1"
   local package_spec="$2"
 
+  # npm 전역 경로의 쓰기 권한 체크
+  local npm_prefix=$(npm config get prefix 2>/dev/null || echo "/usr/local")
+  local needs_sudo=false
+
+  if [ ! -w "$npm_prefix" ] || [ ! -w "$npm_prefix/lib" ] || [ ! -w "$npm_prefix/lib/node_modules" ] 2>/dev/null; then
+    needs_sudo=true
+  fi
+
+  local npm_cmd="npm"
+  if [ "$needs_sudo" = true ]; then
+    npm_cmd="sudo npm"
+  fi
+
   # Check if package is installed
   if npm list -g "$package_spec" >/dev/null 2>&1; then
     local installed_version=$(npm list -g "$package_spec" --depth=0 2>/dev/null | grep "$package_name" | sed 's/.*@\([0-9.]*\).*/\1/')
@@ -195,17 +208,17 @@ _install_npm_package() {
     if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
       if [ "$installed_version" != "$latest_version" ]; then
         _command "Updating $package_name from $installed_version to $latest_version"
-        npm update -g "$package_spec"
+        $npm_cmd update -g "$package_spec"
       # else
       #   _result "$package_name is already up to date ($installed_version)"
       fi
     else
       _command "Installing $package_name (version check failed)"
-      npm install -g "$package_spec"
+      $npm_cmd install -g "$package_spec"
     fi
   else
     _command "Installing $package_name"
-    npm install -g "$package_spec"
+    $npm_cmd install -g "$package_spec"
   fi
 }
 
