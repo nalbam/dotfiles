@@ -274,6 +274,28 @@ _install_pip_package() {
     return 1
   fi
 
+  # pip 설치 권한 체크
+  local needs_sudo=false
+  local pip_install_opts=""
+
+  # 시스템 site-packages 경로 확인
+  local site_packages=$(python3 -c "import site; print(site.getsitepackages()[0])" 2>/dev/null)
+
+  # site-packages 경로에 쓰기 권한이 없으면 권한 필요
+  if [ -n "$site_packages" ] && [ -d "$site_packages" ]; then
+    if [ ! -w "$site_packages" ]; then
+      needs_sudo=true
+    fi
+  else
+    # site-packages 경로를 확인할 수 없으면 --user 플래그 사용
+    pip_install_opts="--user"
+  fi
+
+  local pip_cmd="python3 -m pip"
+  if [ "$needs_sudo" = true ]; then
+    pip_cmd="sudo python3 -m pip"
+  fi
+
   # Check if package is installed
   if python3 -m pip show "$package_name" >/dev/null 2>&1; then
     local installed_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
@@ -282,20 +304,55 @@ _install_pip_package() {
     if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
       if [ "$installed_version" != "$latest_version" ]; then
         _run "Updating $package_name: $installed_version → $latest_version"
-        python3 -m pip install --upgrade "$package_name" >/dev/null 2>&1
-        _ok "$package_name updated to $latest_version"
+        if $pip_cmd install --upgrade $pip_install_opts "$package_name" >/dev/null 2>&1; then
+          _ok "$package_name updated to $latest_version"
+        else
+          _warn "$package_name update failed, trying with --user flag..."
+          if python3 -m pip install --user --upgrade "$package_name" >/dev/null 2>&1; then
+            _ok "$package_name updated to $latest_version (user install)"
+          else
+            _warn "Failed to update $package_name"
+          fi
+        fi
       else
         _skip "$package_name already up to date ($installed_version)"
       fi
     else
       _run "Installing $package_name..."
-      python3 -m pip install "$package_name" >/dev/null 2>&1
-      _ok "$package_name installed"
+      if $pip_cmd install $pip_install_opts "$package_name" >/dev/null 2>&1; then
+        _ok "$package_name installed"
+      else
+        _warn "$package_name install failed, trying with --user flag..."
+        if python3 -m pip install --user "$package_name" >/dev/null 2>&1; then
+          _ok "$package_name installed (user install)"
+        else
+          _warn "Failed to install $package_name"
+        fi
+      fi
     fi
   else
     _run "Installing $package_name..."
-    python3 -m pip install "$package_name" >/dev/null 2>&1
-    _ok "$package_name installed"
+    if $pip_cmd install $pip_install_opts "$package_name" >/dev/null 2>&1; then
+      # 설치 확인
+      if python3 -m pip show "$package_name" >/dev/null 2>&1; then
+        local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
+        _ok "$package_name installed (v$new_version)"
+      else
+        _ok "$package_name installed"
+      fi
+    else
+      _warn "$package_name install failed, trying with --user flag..."
+      if python3 -m pip install --user "$package_name" >/dev/null 2>&1; then
+        if python3 -m pip show "$package_name" >/dev/null 2>&1; then
+          local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
+          _ok "$package_name installed (v$new_version, user install)"
+        else
+          _ok "$package_name installed (user install)"
+        fi
+      else
+        _warn "Failed to install $package_name"
+      fi
+    fi
   fi
 }
 
