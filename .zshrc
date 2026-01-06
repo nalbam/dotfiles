@@ -19,6 +19,10 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
+if [ -f ~/.claude/env.local ]; then
+  source ~/.claude/env.local
+fi
+
 export PATH="$HOME/.local/bin${PATH+:$PATH}"
 
 if [ -d "/opt/homebrew/bin" ]; then
@@ -83,6 +87,3 @@ fi
 
 # kiro
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
-
-# Amazon Q post block. Keep at the bottom of this file.
-[[ -f "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/amazon-q/shell/zshrc.post.zsh"
