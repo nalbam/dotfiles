@@ -482,10 +482,12 @@ _download .vimrc
 _download .zshrc
 _download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
 
-# Claude AI 설정
-_download .claude/CLAUDE.md
-_download .claude/CLAUDE.ko.md
-_download .claude/settings.json
+# Claude AI 설정 (~/.claude/ 디렉토리 동기화)
+if [ -d ~/.dotfiles/.claude ]; then
+  mkdir -p ~/.claude
+  cp -r ~/.dotfiles/.claude/* ~/.claude/
+  _result "Synced .claude/ to ~/.claude/"
+fi
 
 # Success
 _success "Installation completed successfully!"
