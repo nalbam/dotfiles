@@ -304,14 +304,21 @@ _install_pip_package() {
     if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
       if [ "$installed_version" != "$latest_version" ]; then
         _run "Updating $package_name: $installed_version → $latest_version"
-        if $pip_cmd install --upgrade $pip_install_opts "$package_name" >/dev/null 2>&1; then
+        local install_error=$(mktemp)
+        if $pip_cmd install --upgrade $pip_install_opts "$package_name" 2>"$install_error" >/dev/null; then
           _ok "$package_name updated to $latest_version"
+          rm -f "$install_error"
         else
           _warn "$package_name update failed, trying with --user flag..."
-          if python3 -m pip install --user --upgrade "$package_name" >/dev/null 2>&1; then
+          if python3 -m pip install --user --upgrade "$package_name" 2>"$install_error" >/dev/null; then
             _ok "$package_name updated to $latest_version (user install)"
+            rm -f "$install_error"
           else
             _warn "Failed to update $package_name"
+            if [ -s "$install_error" ]; then
+              _warn "Error: $(tail -3 "$install_error" | head -1)"
+            fi
+            rm -f "$install_error"
           fi
         fi
       else
@@ -319,20 +326,28 @@ _install_pip_package() {
       fi
     else
       _run "Installing $package_name..."
-      if $pip_cmd install $pip_install_opts "$package_name" >/dev/null 2>&1; then
+      local install_error=$(mktemp)
+      if $pip_cmd install $pip_install_opts "$package_name" 2>"$install_error" >/dev/null; then
         _ok "$package_name installed"
+        rm -f "$install_error"
       else
         _warn "$package_name install failed, trying with --user flag..."
-        if python3 -m pip install --user "$package_name" >/dev/null 2>&1; then
+        if python3 -m pip install --user "$package_name" 2>"$install_error" >/dev/null; then
           _ok "$package_name installed (user install)"
+          rm -f "$install_error"
         else
           _warn "Failed to install $package_name"
+          if [ -s "$install_error" ]; then
+            _warn "Error: $(tail -3 "$install_error" | head -1)"
+          fi
+          rm -f "$install_error"
         fi
       fi
     fi
   else
     _run "Installing $package_name..."
-    if $pip_cmd install $pip_install_opts "$package_name" >/dev/null 2>&1; then
+    local install_error=$(mktemp)
+    if $pip_cmd install $pip_install_opts "$package_name" 2>"$install_error" >/dev/null; then
       # 설치 확인
       if python3 -m pip show "$package_name" >/dev/null 2>&1; then
         local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
@@ -340,17 +355,23 @@ _install_pip_package() {
       else
         _ok "$package_name installed"
       fi
+      rm -f "$install_error"
     else
       _warn "$package_name install failed, trying with --user flag..."
-      if python3 -m pip install --user "$package_name" >/dev/null 2>&1; then
+      if python3 -m pip install --user "$package_name" 2>"$install_error" >/dev/null; then
         if python3 -m pip show "$package_name" >/dev/null 2>&1; then
           local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
           _ok "$package_name installed (v$new_version, user install)"
         else
           _ok "$package_name installed (user install)"
         fi
+        rm -f "$install_error"
       else
         _warn "Failed to install $package_name"
+        if [ -s "$install_error" ]; then
+          _warn "Error: $(tail -3 "$install_error" | head -1)"
+        fi
+        rm -f "$install_error"
       fi
     fi
   fi
