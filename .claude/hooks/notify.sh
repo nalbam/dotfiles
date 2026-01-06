@@ -25,9 +25,13 @@ case "$event_name" in
     ;;
 esac
 
-# macOS 시스템 알림
+# macOS 시스템 알림 + 사운드
 if [[ "$OSTYPE" == "darwin"* ]]; then
-  osascript -e "display notification \"$message\" with title \"$title\" sound name \"Glass\"" 2>/dev/null
+  osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null
+  # 사운드 재생
+  if [ -f ~/.claude/sounds/success.mp3 ]; then
+    afplay ~/.claude/sounds/success.mp3 &
+  fi
 fi
 
 # Slack 알림 (SLACK_WEBHOOK_URL이 설정된 경우만)
