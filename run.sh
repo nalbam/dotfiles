@@ -161,6 +161,8 @@ _dotfiles() {
     else
       cd ~/.dotfiles || _error "Failed to change directory to ~/.dotfiles"
       _command "git pull .dotfiles"
+      retry_count=0
+      wait_time=5
       while [ $retry_count -lt $max_retries ]; do
         if git pull; then
           break
@@ -371,10 +373,14 @@ if should_run_brew_update; then
   brew update
   brew upgrade
 
-  # Brewfile 기반 패키지 설치
-  _download .Brewfile $OS_NAME/Brewfile
-  brew bundle --file=~/.Brewfile
-  brew cleanup
+  # Brewfile 기반 패키지 설치 (Windows 제외 - Homebrew 미지원)
+  if [ -f ~/.dotfiles/$OS_NAME/Brewfile ]; then
+    _download .Brewfile $OS_NAME/Brewfile
+    brew bundle --file=~/.Brewfile
+    brew cleanup
+  else
+    _result "Brewfile not found for $OS_NAME, skipping brew bundle"
+  fi
 
   # Update timestamp
   date +%s > "$BREW_TIMESTAMP_FILE"
