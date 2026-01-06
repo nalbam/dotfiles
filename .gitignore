@@ -48,5 +48,5 @@ target/
 prompt-*.md
 prompt.md
 
-# claude local env (contains secrets)
+# claude local env
 claude/env.local
