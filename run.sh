@@ -458,14 +458,32 @@ fi
 # Step 8: 셸 환경 설정
 _progress "Installing ZSH and Oh My ZSH..."
 
-# Oh My ZSH 설치 및 셸 변경
+# Oh My ZSH 설치
 if [ ! -d ~/.oh-my-zsh ]; then
-  # 기본 셸을 ZSH로 변경
-  if [[ "${SHELL}" != *"zsh"* ]]; then
-    chsh -s /bin/zsh
-  fi
-
   RUNZSH=no CHSH=no /bin/bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+fi
+
+# 기본 셸을 ZSH로 변경 (oh-my-zsh 설치 여부와 별개로 체크)
+if [[ "${SHELL}" != *"zsh"* ]]; then
+  ZSH_PATH=$(command -v zsh)
+  if [ -n "$ZSH_PATH" ]; then
+    _command "Changing default shell to zsh: $ZSH_PATH"
+
+    # /etc/shells에 zsh가 등록되어 있는지 확인
+    if ! grep -q "^${ZSH_PATH}$" /etc/shells 2>/dev/null; then
+      echo "$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null
+    fi
+
+    # chsh 실행 (권한 필요시 sudo 사용)
+    if chsh -s "$ZSH_PATH" 2>/dev/null; then
+      _result "Default shell changed to zsh"
+    else
+      sudo chsh -s "$ZSH_PATH" "$USER"
+      _result "Default shell changed to zsh (with sudo)"
+    fi
+  else
+    _error "zsh not found in PATH"
+  fi
 fi
 
 # Step 9: 테마 및 UI 설정
@@ -474,14 +492,39 @@ _progress "Installing theme and UI settings..."
 # Dracula 테마 설치
 if [ ! -d ~/.dracula ]; then
   mkdir -p ~/.dracula
+fi
 
-  git clone https://github.com/dracula/zsh.git ~/.dracula/zsh
-  ln -sf ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
+# Dracula ZSH 테마 설치
+if [ ! -d ~/.dracula/zsh ]; then
+  _command "Installing Dracula theme for ZSH"
+  if git clone https://github.com/dracula/zsh.git ~/.dracula/zsh 2>/dev/null; then
+    _result "Dracula ZSH theme installed"
+  else
+    _error "Failed to clone Dracula ZSH theme"
+  fi
+fi
 
-  if [ "${OS_NAME}" == "darwin" ]; then
-    git clone https://github.com/dracula/iterm.git ~/.dracula/iterm
-    mkdir -p ~/Library/Application\ Support/iTerm2
-    ln -sf ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
+# oh-my-zsh 테마 디렉토리에 링크 생성
+if [ -d ~/.oh-my-zsh/themes ] && [ -d ~/.dracula/zsh ]; then
+  if [ ! -L ~/.oh-my-zsh/themes/dracula.zsh-theme ]; then
+    ln -sf ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
+    _result "Dracula theme linked to oh-my-zsh"
+  fi
+elif [ ! -d ~/.oh-my-zsh/themes ]; then
+  _result "oh-my-zsh not found, skipping theme link"
+fi
+
+# macOS 전용: iTerm2 Dracula 테마
+if [ "${OS_NAME}" == "darwin" ]; then
+  if [ ! -d ~/.dracula/iterm ]; then
+    _command "Installing Dracula theme for iTerm2"
+    if git clone https://github.com/dracula/iterm.git ~/.dracula/iterm 2>/dev/null; then
+      mkdir -p ~/Library/Application\ Support/iTerm2
+      ln -sf ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
+      _result "Dracula iTerm2 theme installed"
+    else
+      _error "Failed to clone Dracula iTerm2 theme"
+    fi
   fi
 fi
 
