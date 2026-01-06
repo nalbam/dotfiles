@@ -2,7 +2,7 @@
 
 # Toast CLI shortcuts
 alias t='toast'
-alias tu='pip install -U toast-cli'
+alias tu='python3 -m pip install --user -U toast-cli'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
 
 # Change directory with toast cdw
