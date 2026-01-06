@@ -305,14 +305,14 @@ _progress "Setting up basic configuration files..."
 
 # SSH 설정 파일 다운로드
 if [ ! -f ~/.ssh/config ]; then
-  _download .ssh/config
+  _download .ssh/config ssh/config
 
   _command "Run: op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config"
 fi
 
 # AWS 설정 파일 다운로드
 if [ ! -f ~/.aws/config ]; then
-  _download .aws/config
+  _download .aws/config aws/config
 
   _command "Run: op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config"
   _command "Run: op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials"
@@ -426,7 +426,7 @@ if [ "${OS_NAME}" == "darwin" ]; then
 
   # ₩ -> ` 키 바인딩 설정
   if [ ! -f ~/Library/KeyBindings/DefaultkeyBinding.dict ]; then
-    _download Library/KeyBindings/DefaultkeyBinding.dict .mac/DefaultkeyBinding.dict
+    _download Library/KeyBindings/DefaultkeyBinding.dict mac/DefaultkeyBinding.dict
   fi
 
   # macOS 시스템 설정
@@ -474,7 +474,7 @@ fi
 
 if [ "${OS_NAME}" == "darwin" ]; then
   # iTerm2 설정 파일
-  _download .iterm2/profiles.json
+  _download .iterm2/profiles.json iterm2/profiles.json
 fi
 
 # Step 10: 사용자 설정 파일 적용
@@ -489,10 +489,10 @@ _download .zshrc
 _download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
 
 # Claude AI 설정 (~/.claude/ 디렉토리 동기화)
-if [ -d ~/.dotfiles/.claude ]; then
+if [ -d ~/.dotfiles/claude ]; then
   mkdir -p ~/.claude
-  cp -r ~/.dotfiles/.claude/* ~/.claude/
-  _result "Synced .claude/ to ~/.claude/"
+  cp -r ~/.dotfiles/claude/* ~/.claude/
+  _result "Synced claude/ to ~/.claude/"
 fi
 
 # Success

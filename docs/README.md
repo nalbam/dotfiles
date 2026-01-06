@@ -12,4 +12,4 @@ This directory contains the technical documentation for the dotfiles project.
 
 - [Main README](../README.md) - Project overview and installation guide
 - [CLAUDE.md](../CLAUDE.md) - Claude Code AI instructions
-- [.claude/](../.claude/) - Claude Code settings and guidelines
+- [claude/](../claude/) - Claude Code settings and guidelines

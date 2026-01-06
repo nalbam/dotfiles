@@ -42,7 +42,7 @@ graph TD
 ├── linux/              # Linux specific configurations
 │   ├── Brewfile        # Linux Homebrew package list
 │   └── .zprofile.*     # Profile settings
-└── .claude/            # Claude Code AI settings
+└── claude/             # Claude Code AI settings
     ├── CLAUDE.md       # Claude Code instructions (EN)
     ├── CLAUDE.ko.md    # Claude Code instructions (KO)
     └── settings.json   # Claude Code configuration

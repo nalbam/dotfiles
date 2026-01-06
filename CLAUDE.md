@@ -40,7 +40,7 @@ The installation follows a 10-step process:
 - **`darwin/Brewfile`**: macOS package definitions
 - **`linux/Brewfile`**: Linux package definitions
 - **`docs/`**: Technical documentation (ARCHITECTURE.md)
-- **`.claude/`**: Claude Code AI settings and instructions
+- **`claude/`**: Claude Code AI settings and instructions
 - **Configuration files**: `.gitconfig`, `.zshrc`, `.aliases`, `.vimrc`, etc.
 
 ## Organization-Specific Features
