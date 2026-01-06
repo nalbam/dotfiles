@@ -34,6 +34,13 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   fi
 fi
 
+# WSL (Windows Subsystem for Linux) 비프음 알림
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  if command -v powershell.exe &> /dev/null; then
+    powershell.exe -Command "[console]::beep(800, 300)" 2>/dev/null &
+  fi
+fi
+
 # ntfy.sh 알림 (NTFY_TOPIC이 설정된 경우만)
 if [ -n "${NTFY_TOPIC}" ]; then
   curl -s -X POST "https://ntfy.sh/${NTFY_TOPIC}" \
