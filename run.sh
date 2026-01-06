@@ -16,9 +16,6 @@ elif [ "${OS_NAME}" == "mingw64_nt" ]; then
   INSTALLER="choco"
 fi
 
-HOSTNAME="$(hostname)"
-ORG="$(echo ${HOSTNAME} | cut -d'-' -f1)"
-
 # 설치 진행 단계 설정
 TOTAL_STEPS=10
 CURRENT_STEP=0
@@ -80,12 +77,20 @@ _error() {
   exit 1
 }
 
+# MD5 해시 함수 (크로스 플랫폼)
+_md5() {
+  if [ "${OS_NAME}" == "darwin" ]; then
+    md5 -q "$1"
+  else
+    md5sum "$1" | awk '{print $1}'
+  fi
+}
+
 # 백업 생성 함수
 _backup() {
   if [ -f "$1" ]; then
     if ! cp "$1" "$1.backup"; then
       _error "Failed to create backup of $1"
-      return 1
     fi
     # Set secure permissions for backup files
     chmod 600 "$1.backup"
@@ -108,7 +113,7 @@ _download() {
 
   if [ -f ~/.dotfiles/${2:-$1} ]; then
     if [ -f ~/$1 ]; then
-      if [ "$(md5sum ~/.dotfiles/${2:-$1} | awk '{print $1}')" != "$(md5sum ~/$1 | awk '{print $1}')" ]; then
+      if [ "$(_md5 ~/.dotfiles/${2:-$1})" != "$(_md5 ~/$1)" ]; then
         _backup ~/$1
         cp ~/.dotfiles/${2:-$1} ~/$1
       fi
@@ -172,7 +177,7 @@ _dotfiles() {
         else
           retry_count=$((retry_count + 1))
           if [ $retry_count -eq $max_retries ]; then
-            cd - || _error "Failed to return to previous directory"
+            cd - >/dev/null || _error "Failed to return to previous directory"
             _error "Failed to update dotfiles repository after $max_retries attempts"
           fi
           _echo "Pull failed, retrying in $wait_time seconds..." 3
@@ -180,7 +185,7 @@ _dotfiles() {
           wait_time=$((wait_time * 2))
         fi
       done
-      cd - || _error "Failed to return to previous directory"
+      cd - >/dev/null || _error "Failed to return to previous directory"
     fi
   fi
 }
@@ -357,7 +362,7 @@ if [ ! -z ${HAS_BREW} ]; then
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   if [ -d /opt/homebrew/bin ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
-  elif [ -d /home/linuxbrew ]; then
+  elif [ -d /home/linuxbrew/.linuxbrew ]; then
     eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
   else
     eval "$(brew shellenv)"
@@ -394,11 +399,15 @@ if [ "${GETOPT}" == "--" ]; then
 fi
 
 # NPM 패키지 설치 (버전 체크 포함)
-_install_npm_package "npm" "npm"
-_install_npm_package "corepack" "corepack"
-_install_npm_package "serverless" "serverless"
-_install_npm_package "claude-code" "@anthropic-ai/claude-code"
-_install_npm_package "ccusage" "ccusage"
+if command -v npm >/dev/null; then
+  _install_npm_package "npm" "npm"
+  _install_npm_package "corepack" "corepack"
+  _install_npm_package "serverless" "serverless"
+  _install_npm_package "claude-code" "@anthropic-ai/claude-code"
+  _install_npm_package "ccusage" "ccusage"
+else
+  _result "npm not found, skipping npm package installation"
+fi
 
 # PIP 패키지 설치 (버전 체크 포함)
 _install_pip_package "toast-cli"
@@ -430,7 +439,7 @@ if [ "${OS_NAME}" == "darwin" ]; then
     /bin/bash ~/.macos
     _backup ~/.macos
   else
-    if [ "$(md5sum ~/.dotfiles/.macos | awk '{print $1}')" != "$(md5sum ~/.macos.backup | awk '{print $1}')" ]; then
+    if [ "$(_md5 ~/.dotfiles/.macos)" != "$(_md5 ~/.macos.backup)" ]; then
       /bin/bash ~/.macos
       _backup ~/.macos
     fi
@@ -443,12 +452,11 @@ _progress "Installing ZSH and Oh My ZSH..."
 # Oh My ZSH 설치 및 셸 변경
 if [ ! -d ~/.oh-my-zsh ]; then
   # 기본 셸을 ZSH로 변경
-  THIS_SHELL="$(grep $(whoami) /etc/passwd | cut -d':' -f7)"
-  if [[ "${THIS_SHELL}" != "/bin/zsh" ]]; then
+  if [[ "${SHELL}" != *"zsh"* ]]; then
     chsh -s /bin/zsh
   fi
 
-  /bin/bash -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+  RUNZSH=no CHSH=no /bin/bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 fi
 
 # Step 9: 테마 및 UI 설정
@@ -459,11 +467,11 @@ if [ ! -d ~/.dracula ]; then
   mkdir -p ~/.dracula
 
   git clone https://github.com/dracula/zsh.git ~/.dracula/zsh
-  ln -s ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
+  ln -sf ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
 
   if [ "${OS_NAME}" == "darwin" ]; then
     git clone https://github.com/dracula/iterm.git ~/.dracula/iterm
-    ln -s ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
+    ln -sf ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
   fi
 fi
 
