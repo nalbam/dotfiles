@@ -268,9 +268,9 @@ _install_npm_package() {
 _install_pip_package() {
   local package_name="$1"
 
-  command -v python3 >/dev/null || HAS_PYTHON=false
-  if [ ! -z "${HAS_PYTHON}" ]; then
-    _skip "Python3 not found"
+  # Python3 체크
+  if ! command -v python3 >/dev/null 2>&1; then
+    _skip "Python3 not found, skipping $package_name"
     return 1
   fi
 
