@@ -45,16 +45,6 @@ _echo() {
   fi
 }
 
-# 사용자 입력 함수
-_read() {
-  if [ "${TPUT}" != "" ]; then
-    printf "$(tput setaf 6)$1$(tput sgr0)"
-  else
-    printf "$1"
-  fi
-  read ANSWER
-}
-
 # 결과 출력 함수
 _result() {
   _echo "# $@" 4
@@ -148,7 +138,7 @@ _download() {
 # Dotfiles 저장소 관리 함수
 _dotfiles() {
   command -v git >/dev/null || HAS_GIT=false
-  if [ -z ${HAS_GIT} ]; then
+  if [ -z "${HAS_GIT}" ]; then
     local max_retries=3
     local retry_count=0
     local wait_time=5
@@ -222,7 +212,7 @@ _install_pip_package() {
   local package_name="$1"
 
   command -v python3 >/dev/null || HAS_PYTHON=false
-  if [ ! -z ${HAS_PYTHON} ]; then
+  if [ ! -z "${HAS_PYTHON}" ]; then
     _result "Python3 not found, skipping pip package installation"
     return 1
   fi
@@ -344,7 +334,7 @@ if [ "${OS_NAME}" == "linux" ]; then
     sudo apt upgrade -y
 
     command -v jq >/dev/null || HAS_JQ=false
-    if [ ! -z ${HAS_JQ} ]; then
+    if [ ! -z "${HAS_JQ}" ]; then
       sudo apt install -y build-essential procps curl file git unzip jq zsh
     fi
 
@@ -357,7 +347,7 @@ fi
 
 # Homebrew 설치
 command -v brew >/dev/null || HAS_BREW=false
-if [ ! -z ${HAS_BREW} ]; then
+if [ ! -z "${HAS_BREW}" ]; then
   _command "brew install..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   if [ -d /opt/homebrew/bin ]; then
@@ -418,7 +408,7 @@ _progress "Configuring OS-specific settings..."
 # macOS 설정
 if [ "${OS_NAME}" == "darwin" ]; then
   command -v xcode-select >/dev/null || HAS_XCODE=false
-  if [ ! -z ${HAS_XCODE} ]; then
+  if [ ! -z "${HAS_XCODE}" ]; then
     _command "xcode-select --install"
     sudo xcodebuild -license
     xcode-select --install
@@ -471,6 +461,7 @@ if [ ! -d ~/.dracula ]; then
 
   if [ "${OS_NAME}" == "darwin" ]; then
     git clone https://github.com/dracula/iterm.git ~/.dracula/iterm
+    mkdir -p ~/Library/Application\ Support/iTerm2
     ln -sf ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
   fi
 fi
