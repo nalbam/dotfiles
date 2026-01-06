@@ -608,6 +608,18 @@ fi
 # PIP 패키지 설치 (버전 체크 포함)
 if command -v python3 >/dev/null; then
   _info "Installing/updating PIP packages..."
+
+  # 먼저 기본 도구들을 업데이트 (setuptools, wheel 등)
+  _run "Ensuring pip, setuptools, and wheel are up to date..."
+  if python3 -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || \
+     python3 -m pip install --user --upgrade pip setuptools wheel >/dev/null 2>&1 || \
+     python3 -m pip install --break-system-packages --user --upgrade pip setuptools wheel >/dev/null 2>&1; then
+    _ok "pip, setuptools, and wheel updated"
+  else
+    _warn "Failed to update pip tools, continuing anyway..."
+  fi
+
+  # 사용자 패키지 설치
   _install_pip_package "toast-cli"
 else
   _skip "Python3 not found"
