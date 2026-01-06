@@ -30,12 +30,6 @@ command -v tput >/dev/null && TPUT=true
 # 함수 영역 (Function Section)
 ################################################################################
 
-# 진행률 표시 함수
-_progress() {
-  CURRENT_STEP=$((CURRENT_STEP + 1))
-  _echo "[$CURRENT_STEP/$TOTAL_STEPS] $@" 6
-}
-
 # 컬러 출력 함수
 _echo() {
   if [ "${TPUT}" != "" ] && [ "$2" != "" ]; then
@@ -45,26 +39,68 @@ _echo() {
   fi
 }
 
-# 결과 출력 함수
-_result() {
-  _echo "# $@" 4
+# 시작 배너 출력 함수
+_banner() {
+  _echo "\n╔════════════════════════════════════════════════════════════════╗" 6
+  _echo "║                       DOTFILES INSTALLER                       ║" 6
+  _echo "║          Development Environment Setup Automation Tool         ║" 6
+  _echo "╚════════════════════════════════════════════════════════════════╝\n" 6
 }
 
-# 명령어 출력 함수
-_command() {
-  _echo "$ $@" 3
+# 진행률 표시 함수
+_progress() {
+  CURRENT_STEP=$((CURRENT_STEP + 1))
+  _echo "\n▶ [$CURRENT_STEP/$TOTAL_STEPS] $@" 6
 }
 
-# 성공 메시지 출력 함수
+# 정보 메시지 출력 함수 (파랑)
+_info() {
+  _echo "  ℹ $@" 4
+}
+
+# 성공 메시지 출력 함수 (초록)
+_ok() {
+  _echo "  ✓ $@" 2
+}
+
+# 건너뛰기 메시지 출력 함수 (노랑)
+_skip() {
+  _echo "  ⊘ $@" 3
+}
+
+# 경고 메시지 출력 함수 (노랑)
+_warn() {
+  _echo "  ⚠ $@" 3
+}
+
+# 명령어 실행 표시 함수 (마젠타)
+_run() {
+  _echo "  → $@" 5
+}
+
+# 에러 메시지 출력 함수 (빨강)
+_error() {
+  _echo "\n✗ ERROR: $@\n" 1
+  exit 1
+}
+
+# 최종 성공 메시지 출력 함수 (초록)
 _success() {
-  _echo "+ $@" 2
+  _echo "\n╔════════════════════════════════════════════════════════════════╗" 2
+  _echo "║                    INSTALLATION COMPLETED!                     ║" 2
+  _echo "║                                                                ║" 2
+  _echo "║  Please logout and login again to apply shell changes.        ║" 2
+  _echo "╚════════════════════════════════════════════════════════════════╝\n" 2
   exit 0
 }
 
-# 에러 메시지 출력 함수
-_error() {
-  _echo "- $@" 1
-  exit 1
+# 레거시 함수 (하위 호환성 유지)
+_result() {
+  _info "$@"
+}
+
+_command() {
+  _run "$@"
 }
 
 # MD5 해시 함수 (크로스 플랫폼)
@@ -144,27 +180,29 @@ _dotfiles() {
     local wait_time=5
 
     if [ ! -d ~/.dotfiles ]; then
-      _command "git clone .dotfiles"
+      _run "Cloning dotfiles repository..."
       while [ $retry_count -lt $max_retries ]; do
-        if git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles; then
+        if git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles 2>/dev/null; then
+          _ok "Dotfiles repository cloned"
           break
         else
           retry_count=$((retry_count + 1))
           if [ $retry_count -eq $max_retries ]; then
             _error "Failed to clone dotfiles repository after $max_retries attempts"
           fi
-          _echo "Clone failed, retrying in $wait_time seconds..." 3
+          _warn "Clone failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
           sleep $wait_time
           wait_time=$((wait_time * 2))
         fi
       done
     else
       cd ~/.dotfiles || _error "Failed to change directory to ~/.dotfiles"
-      _command "git pull .dotfiles"
+      _run "Updating dotfiles repository..."
       retry_count=0
       wait_time=5
       while [ $retry_count -lt $max_retries ]; do
-        if git pull; then
+        if git pull 2>/dev/null; then
+          _ok "Dotfiles repository updated"
           break
         else
           retry_count=$((retry_count + 1))
@@ -172,7 +210,7 @@ _dotfiles() {
             cd - >/dev/null || _error "Failed to return to previous directory"
             _error "Failed to update dotfiles repository after $max_retries attempts"
           fi
-          _echo "Pull failed, retrying in $wait_time seconds..." 3
+          _warn "Pull failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
           sleep $wait_time
           wait_time=$((wait_time * 2))
         fi
@@ -207,18 +245,21 @@ _install_npm_package() {
 
     if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
       if [ "$installed_version" != "$latest_version" ]; then
-        _command "Updating $package_name from $installed_version to $latest_version"
-        $npm_cmd update -g "$package_spec"
-      # else
-      #   _result "$package_name is already up to date ($installed_version)"
+        _run "Updating $package_name: $installed_version → $latest_version"
+        $npm_cmd update -g "$package_spec" >/dev/null 2>&1
+        _ok "$package_name updated to $latest_version"
+      else
+        _skip "$package_name already up to date ($installed_version)"
       fi
     else
-      _command "Installing $package_name (version check failed)"
-      $npm_cmd install -g "$package_spec"
+      _run "Installing $package_name..."
+      $npm_cmd install -g "$package_spec" >/dev/null 2>&1
+      _ok "$package_name installed"
     fi
   else
-    _command "Installing $package_name"
-    $npm_cmd install -g "$package_spec"
+    _run "Installing $package_name..."
+    $npm_cmd install -g "$package_spec" >/dev/null 2>&1
+    _ok "$package_name installed"
   fi
 }
 
@@ -228,7 +269,7 @@ _install_pip_package() {
 
   command -v python3 >/dev/null || HAS_PYTHON=false
   if [ ! -z "${HAS_PYTHON}" ]; then
-    _result "Python3 not found, skipping pip package installation"
+    _skip "Python3 not found"
     return 1
   fi
 
@@ -239,18 +280,21 @@ _install_pip_package() {
 
     if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
       if [ "$installed_version" != "$latest_version" ]; then
-        _command "Updating $package_name from $installed_version to $latest_version"
-        python3 -m pip install --upgrade "$package_name"
-      # else
-      #   _result "$package_name is already up to date ($installed_version)"
+        _run "Updating $package_name: $installed_version → $latest_version"
+        python3 -m pip install --upgrade "$package_name" >/dev/null 2>&1
+        _ok "$package_name updated to $latest_version"
+      else
+        _skip "$package_name already up to date ($installed_version)"
       fi
     else
-      _command "Installing $package_name (version check failed)"
-      python3 -m pip install "$package_name"
+      _run "Installing $package_name..."
+      python3 -m pip install "$package_name" >/dev/null 2>&1
+      _ok "$package_name installed"
     fi
   else
-    _command "Installing $package_name"
-    python3 -m pip install "$package_name"
+    _run "Installing $package_name..."
+    python3 -m pip install "$package_name" >/dev/null 2>&1
+    _ok "$package_name installed"
   fi
 }
 
@@ -292,9 +336,14 @@ should_run_brew_update() {
 # 실행 영역 (Execution Section)
 ################################################################################
 
+# 시작 배너 출력
+_banner
+
 # Step 1: 시스템 환경 확인
 _progress "Checking system environment..."
-_result "${OS_NAME} ${OS_ARCH} [${INSTALLER}]"
+_info "Operating System: ${OS_NAME}"
+_info "Architecture: ${OS_ARCH}"
+_info "Package Manager: ${INSTALLER}"
 
 if [ "${INSTALLER}" == "" ]; then
   _error "Unsupported operating system."
@@ -302,12 +351,25 @@ fi
 
 # Step 2: 디렉토리 생성 및 SSH 키 설정
 _progress "Creating directories and setting up SSH keys..."
+
 mkdir -p ~/.aws
 mkdir -p ~/.ssh
+_ok "Directories created"
 
 # Generate SSH keys
-[ ! -f ~/.ssh/id_rsa ] && ssh-keygen -q -f ~/.ssh/id_rsa -N ''
-[ ! -f ~/.ssh/id_ed25519 ] && ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
+if [ ! -f ~/.ssh/id_rsa ]; then
+  ssh-keygen -q -f ~/.ssh/id_rsa -N ''
+  _ok "Generated RSA SSH key (~/.ssh/id_rsa)"
+else
+  _skip "RSA SSH key already exists"
+fi
+
+if [ ! -f ~/.ssh/id_ed25519 ]; then
+  ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
+  _ok "Generated ED25519 SSH key (~/.ssh/id_ed25519)"
+else
+  _skip "ED25519 SSH key already exists"
+fi
 
 # Step 3: Dotfiles 저장소 클론
 _progress "Cloning dotfiles repository..."
@@ -319,22 +381,28 @@ _progress "Setting up basic configuration files..."
 # SSH 설정 파일 다운로드
 if [ ! -f ~/.ssh/config ]; then
   _download .ssh/config ssh/config
-
-  _command "Run: op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config"
+  _ok "Downloaded SSH config template"
+  _warn "To use 1Password: op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config"
+else
+  _skip "SSH config already exists"
 fi
 
 # AWS 설정 파일 다운로드
 if [ ! -f ~/.aws/config ]; then
   _download .aws/config aws/config
-
-  _command "Run: op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config"
-  _command "Run: op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials"
+  _ok "Downloaded AWS config template"
+  _warn "To use 1Password for AWS:"
+  _warn "  op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config"
+  _warn "  op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials"
+else
+  _skip "AWS config already exists"
 fi
 
 # Git 설정 파일 다운로드
 _download .gitconfig gitconfig
 _download .gitconfig-bruce gitconfig-bruce
 _download .gitconfig-nalbam gitconfig-nalbam
+_ok "Git configuration files downloaded"
 
 # Step 5: OS별 패키지 관리자 설정
 _progress "Setting up package managers..."
@@ -344,27 +412,31 @@ if [ "${OS_NAME}" == "linux" ]; then
   APT_TIMESTAMP_FILE=~/.apt_last_update
 
   if should_run_apt_update; then
-    _command "Running daily apt updates..."
+    _run "Updating APT packages..."
     sudo apt update
     sudo apt upgrade -y
+    _ok "APT packages updated"
 
     # Update timestamp
     date +%s > "$APT_TIMESTAMP_FILE"
   else
-    _command "Skipping apt updates (last update was less than 12 hours ago)"
+    _skip "APT update (last update was less than 12 hours ago)"
   fi
 
   # 기본 패키지 설치 (없는 경우에만)
   if ! command -v zsh >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
-    _command "Installing essential packages..."
+    _run "Installing essential packages (build-essential, git, zsh, jq, etc.)..."
     sudo apt install -y build-essential procps curl file git unzip jq zsh
+    _ok "Essential packages installed"
+  else
+    _skip "Essential packages already installed"
   fi
 fi
 
 # Homebrew 설치
 command -v brew >/dev/null || HAS_BREW=false
 if [ ! -z "${HAS_BREW}" ]; then
-  _command "brew install..."
+  _run "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   if [ -d /opt/homebrew/bin ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -373,6 +445,9 @@ if [ ! -z "${HAS_BREW}" ]; then
   else
     eval "$(brew shellenv)"
   fi
+  _ok "Homebrew installed"
+else
+  _skip "Homebrew already installed"
 fi
 
 # Step 6: 개발 도구 패키지 설치
@@ -383,24 +458,26 @@ if command -v brew >/dev/null 2>&1; then
   BREW_TIMESTAMP_FILE=~/.brew_last_update
 
   if should_run_brew_update; then
-    _command "Running daily brew updates..."
-
+    _run "Updating Homebrew packages..."
     brew update
     brew upgrade
+    _ok "Homebrew packages updated"
 
     # Brewfile 기반 패키지 설치
     if [ -f ~/.dotfiles/$OS_NAME/Brewfile ]; then
       _download .Brewfile $OS_NAME/Brewfile
+      _run "Installing packages from Brewfile..."
       brew bundle --file=~/.Brewfile
       brew cleanup
+      _ok "Brewfile packages installed"
     else
-      _result "Brewfile not found for $OS_NAME, skipping brew bundle"
+      _skip "Brewfile not found for $OS_NAME"
     fi
 
     # Update timestamp
     date +%s > "$BREW_TIMESTAMP_FILE"
   else
-    _command "Skipping brew updates (last update was less than 12 hours ago)"
+    _skip "Homebrew update (last update was less than 12 hours ago)"
   fi
 
   # macOS getopt 설정
@@ -411,22 +488,28 @@ if command -v brew >/dev/null 2>&1; then
     fi
   fi
 else
-  _result "Homebrew not found, skipping brew package installation"
+  _skip "Homebrew not found"
 fi
 
 # NPM 패키지 설치 (버전 체크 포함)
 if command -v npm >/dev/null; then
+  _info "Installing/updating NPM packages..."
   _install_npm_package "npm" "npm"
   _install_npm_package "corepack" "corepack"
   _install_npm_package "serverless" "serverless"
   _install_npm_package "claude-code" "@anthropic-ai/claude-code"
   _install_npm_package "ccusage" "ccusage"
 else
-  _result "npm not found, skipping npm package installation"
+  _skip "NPM not found"
 fi
 
 # PIP 패키지 설치 (버전 체크 포함)
-_install_pip_package "toast-cli"
+if command -v python3 >/dev/null; then
+  _info "Installing/updating PIP packages..."
+  _install_pip_package "toast-cli"
+else
+  _skip "Python3 not found"
+fi
 
 # Step 7: OS별 시스템 설정
 _progress "Configuring OS-specific settings..."
@@ -435,29 +518,43 @@ _progress "Configuring OS-specific settings..."
 if [ "${OS_NAME}" == "darwin" ]; then
   command -v xcode-select >/dev/null || HAS_XCODE=false
   if [ ! -z "${HAS_XCODE}" ]; then
-    _command "xcode-select --install"
+    _run "Installing Xcode Command Line Tools..."
     sudo xcodebuild -license
     xcode-select --install
+    _ok "Xcode Command Line Tools installed"
 
     if [ "${OS_ARCH}" == "arm64" ]; then
+      _run "Installing Rosetta 2 for x86_64 compatibility..."
       sudo softwareupdate --install-rosetta --agree-to-license
+      _ok "Rosetta 2 installed"
     fi
+  else
+    _skip "Xcode Command Line Tools already installed"
   fi
 
   # ₩ -> ` 키 바인딩 설정
   if [ ! -f ~/Library/KeyBindings/DefaultkeyBinding.dict ]; then
     _download Library/KeyBindings/DefaultkeyBinding.dict mac/DefaultkeyBinding.dict
+    _ok "Korean keyboard won symbol (₩) mapped to backtick (`)"
+  else
+    _skip "Keyboard binding already configured"
   fi
 
   # macOS 시스템 설정
   _download .macos macos
   if [ ! -f ~/.macos.backup ]; then
+    _run "Applying macOS system preferences..."
     /bin/bash ~/.macos
     _backup ~/.macos
+    _ok "macOS system preferences applied"
   else
     if [ "$(_md5 ~/.dotfiles/macos)" != "$(_md5 ~/.macos.backup)" ]; then
+      _run "Updating macOS system preferences..."
       /bin/bash ~/.macos
       _backup ~/.macos
+      _ok "macOS system preferences updated"
+    else
+      _skip "macOS system preferences already applied"
     fi
   fi
 fi
@@ -467,14 +564,18 @@ _progress "Installing ZSH and Oh My ZSH..."
 
 # Oh My ZSH 설치
 if [ ! -d ~/.oh-my-zsh ]; then
-  RUNZSH=no CHSH=no /bin/bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+  _run "Installing Oh My ZSH..."
+  RUNZSH=no CHSH=no /bin/bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" >/dev/null 2>&1
+  _ok "Oh My ZSH installed"
+else
+  _skip "Oh My ZSH already installed"
 fi
 
 # 기본 셸을 ZSH로 변경 (oh-my-zsh 설치 여부와 별개로 체크)
 if [[ "${SHELL}" != *"zsh"* ]]; then
   ZSH_PATH=$(command -v zsh)
   if [ -n "$ZSH_PATH" ]; then
-    _command "Changing default shell to zsh: $ZSH_PATH"
+    _run "Changing default shell to ZSH ($ZSH_PATH)..."
 
     # /etc/shells에 zsh가 등록되어 있는지 확인
     if ! grep -q "^${ZSH_PATH}$" /etc/shells 2>/dev/null; then
@@ -483,55 +584,63 @@ if [[ "${SHELL}" != *"zsh"* ]]; then
 
     # chsh 실행 (권한 필요시 sudo 사용)
     if chsh -s "$ZSH_PATH" 2>/dev/null; then
-      _result "Default shell changed to zsh"
+      _ok "Default shell changed to ZSH"
     else
       sudo chsh -s "$ZSH_PATH" "$USER"
-      _result "Default shell changed to zsh (with sudo)"
+      _ok "Default shell changed to ZSH (with sudo)"
     fi
   else
-    _error "zsh not found in PATH"
+    _error "ZSH not found in PATH"
   fi
+else
+  _skip "Default shell is already ZSH"
 fi
 
 # Step 9: 테마 및 UI 설정
 _progress "Installing theme and UI settings..."
 
-# Dracula 테마 설치
+# Dracula 테마 디렉토리 생성
 if [ ! -d ~/.dracula ]; then
   mkdir -p ~/.dracula
 fi
 
 # Dracula ZSH 테마 설치
 if [ ! -d ~/.dracula/zsh ]; then
-  _command "Installing Dracula theme for ZSH"
+  _run "Installing Dracula theme for ZSH..."
   if git clone https://github.com/dracula/zsh.git ~/.dracula/zsh 2>/dev/null; then
-    _result "Dracula ZSH theme installed"
+    _ok "Dracula ZSH theme installed"
   else
-    _error "Failed to clone Dracula ZSH theme"
+    _warn "Failed to clone Dracula ZSH theme (network issue?)"
   fi
+else
+  _skip "Dracula ZSH theme already installed"
 fi
 
 # oh-my-zsh 테마 디렉토리에 링크 생성
 if [ -d ~/.oh-my-zsh/themes ] && [ -d ~/.dracula/zsh ]; then
   if [ ! -L ~/.oh-my-zsh/themes/dracula.zsh-theme ]; then
     ln -sf ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
-    _result "Dracula theme linked to oh-my-zsh"
+    _ok "Dracula theme linked to Oh My ZSH"
+  else
+    _skip "Dracula theme already linked"
   fi
 elif [ ! -d ~/.oh-my-zsh/themes ]; then
-  _result "oh-my-zsh not found, skipping theme link"
+  _skip "Oh My ZSH not found"
 fi
 
 # macOS 전용: iTerm2 Dracula 테마
 if [ "${OS_NAME}" == "darwin" ]; then
   if [ ! -d ~/.dracula/iterm ]; then
-    _command "Installing Dracula theme for iTerm2"
+    _run "Installing Dracula theme for iTerm2..."
     if git clone https://github.com/dracula/iterm.git ~/.dracula/iterm 2>/dev/null; then
       mkdir -p ~/Library/Application\ Support/iTerm2
       ln -sf ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
-      _result "Dracula iTerm2 theme installed"
+      _ok "Dracula iTerm2 theme installed"
     else
-      _error "Failed to clone Dracula iTerm2 theme"
+      _warn "Failed to clone Dracula iTerm2 theme (network issue?)"
     fi
+  else
+    _skip "Dracula iTerm2 theme already installed"
   fi
 fi
 
@@ -544,19 +653,23 @@ fi
 _progress "Applying user configuration files..."
 
 # 셸 설정 파일들
+_run "Downloading shell configuration files..."
 _download .bashrc bashrc
 _download .profile profile
 _download .aliases aliases
 _download .vimrc vimrc
 _download .zshrc zshrc
 _download .zprofile $OS_NAME/zprofile.$OS_ARCH.sh
+_ok "Shell configuration files applied"
 
 # Claude AI 설정 (~/.claude/ 디렉토리 동기화)
 if [ -d ~/.dotfiles/claude ]; then
   mkdir -p ~/.claude
   cp -r ~/.dotfiles/claude/* ~/.claude/
-  _result "Synced claude/ to ~/.claude/"
+  _ok "Claude Code settings synced to ~/.claude/"
+else
+  _skip "Claude Code settings not found"
 fi
 
 # Success
-_success "Installation completed successfully!"
+_success
