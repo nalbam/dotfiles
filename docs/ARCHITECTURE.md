@@ -34,10 +34,19 @@ graph TD
 
 ```
 .
-├── run.sh              # Main installation script
+├── run.sh              # Main installation script (10-step process)
+├── run.ps1             # Windows PowerShell installation script
 ├── darwin/             # macOS specific configurations
-├── linux/             # Linux specific configurations
-└── bin/               # Utility scripts
+│   ├── Brewfile        # macOS Homebrew package list
+│   └── .zprofile.*     # Architecture-specific profile settings
+├── linux/              # Linux specific configurations
+│   ├── Brewfile        # Linux Homebrew package list
+│   └── .zprofile.*     # Profile settings
+├── .claude/            # Claude Code AI settings
+│   ├── CLAUDE.md       # Claude Code instructions
+│   └── settings.json   # Claude Code configuration
+└── vibe/               # AI agent guidelines
+    └── AGENTS.md       # Vibe coding rules
 ```
 
 ## Core Functions
@@ -57,7 +66,9 @@ graph TD
    - Homebrew for macOS and Linux
    - APT for Linux
    - Chocolatey for Windows
-   - Daily update optimization with timestamp tracking
+   - NPM for Node.js packages (claude-code, ccusage, serverless)
+   - PIP for Python packages (toast-cli)
+   - Daily update optimization with timestamp tracking (12-hour interval)
 
 4. Shell Environment
    - ZSH as default shell
@@ -75,16 +86,17 @@ sequenceDiagram
     participant Network
 
     User->>Script: Execute run.sh
-    Script->>System: Detect OS & Architecture
-    Script->>System: Check Requirements
-    Script->>Network: Download dotfiles
+    Script->>System: Step 1: Detect OS & Architecture
+    Script->>System: Step 2: Create directories & SSH keys
+    Script->>Network: Step 3: Clone/Update dotfiles
     Note over Network: Retry mechanism with exponential backoff
-    Script->>System: Configure Git
-    Script->>System: Setup SSH
-    Script->>System: Install Package Manager
-    Script->>Network: Install Packages
-    Script->>System: Configure Shell
-    Script->>System: Apply Theme
+    Script->>System: Step 4: Setup config files (SSH, AWS, Git)
+    Script->>System: Step 5: Setup package managers
+    Script->>Network: Step 6: Install packages (Homebrew, NPM, PIP)
+    Script->>System: Step 7: OS-specific settings
+    Script->>System: Step 8: Install ZSH & Oh My ZSH
+    Script->>System: Step 9: Apply theme & UI settings
+    Script->>System: Step 10: Deploy user config files
     Script->>User: Complete Installation
 ```
 

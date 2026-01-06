@@ -21,23 +21,27 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 ## Architecture
 
-The installation follows a multi-step process:
-1. System detection (OS/architecture)
+The installation follows a 10-step process:
+1. System environment check (OS/architecture detection)
 2. Directory setup and SSH key generation
 3. Dotfiles repository cloning/updating
-4. Git configuration (interactive)
-5. OS-specific package manager setup
-6. Homebrew/APT package installation
-7. ZSH and Oh-My-ZSH installation
-8. Dracula theme setup
-9. Configuration file deployment
+4. Basic configuration files setup (SSH, AWS, Git configs)
+5. Package manager setup (APT for Linux, Homebrew installation)
+6. Development packages installation (Homebrew, NPM, PIP)
+7. OS-specific settings (macOS system preferences, Xcode)
+8. ZSH and Oh-My-ZSH installation
+9. Theme and UI settings (Dracula theme, iTerm2)
+10. User configuration files deployment
 
 ## Key Components
 
-- **`run.sh`**: Main installation script with 8-step progress tracking
+- **`run.sh`**: Main installation script with 10-step progress tracking
 - **`run.ps1`**: Windows PowerShell installation script
 - **`darwin/Brewfile`**: macOS package definitions
 - **`linux/Brewfile`**: Linux package definitions
+- **`docs/`**: Technical documentation (ARCHITECTURE.md)
+- **`.claude/`**: Claude Code AI settings and instructions
+- **`vibe/`**: AI agent guidelines (AGENTS.md)
 - **Configuration files**: `.gitconfig`, `.zshrc`, `.aliases`, `.vimrc`, etc.
 
 ## Organization-Specific Features

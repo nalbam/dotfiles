@@ -4,25 +4,34 @@ Development environment automation tool that helps you quickly set up a consiste
 
 ## Supported Environments
 
-- macOS (darwin)
-- Linux
+- macOS (darwin) - arm64/x86_64
+- Linux - x86_64
 - Windows (mingw64)
 
 ## Key Features
 
-- Automated Git configuration
+- Automated Git configuration with organization-specific settings
 - Automatic SSH key generation (RSA, ED25519)
 - AWS CLI configuration
-- Homebrew package management
+- Homebrew/APT package management
 - ZSH and Oh-My-ZSH installation
 - Dracula theme integration
 - iTerm2 configuration (macOS)
 - Custom alias settings
+- Claude Code AI settings
 
 ## Installation
 
+### macOS / Linux
+
 ```bash
 bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
+```
+
+### Windows (PowerShell)
+
+```powershell
+./run.ps1
 ```
 
 ## Directory Structure
@@ -35,7 +44,13 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 ├── linux/             # Linux specific settings
 │   ├── Brewfile       # Linux Homebrew package list
 │   └── .zprofile.*    # Linux profile settings
-└── bin/               # Utility scripts
+├── .claude/           # Claude Code AI settings
+│   ├── CLAUDE.md      # Claude Code instructions
+│   └── settings.json  # Claude Code configuration
+├── docs/              # Technical documentation
+│   └── ARCHITECTURE.md # System architecture
+└── vibe/              # AI agent guidelines
+    └── AGENTS.md      # Vibe coding rules
 ```
 
 ## Main Configuration Files
@@ -49,12 +64,25 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 ## Automatically Installed Tools
 
-- Git
-- AWS CLI
-- Kubernetes tools (kubectl, helm, argocd)
-- Development tools (jq, curl, wget, etc.)
-- ZSH and Oh-My-ZSH
-- Dracula theme
+### Via Homebrew
+
+- Git, GitHub CLI (gh)
+- AWS CLI, eksctl
+- Kubernetes tools (kubectl, helm, argocd, k9s, kubectx)
+- Terraform tools (tenv, terraform-docs)
+- Development tools (jq, yq, fzf, ripgrep, curl, wget, etc.)
+- Language tools (Go, Ruby, Python/pyenv, Node.js/nvm)
+- ZSH and Oh-My-ZSH with plugins
+
+### Via NPM
+
+- Claude Code (@anthropic-ai/claude-code)
+- ccusage (Claude Code usage tracker)
+- Serverless Framework
+
+### Via PIP
+
+- toast-cli
 
 ## How to Contribute
 
