@@ -10,6 +10,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Important: Perform only the necessary work. If work is not needed, stop.**
 
+## Mindset
+
+- Think like a senior engineer.
+- Don't jump in on guesses or rush to conclusions.
+- Always evaluate multiple approaches; compare at least two options before deciding.
+- Problem definition → small, safe change → change review → refactor — repeat the loop.
+
+## Before Changing Code
+
+- Read relevant files end to end, including all call/reference paths.
+- Locate and read definitions, references, call sites, related tests, docs/config.
+- Do not change code without having read the entire file.
+- If you make assumptions, record them clearly.
+
 ## Core Principles
 
 - **Solve the right problem**: Avoid unnecessary complexity or scope creep.
@@ -59,3 +73,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Include unit tests for core functions, integration tests for data flow, and E2E tests for key scenarios.
 - Keep tests fast, isolated, and reliable.
 - Run tests continuously in CI.
+
+## Anti-Patterns to Avoid
+
+- Don't modify code without reading the whole context.
+- Don't expose secrets in code, logs, or commits.
+- Don't ignore failures or warnings.
+- Don't introduce unjustified optimization or abstraction.
+- Don't overuse broad exceptions.

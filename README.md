@@ -45,12 +45,11 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 │   ├── Brewfile       # Linux Homebrew package list
 │   └── .zprofile.*    # Linux profile settings
 ├── .claude/           # Claude Code AI settings
-│   ├── CLAUDE.md      # Claude Code instructions
+│   ├── CLAUDE.md      # Claude Code instructions (EN)
+│   ├── CLAUDE.ko.md   # Claude Code instructions (KO)
 │   └── settings.json  # Claude Code configuration
-├── docs/              # Technical documentation
-│   └── ARCHITECTURE.md # System architecture
-└── vibe/              # AI agent guidelines
-    └── AGENTS.md      # Vibe coding rules
+└── docs/              # Technical documentation
+    └── ARCHITECTURE.md # System architecture
 ```
 
 ## Main Configuration Files

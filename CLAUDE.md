@@ -41,7 +41,6 @@ The installation follows a 10-step process:
 - **`linux/Brewfile`**: Linux package definitions
 - **`docs/`**: Technical documentation (ARCHITECTURE.md)
 - **`.claude/`**: Claude Code AI settings and instructions
-- **`vibe/`**: AI agent guidelines (AGENTS.md)
 - **Configuration files**: `.gitconfig`, `.zshrc`, `.aliases`, `.vimrc`, etc.
 
 ## Organization-Specific Features
