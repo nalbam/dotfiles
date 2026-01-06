@@ -319,9 +319,9 @@ if [ ! -f ~/.aws/config ]; then
 fi
 
 # Git 설정 파일 다운로드
-_download .gitconfig
-_download .gitconfig-bruce
-_download .gitconfig-nalbam
+_download .gitconfig gitconfig
+_download .gitconfig-bruce gitconfig-bruce
+_download .gitconfig-nalbam gitconfig-nalbam
 
 # Step 5: OS별 패키지 관리자 설정
 _progress "Setting up package managers..."
@@ -430,12 +430,12 @@ if [ "${OS_NAME}" == "darwin" ]; then
   fi
 
   # macOS 시스템 설정
-  _download .macos
+  _download .macos macos
   if [ ! -f ~/.macos.backup ]; then
     /bin/bash ~/.macos
     _backup ~/.macos
   else
-    if [ "$(_md5 ~/.dotfiles/.macos)" != "$(_md5 ~/.macos.backup)" ]; then
+    if [ "$(_md5 ~/.dotfiles/macos)" != "$(_md5 ~/.macos.backup)" ]; then
       /bin/bash ~/.macos
       _backup ~/.macos
     fi
@@ -481,12 +481,12 @@ fi
 _progress "Applying user configuration files..."
 
 # 셸 설정 파일들
-_download .bashrc
-_download .profile
-_download .aliases
-_download .vimrc
-_download .zshrc
-_download .zprofile $OS_NAME/.zprofile.$OS_ARCH.sh
+_download .bashrc bashrc
+_download .profile profile
+_download .aliases aliases
+_download .vimrc vimrc
+_download .zshrc zshrc
+_download .zprofile $OS_NAME/zprofile.$OS_ARCH.sh
 
 # Claude AI 설정 (~/.claude/ 디렉토리 동기화)
 if [ -d ~/.dotfiles/claude ]; then
