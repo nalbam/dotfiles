@@ -5,18 +5,40 @@ read -t 5 input
 
 # 이벤트 정보 추출
 event_name=$(echo "$input" | jq -r '.hook_event_name' 2>/dev/null || echo "Unknown")
+cwd=$(echo "$input" | jq -r '.cwd // empty' 2>/dev/null)
+transcript_path=$(echo "$input" | jq -r '.transcript_path // empty' 2>/dev/null)
+
+# 프로젝트 이름 추출
+if [ -n "$cwd" ]; then
+  project_name=$(basename "$cwd")
+elif [ -n "$transcript_path" ]; then
+  # transcript_path: ~/.claude/projects/project-name/session.jsonl
+  project_name=$(basename "$(dirname "$transcript_path")")
+else
+  project_name=""
+fi
 
 # 메시지 구성
 case "$event_name" in
   "Stop")
     title="Claude Code"
-    message="작업 완료"
-    slack_message=":white_check_mark: Claude Code 작업 완료"
+    if [ -n "$project_name" ]; then
+      message="[$project_name] 작업 완료"
+      slack_message=":white_check_mark: Claude Code [$project_name] 작업 완료"
+    else
+      message="작업 완료"
+      slack_message=":white_check_mark: Claude Code 작업 완료"
+    fi
     ;;
   "Notification")
     title="Claude Code"
-    message="입력을 기다리고 있습니다"
-    slack_message=":question: Claude Code가 입력을 기다리고 있습니다"
+    if [ -n "$project_name" ]; then
+      message="[$project_name] 입력을 기다리고 있습니다"
+      slack_message=":question: Claude Code [$project_name] 입력을 기다리고 있습니다"
+    else
+      message="입력을 기다리고 있습니다"
+      slack_message=":question: Claude Code가 입력을 기다리고 있습니다"
+    fi
     ;;
   *)
     title="Claude Code"
