@@ -29,8 +29,19 @@ esac
 if [[ "$OSTYPE" == "darwin"* ]]; then
   osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null
   # 사운드 재생 (nohup으로 백그라운드 실행)
-  if [ -f ~/.claude/sounds/success.mp3 ]; then
-    nohup afplay ~/.claude/sounds/success.mp3 >/dev/null 2>&1 &
+  case "$event_name" in
+    "Stop")
+      sound_file=~/.claude/sounds/success.mp3
+      ;;
+    "Notification")
+      sound_file=~/.claude/sounds/ding1.mp3
+      ;;
+    *)
+      sound_file=~/.claude/sounds/ding2.mp3
+      ;;
+  esac
+  if [ -f "$sound_file" ]; then
+    nohup afplay "$sound_file" >/dev/null 2>&1 &
   fi
 fi
 
