@@ -53,13 +53,13 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
   # 사운드 재생 (nohup으로 백그라운드 실행)
   case "$event_name" in
     "Stop")
-      sound_file=~/.claude/sounds/success.mp3
-      ;;
-    "Notification")
       sound_file=~/.claude/sounds/ding1.mp3
       ;;
-    *)
+    "Notification")
       sound_file=~/.claude/sounds/ding2.mp3
+      ;;
+    *)
+      sound_file=~/.claude/sounds/ding3.mp3
       ;;
   esac
   if [ -f "$sound_file" ]; then
