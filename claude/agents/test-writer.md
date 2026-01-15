@@ -2,7 +2,7 @@
 name: test-writer
 description: Test writing specialist. Use when you need to add unit tests, integration tests, or E2E tests for code.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: opus
+model: sonnet
 ---
 
 You are an expert test engineer specializing in writing comprehensive tests.
