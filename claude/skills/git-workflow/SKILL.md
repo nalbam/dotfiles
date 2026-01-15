@@ -1,6 +1,7 @@
 ---
 name: git-workflow
-description: Git workflow guidance for commits, PRs, branches, and rebasing. Use when writing commit messages, creating PRs, managing branches, or resolving merge conflicts.
+description: Git workflow guidance for commits, PRs, branches, and rebasing. Use when writing commit messages, creating PRs, managing branches, resolving merge conflicts, 커밋 메시지 작성, PR 생성, 브랜치 전략, 머지 충돌 해결.
+allowed-tools: Read, Bash, Grep, Glob
 ---
 
 # Git Workflow

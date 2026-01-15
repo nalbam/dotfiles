@@ -1,6 +1,7 @@
 ---
 name: k8s-troubleshoot
-description: Kubernetes troubleshooting and debugging guide. Use when diagnosing pod failures, networking issues, resource problems, or cluster errors.
+description: Kubernetes troubleshooting and debugging guide. Use when diagnosing pod failures, networking issues, resource problems, cluster errors, 쿠버네티스 트러블슈팅, 파드 오류, 서비스 접속 불가, K8s 디버깅.
+allowed-tools: Read, Bash, Grep, Glob
 ---
 
 # Kubernetes Troubleshooting

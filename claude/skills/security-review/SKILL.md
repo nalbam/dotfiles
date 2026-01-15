@@ -1,6 +1,6 @@
 ---
 name: security-review
-description: Security review checklist for code and configuration. Use when reviewing code for security vulnerabilities, checking for credential exposure, or auditing security.
+description: Security review checklist for code and configuration. Use when reviewing code for security vulnerabilities, checking for credential exposure, auditing security, 보안 검토, 취약점 확인, 시크릿 노출 체크, 보안 감사.
 allowed-tools: Read, Grep, Glob
 ---
 

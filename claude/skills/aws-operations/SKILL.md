@@ -1,6 +1,7 @@
 ---
 name: aws-operations
-description: AWS CLI operations and best practices. Use when working with AWS services, debugging AWS issues, or managing cloud resources.
+description: AWS CLI operations and best practices. Use when working with AWS services, debugging AWS issues, managing cloud resources, AWS 작업, 클라우드 리소스 관리, EC2 인스턴스, S3 버킷.
+allowed-tools: Read, Bash, Grep, Glob
 ---
 
 # AWS Operations Guide

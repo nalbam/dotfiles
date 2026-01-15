@@ -1,6 +1,7 @@
 ---
 name: shell-scripting
-description: POSIX-compliant shell scripting best practices. Use when writing bash scripts, shell scripts, or automation scripts.
+description: POSIX-compliant shell scripting best practices. Use when writing bash scripts, shell scripts, automation scripts, 셸 스크립트 작성, 배시 스크립트, 자동화 스크립트.
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Shell Scripting Best Practices
