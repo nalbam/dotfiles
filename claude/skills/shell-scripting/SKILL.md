@@ -6,6 +6,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Shell Scripting Best Practices
 
+**Important**: Always follow the project's existing style.
+
 ## Script Header
 
 ```bash
@@ -93,12 +95,12 @@ name="${1:?Error: name required}"
 ```bash
 # Use [[ ]] over [ ]
 if [[ -f "$file" ]]; then
-    echo "exists"
+  echo "exists"
 fi
 
 # Combine conditions
 if [[ -f "$file" && -r "$file" ]]; then
-    cat "$file"
+  cat "$file"
 fi
 ```
 
@@ -107,12 +109,12 @@ fi
 ### Declaration
 ```bash
 function_name() {
-    local arg1="$1"
-    local arg2="${2:-default}"
+  local arg1="$1"
+  local arg2="${2:-default}"
 
-    # Function body
+  # Function body
 
-    return 0
+  return 0
 }
 ```
 
@@ -120,11 +122,11 @@ function_name() {
 ```bash
 # Use local variables
 my_function() {
-    local result=""
-    local -r readonly_var="constant"
+  local result=""
+  local -r readonly_var="constant"
 
-    result="computed value"
-    echo "$result"
+  result="computed value"
+  echo "$result"
 }
 
 # Capture output
@@ -132,7 +134,7 @@ output=$(my_function)
 
 # Check return status
 if my_function; then
-    echo "success"
+  echo "success"
 fi
 ```
 
@@ -142,8 +144,8 @@ fi
 ```bash
 # Exit with message
 die() {
-    echo "Error: $*" >&2
-    exit 1
+  echo "Error: $*" >&2
+  exit 1
 }
 
 # Usage
@@ -153,8 +155,8 @@ die() {
 ### Cleanup on Exit
 ```bash
 cleanup() {
-    rm -f "$temp_file"
-    echo "Cleaned up"
+  rm -f "$temp_file"
+  echo "Cleaned up"
 }
 trap cleanup EXIT
 ```
@@ -182,7 +184,7 @@ read -rsp "Password: " password
 
 # Read file line by line
 while IFS= read -r line; do
-    echo "$line"
+  echo "$line"
 done < "$file"
 ```
 
@@ -206,35 +208,35 @@ command &> output.log  # Bash shorthand
 ```bash
 # Over list
 for item in a b c; do
-    echo "$item"
+  echo "$item"
 done
 
 # Over array
 for item in "${array[@]}"; do
-    echo "$item"
+  echo "$item"
 done
 
 # Over files (use glob, not ls)
 for file in *.txt; do
-    [[ -f "$file" ]] || continue
-    echo "$file"
+  [[ -f "$file" ]] || continue
+  echo "$file"
 done
 
 # C-style
 for ((i=0; i<10; i++)); do
-    echo "$i"
+  echo "$i"
 done
 ```
 
 ### While Loop
 ```bash
 while [[ "$count" -lt 10 ]]; do
-    ((count++))
+  ((count++))
 done
 
 # Read lines
 while IFS= read -r line; do
-    process "$line"
+  process "$line"
 done < "$file"
 ```
 
@@ -255,7 +257,7 @@ array+=("four")
 
 # Iterate
 for item in "${array[@]}"; do
-    echo "$item"
+  echo "$item"
 done
 ```
 
@@ -264,23 +266,23 @@ done
 ### Argument Parsing
 ```bash
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-        -v|--verbose)
-            VERBOSE=true
-            shift
-            ;;
-        -f|--file)
-            FILE="$2"
-            shift 2
-            ;;
-        *)
-            die "Unknown option: $1"
-            ;;
-    esac
+  case "$1" in
+    -h|--help)
+      show_help
+      exit 0
+      ;;
+    -v|--verbose)
+      VERBOSE=true
+      shift
+      ;;
+    -f|--file)
+      FILE="$2"
+      shift 2
+      ;;
+    *)
+      die "Unknown option: $1"
+      ;;
+  esac
 done
 ```
 
@@ -293,7 +295,7 @@ trap 'rm -f "$temp_file"' EXIT
 ### Check Dependencies
 ```bash
 require_command() {
-    command -v "$1" >/dev/null 2>&1 || die "$1 is required"
+  command -v "$1" >/dev/null 2>&1 || die "$1 is required"
 }
 
 require_command jq
@@ -323,6 +325,6 @@ cat file | while read line; do  # Subshell issues
 
 # Good: Redirect into while
 while read -r line; do
-    ...
+  ...
 done < file
 ```
