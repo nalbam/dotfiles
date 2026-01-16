@@ -162,12 +162,12 @@ The installer provides templates and instructions for using 1Password CLI:
 # SSH config from 1Password
 op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config
 
+# SSH private keys from 1Password
+op read op://keys/nalbam-seoul.pem/notesPlain > ~/.ssh/nalbam-seoul.pem && chmod 600 ~/.ssh/nalbam-seoul.pem
+
 # AWS credentials from 1Password
 op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config
 op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials
-
-# AWS PEM key from 1Password
-op read op://keys/aws-config/nalbam-seoul.pem > ~/.aws/nalbam-seoul.pem && chmod 600 ~/.aws/nalbam-seoul.pem
 ```
 
 This allows secure storage of credentials in 1Password vaults instead of plain text files.
