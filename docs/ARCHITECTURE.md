@@ -65,8 +65,8 @@ graph TD
    - Homebrew for macOS and Linux
    - APT for Linux
    - Chocolatey for Windows
-   - NPM for Node.js packages (claude-code, ccusage, serverless)
-   - PIP for Python packages (toast-cli)
+   - NPM for Node.js packages (npm, corepack, @anthropic-ai/claude-code, ccusage, serverless)
+   - PIP for Python packages (toast-cli) with intelligent fallback (normal → --user → --break-system-packages → sudo)
    - Daily update optimization with timestamp tracking (12-hour interval)
 
 4. Shell Environment

@@ -126,13 +126,14 @@ The installer detects organization context from hostname:
 
 ### Homebrew Packages (macOS & Linux)
 Key tools include:
-- **Cloud/DevOps**: awscli, eksctl, terraform, helm, kubectl, argocd, k9s
-- **Development**: git, gh, hub, go, ruby, nvm, pyenv, direnv
-- **Utilities**: jq, yq, fzf, ripgrep, tree, htop, httpie, curl, wget
+- **Cloud/DevOps**: awscli, eksctl, tenv, helm, kubectl, argo, argocd, istioctl, k9s, kubectx, kube-ps1
+- **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, nvm, pyenv, pipenv, direnv
+- **Utilities**: jq, yq, fzf, ripgrep, tree, htop, httpie, curl, wget, grpcurl, graphviz, colordiff, figlet, fx
+- **Security**: gpg, 1password-cli
 - **Shell**: zsh, zsh-autosuggestions, zsh-syntax-highlighting
 
 ### macOS Casks
-- **Essential**: 1password-cli, aws-vault-binary, iterm2, visual-studio-code
+- **Essential**: 1password-cli, aws-vault-binary, iterm2, visual-studio-code, google-drive
 - **Fonts**: font-dejavu-sans-mono-nerd-font
 - **User-specific** (if USER=nalbam): 1password, google-chrome, slack, zoom
 - **Third-party taps**: opspresso/tap/toast, pakerwreah/calendr/calendr

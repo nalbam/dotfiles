@@ -65,13 +65,21 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 ### Via Homebrew
 
-- Git, GitHub CLI (gh)
+- Git, GitHub CLI (gh), hub, git-lfs, git-secrets
 - AWS CLI, eksctl
-- Kubernetes tools (kubectl, helm, argocd, k9s, kubectx)
+- Kubernetes tools (kubectl, helm, argo, argocd, istioctl, k9s, kubectx, kube-ps1)
 - Terraform tools (tenv, terraform-docs)
-- Development tools (jq, yq, fzf, ripgrep, curl, wget, etc.)
-- Language tools (Go, Ruby, Python/pyenv, Node.js/nvm)
-- ZSH and Oh-My-ZSH with plugins
+- Development tools (jq, yq, fzf, ripgrep, curl, wget, htop, httpie, grpcurl, graphviz, colordiff, figlet, fx, telnet)
+- Language tools (Go, Ruby, Python/pyenv/pipenv, Node.js/nvm)
+- Security tools (gpg)
+- ZSH and Oh-My-ZSH with plugins (zsh-autosuggestions, zsh-syntax-highlighting)
+
+### macOS Casks
+
+- 1password-cli, aws-vault-binary
+- iterm2, visual-studio-code
+- google-drive
+- font-dejavu-sans-mono-nerd-font
 
 ### Via NPM
 
@@ -82,6 +90,17 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 ### Via PIP
 
 - toast-cli
+
+## Custom Aliases
+
+The `.aliases` file provides many useful shortcuts:
+
+- **AWS**: `a` (aws), `m` (caller-identity), `av` (aws-vault helper)
+- **Kubernetes**: `k` (kubectl), `h` (helm), `x` (context switch)
+- **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy)
+- **Node.js**: `nn` (clean install), `nb` (build), `nd` (dev server)
+- **Servers**: `ss` (start), `sl` (list), `sk` (kill)
+- **Claude**: `cc` (claude), `ccu` (ccusage)
 
 ## How to Contribute
 
