@@ -42,7 +42,8 @@ target/
 *.bak
 *.backup
 
-# prompt
+# claude
+.claude/
 .prompt-*.md
 .prompt.md
 prompt-*.md
