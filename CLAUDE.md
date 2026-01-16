@@ -165,6 +165,9 @@ op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/conf
 # AWS credentials from 1Password
 op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config
 op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials
+
+# AWS PEM key from 1Password
+op read op://keys/aws-config/nalbam-seoul.pem > ~/.aws/nalbam-seoul.pem && chmod 600 ~/.aws/nalbam-seoul.pem
 ```
 
 This allows secure storage of credentials in 1Password vaults instead of plain text files.
