@@ -6,20 +6,36 @@ allowed-tools: Read, Bash, Grep, Glob
 
 # AWS Operations
 
+## Auth with AWS Vault
+```bash
+# Login and execute command
+export AWS_VAULT= && aws-vault exec <profile> -- <command>
+
+# Examples
+export AWS_VAULT= && aws-vault exec daangn-alpha -- aws sts get-caller-identity
+export AWS_VAULT= && aws-vault exec daangn-prod -- kubectl get pods
+
+# Start subshell with credentials
+export AWS_VAULT= && aws-vault exec daangn-alpha
+
+# List profiles
+aws-vault list
+
+# Clear cached credentials
+aws-vault clear <profile>
+```
+
 ## Auth & Profile
 ```bash
 # Check current identity
 aws sts get-caller-identity
 
-# SSO login
+# SSO login (without aws-vault)
 aws sso login --profile myprofile
 export AWS_PROFILE=myprofile
 
 # List configured profiles
 aws configure list-profiles
-
-# Assume role
-aws sts assume-role --role-arn arn:aws:iam::123456789012:role/MyRole --role-session-name mysession
 ```
 
 ## EC2
