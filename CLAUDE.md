@@ -51,13 +51,21 @@ The dotfiles include comprehensive Claude Code (AI pair programming CLI) setup:
 - **`claude/CLAUDE.md`**: Project-specific Claude instructions
 - **`claude/settings.json`**: Claude permissions, hooks, and status line configuration
 - **`claude/hooks/notify.sh`**: Multi-platform notification system
+- **`claude/skills/`**: User-invocable skills (via `/skill-name`)
+  - `validate/`: Run lint, typecheck, tests with auto-fix
+  - `docs-sync/`: Documentation sync and gap analysis
+  - `aws-operations/`: AWS CLI operations
+  - `k8s-troubleshoot/`: Kubernetes troubleshooting
+  - `security-review/`: Security review checklist
+  - `shell-scripting/`: Shell scripting best practices
+  - `git-workflow/`: Git workflow guidance
 - **`claude/agents/`**: Custom agent definitions
+  - `validator.md`: Runs lint, typecheck, tests and fixes issues
   - `code-reviewer.md`: Code review specialist
   - `debugger.md`: Debugging and error resolution
   - `test-writer.md`: Test generation specialist
   - `refactorer.md`: Code refactoring specialist
   - `doc-writer.md`: Documentation specialist
-  - `validator.md`: **NEW** - Runs lint, typecheck, tests and fixes issues
 - **`claude/sounds/`**: Audio notifications (ding1.mp3, ding2.mp3, ding3.mp3)
 - **`claude/env.sample`**: Environment variables template
 
@@ -71,28 +79,45 @@ The `notify.sh` hook provides notifications when Claude completes tasks or needs
 ### Status Line Integration
 Uses `ccusage statusline` to display Claude Code usage statistics in the CLI
 
-### Custom Agents
-Custom agents provide specialized workflows:
+### Custom Skills
+User-invocable skills via `/skill-name` command:
 
-**validator** - Comprehensive quality validation:
+**validate** - Run lint, typecheck, and tests with auto-fix:
 ```bash
 # Usage in Claude Code CLI
-/validator
+/validate
 
 # Or ask Claude naturally
-"Run validator to check my code"
+"Run validate to check my code"
 ```
 
-The validator agent:
+The validate skill:
 1. Detects project type (Node.js, Python, Go, Ruby, Java, Rust)
-2. Runs lint checks (eslint, pylint, rubocop, etc.)
-3. Runs type checks (tsc, mypy, flow, etc.)
-4. Runs test suite (jest, pytest, go test, etc.)
+2. Runs lint checks (eslint, ruff, golangci-lint, cargo clippy, etc.)
+3. Runs type checks (tsc, mypy, go build, cargo check, etc.)
+4. Runs test suite (jest/vitest, pytest, go test, cargo test, etc.)
 5. Analyzes failures and identifies root causes
 6. Fixes all issues automatically
-7. Re-validates to ensure all checks pass
+7. Re-validates until all checks pass
 
 Perfect for pre-commit validation or CI/CD pipeline simulation.
+
+Other available skills:
+- **docs-sync**: Analyze code and documentation, find gaps, update docs
+- **aws-operations**: AWS CLI operations and best practices
+- **k8s-troubleshoot**: Kubernetes troubleshooting guide
+- **security-review**: Security review checklist
+- **shell-scripting**: Shell scripting best practices
+- **git-workflow**: Git workflow for commits, PRs, branches
+
+### Custom Agents
+Custom agents provide specialized workflows:
+- **validator**: Runs lint, typecheck, tests and fixes issues
+- **code-reviewer**: Code review specialist
+- **debugger**: Debugging and error resolution
+- **test-writer**: Test generation specialist
+- **refactorer**: Code refactoring specialist
+- **doc-writer**: Documentation specialist
 
 ### Permission Management
 Pre-configured allow/deny lists for safe AI operations:

@@ -102,7 +102,9 @@
       "WebFetch(domain:terraform.io)",
       "WebFetch(domain:typescriptlang.org)",
       "WebFetch(domain:vercel.com)",
-      "WebSearch"
+      "WebSearch",
+      "Skill(docs-sync)",
+      "Skill(validate)"
     ],
     "deny": [
       "Bash(rm -rf /)",
