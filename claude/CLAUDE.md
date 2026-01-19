@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in any project.
 
-# Project Code Guidelines
+# Global Code Guidelines
 
 **Important: Refer to project-specific documentation (e.g., docs/, README.md) when available.**
 
@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Think like a senior engineer.
 - Don't rush to conclusions; evaluate multiple approaches before deciding.
 - Problem definition → small, safe change → review → refactor — repeat the loop.
-- Keep commits and PRs small and focused.
+- Keep changes small, focused, and incremental.
 
 ## Before Changing Code
 
@@ -52,12 +52,6 @@ When troubleshooting issues, follow this systematic process:
 4. **Fix**: Address root cause, not symptoms; document workarounds if necessary
 5. **Verify**: Test thoroughly, add regression tests, check for similar issues elsewhere
 
-### Anti-Patterns to Avoid
-- ❌ Quick fixes without understanding the issue
-- ❌ Treating symptoms (try-catch everywhere) instead of fixing causes
-- ❌ Stopping at the first plausible explanation
-- ❌ Skipping verification after implementing a fix
-
 ### Example
 **Symptom**: Intermittent crashes in production
 **Bad**: Add error handling + auto-restart
@@ -89,6 +83,38 @@ When troubleshooting issues, follow this systematic process:
 - Update documentation when changing behavior or adding features
 - Avoid outdated comments - delete rather than leave incorrect information
 
+## Version Control
+
+- **Commits**:
+  - Small, atomic changes with single purpose
+  - Use imperative mood: "Fix bug" not "Fixed bug"
+  - Format: "verb + what + why if not obvious"
+  - Good: "Add retry logic to handle network timeouts"
+  - Bad: "Update code", "Fix stuff", "WIP"
+- **Branches**: Short-lived feature branches from main
+- **Pull Requests**:
+  - One feature per PR, self-review before submission
+  - Include description, testing steps, and screenshots if UI change
+- **Best Practices**:
+  - Never commit secrets, binaries, or generated files
+  - Avoid force push to shared branches
+  - Rebase local branches, merge to main
+
+## Code Review & Collaboration
+
+- **Before Submitting**:
+  - Review your own diff first
+  - Ensure tests pass and code is linted
+  - Check for debug code, console.logs, TODOs
+- **As Reviewer**:
+  - Focus on logic, edge cases, and maintainability
+  - Ask questions, don't just criticize
+  - Approve only if you understand and verify the changes
+- **Receiving Feedback**:
+  - Respond promptly and professionally
+  - Explain your reasoning, but be open to better approaches
+  - Mark conversations resolved only after addressing them
+
 ## Security Rules
 
 - Never expose secrets in code, logs, or commits.
@@ -98,7 +124,14 @@ When troubleshooting issues, follow this systematic process:
 
 ## Anti-Patterns to Avoid
 
-- Modifying code without reading the full context.
-- Ignoring failures, warnings, or edge cases.
-- Premature optimization or abstraction.
-- Using broad exception handlers.
+### Code Quality
+- Modifying code without reading the full context
+- Ignoring failures, warnings, or edge cases
+- Premature optimization or abstraction
+- Using broad exception handlers
+
+### Problem Solving
+- Quick fixes without understanding the root cause
+- Treating symptoms (try-catch everywhere) instead of fixing causes
+- Stopping at the first plausible explanation
+- Skipping verification after implementing a fix
