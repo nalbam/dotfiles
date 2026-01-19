@@ -43,6 +43,12 @@ golangci-lint run  # or: go vet ./...
 
 # Rust
 cargo clippy
+
+# Ruby
+bundle exec rubocop
+
+# Java
+./gradlew checkstyleMain  # or: ./mvnw checkstyle:check
 ```
 
 On failure:
@@ -65,6 +71,12 @@ go build ./...
 
 # Rust (built-in)
 cargo check
+
+# Ruby (Sorbet, if configured)
+bundle exec srb tc
+
+# Java (compile check)
+./gradlew compileJava  # or: ./mvnw compile
 ```
 
 On failure:
@@ -86,6 +98,12 @@ go test ./...
 
 # Rust
 cargo test
+
+# Ruby
+bundle exec rspec
+
+# Java
+./gradlew test  # or: ./mvnw test
 ```
 
 On failure:

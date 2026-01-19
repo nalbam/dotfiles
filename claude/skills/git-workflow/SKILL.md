@@ -32,6 +32,56 @@ hotfix/critical-patch
 3. Rebase on `main` before PR
 4. Keep PRs small (< 400 lines)
 
+## PR Creation
+
+### 1. Sync with main
+```bash
+git fetch origin
+git rebase origin/main
+# Resolve conflicts if any, then:
+git push --force-with-lease
+```
+
+### 2. Analyze changes
+```bash
+# View commits since branching from main
+git log origin/main..HEAD --oneline
+
+# View full diff
+git diff origin/main...HEAD
+```
+
+### 3. Create PR
+```bash
+gh pr create --title "<type>(<scope>): <subject>" --body "$(cat <<'EOF'
+## Summary
+- Brief description of changes
+
+## Changes
+- List of specific changes made
+
+## Test Plan
+- [ ] How to verify changes work
+
+EOF
+)"
+```
+
+### PR Message Template
+```markdown
+## Summary
+<1-3 sentences explaining what and why>
+
+## Changes
+- Change 1
+- Change 2
+
+## Test Plan
+- [ ] Unit tests pass
+- [ ] Manual testing done
+- [ ] Edge cases covered
+```
+
 ## Rebase
 ```bash
 git fetch origin

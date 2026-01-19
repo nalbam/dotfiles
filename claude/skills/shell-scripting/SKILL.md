@@ -12,6 +12,26 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ```bash
 #!/bin/bash
 set -euo pipefail
+
+# With debugging option
+#!/bin/bash
+set -euo pipefail
+[[ "${DEBUG:-}" == "true" ]] && set -x
+```
+
+## ShellCheck
+```bash
+# Install
+brew install shellcheck  # macOS
+apt install shellcheck   # Debian/Ubuntu
+
+# Run
+shellcheck script.sh
+shellcheck -x script.sh  # Follow sourced files
+
+# Disable specific rule
+# shellcheck disable=SC2034
+unused_var="this is intentional"
 ```
 
 ## Variables
@@ -84,4 +104,76 @@ eval "$input"                # Dangerous
 # Good
 for f in *.txt; do
 echo "$var"
+```
+
+## Debugging
+```bash
+# Enable trace mode
+set -x                      # Print each command
+set +x                      # Disable trace
+
+# Custom trace prefix
+PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+
+# Debug specific section
+set -x
+# ... code to debug ...
+set +x
+
+# Verbose error on failure
+trap 'echo "Error at line $LINENO: $BASH_COMMAND"' ERR
+```
+
+## Logging
+```bash
+# Simple logging
+log() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
+}
+
+log_info()  { log "INFO:  $*"; }
+log_warn()  { log "WARN:  $*" >&2; }
+log_error() { log "ERROR: $*" >&2; }
+
+# Usage
+log_info "Starting process"
+log_error "Something failed"
+```
+
+## Color Output
+```bash
+# Colors (if terminal supports)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'  # No Color
+
+# Usage
+echo -e "${GREEN}Success${NC}"
+echo -e "${RED}Error${NC}"
+
+# Check if terminal supports color
+if [[ -t 1 ]]; then
+  # stdout is a terminal, colors OK
+  echo -e "${GREEN}Colored output${NC}"
+else
+  echo "Plain output"
+fi
+```
+
+## Portable Scripts
+```bash
+# Use env for portability
+#!/usr/bin/env bash
+
+# Check for required commands
+command -v jq >/dev/null 2>&1 || { echo "jq required"; exit 1; }
+
+# OS detection
+case "$(uname -s)" in
+  Darwin*) OS="macos" ;;
+  Linux*)  OS="linux" ;;
+  *)       OS="unknown" ;;
+esac
 ```

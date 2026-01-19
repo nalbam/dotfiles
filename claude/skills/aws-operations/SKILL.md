@@ -6,11 +6,20 @@ allowed-tools: Read, Bash, Grep, Glob
 
 # AWS Operations
 
-## Auth
+## Auth & Profile
 ```bash
+# Check current identity
 aws sts get-caller-identity
+
+# SSO login
 aws sso login --profile myprofile
 export AWS_PROFILE=myprofile
+
+# List configured profiles
+aws configure list-profiles
+
+# Assume role
+aws sts assume-role --role-arn arn:aws:iam::123456789012:role/MyRole --role-session-name mysession
 ```
 
 ## EC2
@@ -53,9 +62,74 @@ aws secretsmanager get-secret-value --secret-id name --query SecretString --outp
 ```bash
 aws logs tail /aws/lambda/my-func --follow --since 1h
 aws logs filter-log-events --log-group-name name --filter-pattern "ERROR"
+aws cloudwatch get-metric-statistics --namespace AWS/EC2 --metric-name CPUUtilization \
+  --start-time 2024-01-01T00:00:00Z --end-time 2024-01-02T00:00:00Z \
+  --period 3600 --statistics Average --dimensions Name=InstanceId,Value=i-xxxxx
+```
+
+## IAM
+```bash
+# Users and roles
+aws iam list-users --query 'Users[].[UserName,CreateDate]' --output table
+aws iam list-roles --query 'Roles[].[RoleName,Arn]' --output table
+aws iam get-role --role-name MyRole
+
+# Policies
+aws iam list-attached-role-policies --role-name MyRole
+aws iam get-policy --policy-arn arn:aws:iam::aws:policy/ReadOnlyAccess
+aws iam simulate-principal-policy --policy-source-arn arn:aws:iam::123456789012:user/myuser \
+  --action-names s3:GetObject --resource-arns arn:aws:s3:::mybucket/*
+```
+
+## VPC & Network
+```bash
+# VPC info
+aws ec2 describe-vpcs --query 'Vpcs[].[VpcId,CidrBlock,Tags[?Key==`Name`].Value|[0]]' --output table
+aws ec2 describe-subnets --query 'Subnets[].[SubnetId,VpcId,CidrBlock,AvailabilityZone]' --output table
+
+# Security groups
+aws ec2 describe-security-groups --group-ids sg-xxxxx
+aws ec2 describe-security-group-rules --filter Name=group-id,Values=sg-xxxxx
+
+# Network debugging
+aws ec2 describe-network-interfaces --filters Name=subnet-id,Values=subnet-xxxxx
+```
+
+## RDS
+```bash
+aws rds describe-db-instances --query 'DBInstances[].[DBInstanceIdentifier,DBInstanceStatus,Engine]' --output table
+aws rds describe-db-clusters --query 'DBClusters[].[DBClusterIdentifier,Status,Engine]' --output table
+aws rds describe-db-snapshots --db-instance-identifier mydb --query 'DBSnapshots[].[DBSnapshotIdentifier,SnapshotCreateTime]'
+```
+
+## Cost
+```bash
+# Current month cost
+aws ce get-cost-and-usage --time-period Start=$(date -u +%Y-%m-01),End=$(date -u +%Y-%m-%d) \
+  --granularity MONTHLY --metrics BlendedCost --group-by Type=DIMENSION,Key=SERVICE
+
+# Cost forecast
+aws ce get-cost-forecast --time-period Start=$(date -u +%Y-%m-%d),End=$(date -u +%Y-%m-01 -d "+1 month") \
+  --metric BLENDED_COST --granularity MONTHLY
+```
+
+## Troubleshooting
+```bash
+# Debug API calls
+aws sts get-caller-identity --debug 2>&1 | head -50
+
+# Check service quotas
+aws service-quotas list-service-quotas --service-code ec2
+
+# Common errors
+# - ExpiredToken: Re-authenticate with `aws sso login`
+# - AccessDenied: Check IAM permissions with `simulate-principal-policy`
+# - InvalidParameterValue: Verify resource exists in correct region
 ```
 
 ## Tips
 - Use IAM roles over access keys
-- Use `--query` for filtering
-- Use `--output table` for readability
+- Use `--query` for JMESPath filtering
+- Use `--output table` for readability, `json` for scripting
+- Use `--dry-run` for EC2 operations to test permissions
+- Set `AWS_PAGER=""` to disable pagination
