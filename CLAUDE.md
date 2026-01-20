@@ -142,7 +142,7 @@ The installer detects organization context from hostname:
 - **ccusage**: Claude Code usage tracking and status line
 
 ### PIP Packages
-- **toast-cli**: Toast notification utility
+- **toast-cli**: Workspace and environment management tool (integrated extensively in shell aliases)
 - Intelligent installation with fallback strategies:
   1. Normal pip install
   2. User install (--user)
@@ -266,3 +266,54 @@ Multiple gitconfig profiles for different contexts:
   - `darwin/zprofile.arm64.sh`, `darwin/zprofile.x86_64.sh`
   - `linux/zprofile.x86_64.sh`, `linux/zprofile.aarch64.sh`, `linux/zprofile.armv7l.sh`
 - Graceful handling of missing tools (brew, pyenv) in profile scripts
+- Environment variable support via `~/.claude/env.local` (auto-sourced in `.zshrc`)
+
+### Toast CLI Integration
+The dotfiles provide extensive integration with Toast CLI for workspace management:
+- **Directory Navigation**: `c()` function for workspace-aware directory changes
+- **Context Management**: Quick shortcuts for AWS (`m`), Kubernetes (`x`), Git (`g`), regions (`r`)
+- **Environment Helpers**: `e` (env), `d` (dot), `p` (prompt), `ssm` (SSM parameters)
+- **Installation**: Auto-installed via PIP, auto-updated with `tu` alias
+- **Quick Reinstall**: `tt` alias to re-run dotfiles installer
+
+### Development Helper Functions
+Beyond simple aliases, the repository includes intelligent helper functions:
+
+**Node.js Ecosystem** (in `aliases:114-156`):
+- `nn()`: Smart clean install with automatic pnpm/npm detection
+- `nb()`: Smart build command (pnpm/npm auto-detection)
+- `nd()`: Start dev server with automatic port cleanup
+- `nk()`: Kill dev servers on ports 3000-3999
+
+**Local Server Management** (in `aliases:173-241`):
+- `ss([dir], [port])`: Start Python HTTP server (default: docs/, port 8000)
+- `sl()`: List all running local dev servers
+- `sk(<port|all>)`: Kill servers by port or all at once
+
+**AWS Vault Helper** (in `aliases:36-78`):
+- `av()`: Profile-aware AWS Vault execution with shortcuts
+  - Profiles: `a|alpha`, `d|data`, `p|prod`, `n|nalbam`, `t|two`, `k|krug`, `o|ops`, `b|bruce`
+  - Commands: `c|clear`, `l|list`
+  - Example: `av n kubectl get pods` (execute kubectl in nalbam profile)
+
+**Terraform Workflows** (in `aliases:83-106`):
+- Complete set of aliases for init, plan, apply, destroy
+- State management shortcuts (`tfsl`, `tfss`, `tfsr`)
+- Auto-formatting and validation (`tff`, `tfp`)
+
+### Tool Version Managers
+Integrated version managers with automatic configuration:
+- **tfenv**: Terraform version manager with `TFENV_AUTO_INSTALL=true` and ARM64 support
+- **pyenv**: Python version manager with automatic initialization
+- **nvm**: Node.js version manager with automatic loading
+
+### Terminal Integration
+- **VS Code**: Shell integration for VS Code terminal (auto-detected)
+- **Kiro**: Shell integration for Kiro terminal (auto-detected)
+- **Kubernetes**: `kube-ps1` prompt integration showing current cluster/namespace
+
+### Korean Keyboard Support
+Native Korean character aliases for quick command execution:
+- `ㅊ` → `c` (change directory with toast)
+- `ㅊㅇ` → `cd` (change directory)
+- `ㅅㅅ` → `tt` (re-run dotfiles installer)

@@ -68,7 +68,7 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 - Git, GitHub CLI (gh), hub, git-lfs, git-secrets
 - AWS CLI, eksctl
 - Kubernetes tools (kubectl, helm, argo, argocd, istioctl, k9s, kubectx, kube-ps1)
-- Terraform tools (tenv, terraform-docs)
+- Terraform tools (tenv, terraform-docs, tfenv)
 - Development tools (jq, yq, fzf, ripgrep, curl, wget, htop, httpie, grpcurl, graphviz, colordiff, figlet, fx, telnet)
 - Language tools (Go, Ruby, Python/pyenv/pipenv, Node.js/nvm)
 - Security tools (gpg)
@@ -89,18 +89,22 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 ### Via PIP
 
-- toast-cli
+- toast-cli (workspace and environment management tool)
 
 ## Custom Aliases
 
 The `.aliases` file provides many useful shortcuts:
 
-- **AWS**: `a` (aws), `m` (caller-identity), `av` (aws-vault helper)
-- **Kubernetes**: `k` (kubectl), `h` (helm), `x` (context switch)
-- **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy)
-- **Node.js**: `nn` (clean install), `nb` (build), `nd` (dev server)
-- **Servers**: `ss` (start), `sl` (list), `sk` (kill)
-- **Claude**: `cc` (claude), `ccu` (ccusage)
+- **Toast CLI**: `t` (toast), `c` (change directory), `m` (caller-identity), `x` (context), `d` (dot), `e` (env), `g` (git), `r` (region), `p` (prompt), `ssm` (SSM)
+- **AWS**: `a` (aws), `av` (aws-vault helper with profile shortcuts: alpha, data, prod, nalbam, etc.)
+- **Kubernetes**: `k` (kubectl), `h` (helm)
+- **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy), `tfs` (state), `tfo` (output)
+- **Node.js**: `nn` (clean install with pnpm/npm detection), `nb` (build), `nd` (dev server), `nk` (kill dev servers on ports 3000-3999)
+- **Local Servers**: `ss` (start HTTP server), `sl` (list all servers), `sk` (kill by port or all)
+- **Claude**: `cc` (claude), `ccd` (claude doctor), `ccu` (ccusage)
+- **Python**: `py`, `py3`, `pip` (pip3), `pipi` (install), `pipu` (upgrade)
+- **Utilities**: `dt` (UTC timestamp), `dff` (colordiff)
+- **Korean**: `ㅊ` (c), `ㅊㅇ` (cd), `ㅅㅅ` (tt)
 
 ## How to Contribute
 

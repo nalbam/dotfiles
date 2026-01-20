@@ -65,15 +65,18 @@ graph TD
    - Homebrew for macOS and Linux
    - APT for Linux
    - Chocolatey for Windows
-   - NPM for Node.js packages (npm, corepack, @anthropic-ai/claude-code, ccusage, serverless)
+   - NPM for Node.js packages (npm, corepack, serverless, @anthropic-ai/claude-code, ccusage)
    - PIP for Python packages (toast-cli) with intelligent fallback (normal → --user → --break-system-packages → sudo)
-   - Daily update optimization with timestamp tracking (12-hour interval)
+   - Update throttling with timestamp tracking (12-hour interval minimum between updates)
 
 4. Shell Environment
    - ZSH as default shell
-   - Oh My ZSH installation
-   - Dracula theme integration
+   - Oh My ZSH installation with plugins (git, kube-ps1)
+   - Dracula theme integration (ZSH and iTerm2)
    - Custom aliases and profiles
+   - Tool version managers (tfenv, pyenv, nvm)
+   - VS Code and Kiro terminal shell integration
+   - Toast CLI workspace management integration
 
 ## Installation Flow
 
@@ -114,12 +117,33 @@ sequenceDiagram
    - Organization-specific email configuration
    - Safe credential handling
 
+## Advanced Features
+
+1. Toast CLI Integration
+   - Workspace and environment management
+   - Context switching (AWS, Kubernetes, etc.)
+   - Extensive alias shortcuts for common operations
+   - Directory navigation with `c()` function
+
+2. Development Helpers
+   - **Node.js**: Smart package manager detection (pnpm/npm), automatic cleanup, dev server port management
+   - **Local Servers**: Python HTTP server management (start, list, kill) with port conflict resolution
+   - **Terraform**: Complete alias set with state management, automatic formatting
+   - **AWS Vault**: Profile shortcuts with automatic credential handling
+
+3. Shell Customization
+   - **tfenv**: Automatic Terraform version installation with ARM64 support
+   - **Korean keyboard**: Native Korean character aliases for common commands
+   - **Terminal integration**: VS Code and Kiro terminal shell integration
+   - **Environment variables**: Support for `.claude/env.local` configuration
+
 ## Performance Optimization
 
 1. Package Management
-   - Daily update limitation with timestamp tracking
-   - Intelligent update scheduling
-   - Optimized download retry mechanism
+   - Update throttling with 12-hour minimum interval
+   - Timestamp tracking for APT and Homebrew
+   - Version-aware package installation (skip if already latest)
+   - Optimized download retry with exponential backoff
    - Connection timeout handling
 
 2. Installation Process
