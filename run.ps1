@@ -27,20 +27,32 @@ foreach ($src in $Links.Keys) {
     }
 }
 
-# 3. 패키지 설치 확인 및 실행 (예: choco)
-Write-Host "필요한 패키지가 설치되어 있는지 확인합니다..."
-$Packages = @("git", "vim", "7zip")
+# 3. winget 사용 가능 여부 확인
+Write-Host "winget 사용 가능 여부를 확인합니다..."
+if (-Not (Get-Command winget -ErrorAction SilentlyContinue)) {
+    Write-Host "winget이 설치되어 있지 않습니다. Windows 10 1809 이상 또는 Windows 11이 필요합니다." -ForegroundColor Red
+    exit 1
+}
 
-foreach ($pkg in $Packages) {
-    if (-Not (choco list --local-only $pkg | Select-String $pkg)) {
-        Write-Host "패키지가 설치되지 않았습니다: $pkg. 설치를 진행합니다..."
-        choco install $pkg -y
+# 4. 패키지 설치 확인 및 실행 (winget)
+Write-Host "필요한 패키지가 설치되어 있는지 확인합니다..."
+$Packages = @{
+    "Git.Git" = "Git"
+    "7zip.7zip" = "7-Zip"
+}
+
+foreach ($pkgId in $Packages.Keys) {
+    $pkgName = $Packages[$pkgId]
+    $installed = winget list --id $pkgId -e 2>$null
+    if ($LASTEXITCODE -ne 0 -or -Not ($installed | Select-String $pkgId)) {
+        Write-Host "패키지가 설치되지 않았습니다: $pkgName. 설치를 진행합니다..."
+        winget install --id $pkgId -e --accept-package-agreements --accept-source-agreements
     } else {
-        Write-Host "패키지가 이미 설치되어 있습니다: $pkg" -ForegroundColor Green
+        Write-Host "패키지가 이미 설치되어 있습니다: $pkgName" -ForegroundColor Green
     }
 }
 
-# 4. 사용자 지정 스크립트 실행
+# 5. 사용자 지정 스크립트 실행
 Write-Host "사용자 지정 스크립트를 실행합니다..."
 if (Test-Path "$DotfilesDir\custom.ps1") {
     . "$DotfilesDir\custom.ps1"

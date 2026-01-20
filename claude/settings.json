@@ -140,7 +140,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "#!/bin/bash\necho '[Hook] Review changes before push...' >&2\necho '[Hook] Press Enter to continue with push or Ctrl+C to abort...' >&2\nread -r"
+            "command": "~/.claude/hooks/git-push-guard.sh"
           }
         ],
         "description": "Pause before git push to review changes"
@@ -150,7 +150,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "#!/bin/bash\ninput=$(cat)\nfile_path=$(echo \"$input\" | jq -r '.tool_input.file_path // \"\"')\n\nif [ -n \"$file_path\" ]; then\n  echo \"[Hook] WARNING: Creating documentation file outside docs/\" >&2\n  echo \"[Hook] File: $file_path\" >&2\n  echo \"[Hook] Consider moving to docs/ directory\" >&2\nfi\n\necho \"$input\""
+            "command": "~/.claude/hooks/doc-warning.sh"
           }
         ],
         "description": "Warn about creating documentation files outside docs/"
@@ -162,7 +162,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "#!/bin/bash\ninput=$(cat)\ncmd=$(echo \"$input\" | jq -r '.tool_input.command')\n\nif echo \"$cmd\" | grep -qE 'gh pr create'; then\n  output=$(echo \"$input\" | jq -r '.tool_output.output // \"\"')\n  pr_url=$(echo \"$output\" | grep -oE 'https://github.com/[^/]+/[^/]+/pull/[0-9]+')\n  \n  if [ -n \"$pr_url\" ]; then\n    echo \"[Hook] PR created: $pr_url\" >&2\n    repo=$(echo \"$pr_url\" | sed -E 's|https://github.com/([^/]+/[^/]+)/pull/[0-9]+|\\1|')\n    pr_num=$(echo \"$pr_url\" | sed -E 's|.*/pull/([0-9]+)|\\1|')\n    echo \"[Hook] To review PR: gh pr review $pr_num --repo $repo\" >&2\n  fi\nfi\n\necho \"$input\""
+            "command": "~/.claude/hooks/pr-info.sh"
           }
         ],
         "description": "Log PR URL and provide review command after PR creation"
@@ -172,7 +172,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "#!/bin/bash\ninput=$(cat)\nfile_path=$(echo \"$input\" | jq -r '.tool_input.file_path // \"\"')\n\nif [ -n \"$file_path\" ] && [ -f \"$file_path\" ]; then\n  if command -v prettier >/dev/null 2>&1; then\n    prettier --write \"$file_path\" 2>&1 | head -5 >&2\n  fi\nfi\n\necho \"$input\""
+            "command": "~/.claude/hooks/prettier-format.sh"
           }
         ],
         "description": "Auto-format JS/TS files with Prettier after edits"
@@ -182,7 +182,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "#!/bin/bash\ninput=$(cat)\nfile_path=$(echo \"$input\" | jq -r '.tool_input.file_path // \"\"')\n\nif [ -n \"$file_path\" ] && [ -f \"$file_path\" ]; then\n  dir=$(dirname \"$file_path\")\n  project_root=\"$dir\"\n  while [ \"$project_root\" != \"/\" ] && [ ! -f \"$project_root/package.json\" ]; do\n    project_root=$(dirname \"$project_root\")\n  done\n  \n  if [ -f \"$project_root/tsconfig.json\" ]; then\n    cd \"$project_root\" && npx tsc --noEmit --pretty false 2>&1 | grep \"$file_path\" | head -10 >&2 || true\n  fi\nfi\n\necho \"$input\""
+            "command": "~/.claude/hooks/typescript-check.sh"
           }
         ],
         "description": "TypeScript check after editing .ts/.tsx files"
@@ -194,7 +194,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "#!/bin/bash\ninput=$(cat)\n\nif git rev-parse --git-dir > /dev/null 2>&1; then\n  modified_files=$(git diff --name-only HEAD 2>/dev/null | grep -E '\\.(ts|tsx|js|jsx)$' || true)\n  \n  if [ -n \"$modified_files\" ]; then\n    has_console=false\n    while IFS= read -r file; do\n      if [ -f \"$file\" ]; then\n        if grep -q \"console\\.log\" \"$file\" 2>/dev/null; then\n          echo \"[Hook] WARNING: console.log found in $file\" >&2\n          has_console=true\n        fi\n      fi\n    done <<< \"$modified_files\"\n    \n    if [ \"$has_console\" = true ]; then\n      echo \"[Hook] Remove console.log statements before committing\" >&2\n    fi\n  fi\nfi\n\necho \"$input\""
+            "command": "~/.claude/hooks/console-log-audit.sh"
           }
         ],
         "description": "Final audit for console.log in modified files before session ends"

@@ -69,8 +69,14 @@ claude/
 │   ├── security-reviewer.md  - Security vulnerability analysis
 │   └── test-writer.md        - Test generation specialist
 │
-├── hooks/                    - Notification and automation hooks
-│   └── notify.sh             - Multi-platform notification system
+├── hooks/                    - Hook scripts for automated workflows
+│   ├── console-log-audit.sh  - Audit console.log in modified files before session ends
+│   ├── doc-warning.sh        - Warn about creating docs outside docs/ directory
+│   ├── git-push-guard.sh     - Pause before git push for review
+│   ├── notify.sh             - Multi-platform notification system
+│   ├── pr-info.sh            - Display PR URL and review commands after creation
+│   ├── prettier-format.sh    - Auto-format JS/TS files after edits
+│   └── typescript-check.sh   - TypeScript validation after editing .ts/.tsx files
 │
 ├── rules/                    - Always-follow guidelines (automatically loaded)
 │   ├── coding-style.md       - Immutability, file organization, error handling
