@@ -42,10 +42,15 @@ graph TD
 ├── linux/              # Linux specific configurations
 │   ├── Brewfile        # Linux Homebrew package list
 │   └── .zprofile.*     # Profile settings
-└── claude/             # Claude Code AI settings
+└── claude/             # Claude Code environment sync directory
+    │                   # Synced to ~/.claude/ on all machines (Step 10)
     ├── CLAUDE.md       # Claude Code instructions (EN)
     ├── CLAUDE.ko.md    # Claude Code instructions (KO)
-    └── settings.json   # Claude Code configuration
+    ├── settings.json   # Claude Code configuration
+    ├── hooks/          # Notification hooks
+    ├── skills/         # User-invocable skills
+    ├── agents/         # Custom agent definitions
+    └── sounds/         # Audio notification files
 ```
 
 ## Core Functions
@@ -78,6 +83,12 @@ graph TD
    - VS Code and Kiro terminal shell integration
    - Toast CLI workspace management integration
 
+5. Claude Code Environment Sync
+   - Automatic synchronization of `~/.dotfiles/claude/*` to `~/.claude/`
+   - Maintains consistent Claude Code settings across all development machines
+   - Includes: settings, hooks, skills, agents, sounds, and instructions
+   - Executed during Step 10 of installation process
+
 ## Installation Flow
 
 ```mermaid
@@ -98,7 +109,8 @@ sequenceDiagram
     Script->>System: Step 7: OS-specific settings
     Script->>System: Step 8: Install ZSH & Oh My ZSH
     Script->>System: Step 9: Apply theme & UI settings
-    Script->>System: Step 10: Deploy user config files
+    Script->>System: Step 10: Deploy user config files & sync Claude Code settings
+    Note over System: ~/.dotfiles/claude/* → ~/.claude/
     Script->>User: Complete Installation
 ```
 

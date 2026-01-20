@@ -18,7 +18,7 @@ Development environment automation tool that helps you quickly set up a consiste
 - Dracula theme integration
 - iTerm2 configuration (macOS)
 - Custom alias settings
-- Claude Code AI settings
+- **Claude Code environment sync** - Maintain consistent Claude Code settings across all development machines
 
 ## Installation
 
@@ -44,10 +44,13 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 ├── linux/             # Linux specific settings
 │   ├── Brewfile       # Linux Homebrew package list
 │   └── .zprofile.*    # Linux profile settings
-├── claude/            # Claude Code AI settings
+├── claude/            # Claude Code environment (synced to ~/.claude/ on all machines)
 │   ├── CLAUDE.md      # Claude Code instructions (EN)
 │   ├── CLAUDE.ko.md   # Claude Code instructions (KO)
-│   └── settings.json  # Claude Code configuration
+│   ├── settings.json  # Claude Code configuration
+│   ├── hooks/         # Notification system
+│   ├── skills/        # Custom skills (/validate, /docs-sync, etc.)
+│   └── agents/        # Custom agent definitions
 └── docs/              # Technical documentation
     └── ARCHITECTURE.md # System architecture
 ```

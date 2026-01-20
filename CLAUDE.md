@@ -31,7 +31,7 @@ The installation follows a 10-step process:
 7. OS-specific settings (macOS system preferences, Xcode)
 8. ZSH and Oh-My-ZSH installation
 9. Theme and UI settings (Dracula theme, iTerm2)
-10. User configuration files deployment
+10. User configuration files deployment + **Claude Code environment sync** (`~/.dotfiles/claude/*` → `~/.claude/`)
 
 ## Key Components
 
@@ -45,7 +45,9 @@ The installation follows a 10-step process:
 
 ## Claude Code Integration
 
-The dotfiles include comprehensive Claude Code (AI pair programming CLI) setup:
+The dotfiles include comprehensive Claude Code (AI pair programming CLI) setup.
+
+**Purpose**: The `claude/` directory enables consistent Claude Code environments across all development machines. During installation (Step 10), all files from `~/.dotfiles/claude/` are automatically synced to `~/.claude/` on every machine, ensuring identical settings, skills, agents, and hooks everywhere.
 
 ### Directory Structure
 - **`claude/CLAUDE.md`**: Project-specific Claude instructions
