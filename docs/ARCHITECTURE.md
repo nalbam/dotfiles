@@ -34,23 +34,29 @@ graph TD
 
 ```
 .
-├── run.sh              # Main installation script (10-step process)
-├── run.ps1             # Windows PowerShell installation script
+├── claude/             # Claude Code environment sync directory
+│   │                   # Synced to ~/.claude/ on all machines (Step 10)
+│   ├── CLAUDE.ko.md    # Claude Code instructions (KO)
+│   ├── CLAUDE.md       # Claude Code instructions (EN)
+│   ├── agents/         # Custom agent definitions (11 specialized agents)
+│   ├── commands/       # Slash commands (6 workflow commands)
+│   ├── env.sample      # Environment variables template
+│   ├── hooks/          # Notification and automation hooks
+│   ├── rules/          # Always-follow guidelines (6 rule files)
+│   ├── settings.json   # Claude Code configuration with advanced hooks
+│   ├── skills/         # User-invocable skills (7 skill sets)
+│   └── sounds/         # Audio notification files
 ├── darwin/             # macOS specific configurations
 │   ├── Brewfile        # macOS Homebrew package list
-│   └── .zprofile.*     # Architecture-specific profile settings
+│   └── zprofile.*      # Architecture-specific profile settings
+├── docs/               # Technical documentation
+│   ├── ARCHITECTURE.md # System architecture
+│   └── README.md       # Documentation index
 ├── linux/              # Linux specific configurations
 │   ├── Brewfile        # Linux Homebrew package list
-│   └── .zprofile.*     # Profile settings
-└── claude/             # Claude Code environment sync directory
-    │                   # Synced to ~/.claude/ on all machines (Step 10)
-    ├── CLAUDE.md       # Claude Code instructions (EN)
-    ├── CLAUDE.ko.md    # Claude Code instructions (KO)
-    ├── settings.json   # Claude Code configuration
-    ├── hooks/          # Notification hooks
-    ├── skills/         # User-invocable skills
-    ├── agents/         # Custom agent definitions
-    └── sounds/         # Audio notification files
+│   └── zprofile.*      # Profile settings
+├── run.ps1             # Windows PowerShell installation script
+└── run.sh              # Main installation script (10-step process)
 ```
 
 ## Core Functions

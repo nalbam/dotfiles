@@ -50,26 +50,47 @@ The dotfiles include comprehensive Claude Code (AI pair programming CLI) setup.
 **Purpose**: The `claude/` directory enables consistent Claude Code environments across all development machines. During installation (Step 10), all files from `~/.dotfiles/claude/` are automatically synced to `~/.claude/` on every machine, ensuring identical settings, skills, agents, and hooks everywhere.
 
 ### Directory Structure
-- **`claude/CLAUDE.md`**: Project-specific Claude instructions
-- **`claude/settings.json`**: Claude permissions, hooks, and status line configuration
-- **`claude/hooks/notify.sh`**: Multi-platform notification system
+- **`claude/CLAUDE.ko.md`**: Claude Code instructions (Korean)
+- **`claude/CLAUDE.md`**: Claude Code instructions (English)
+- **`claude/agents/`**: Custom agent definitions
+  - `architect.md`: System design and architecture decisions
+  - `build-error-resolver.md`: Build error resolution
+  - `code-reviewer.md`: Code review specialist
+  - `debugger.md`: Debugging and error resolution
+  - `doc-writer.md`: Documentation specialist
+  - `planner.md`: Implementation planning specialist (Opus)
+  - `refactorer.md`: Code refactoring specialist
+  - `security-reviewer.md`: Security vulnerability analysis
+  - `tdd-guide.md`: Test-driven development guide
+  - `test-writer.md`: Test generation specialist
+  - `validator.md`: Runs lint, typecheck, tests and fixes issues
+- **`claude/commands/`**: Slash commands for quick workflows
+  - `build-fix.md`: `/build-fix` - Fix build errors
+  - `code-review.md`: `/code-review` - Quality review
+  - `plan.md`: `/plan` - Implementation planning
+  - `refactor-clean.md`: `/refactor-clean` - Dead code removal
+  - `tdd.md`: `/tdd` - Test-driven development workflow
+  - `update-docs.md`: `/update-docs` - Sync documentation
+- **`claude/env.sample`**: Environment variables template
+- **`claude/hooks/`**: Notification and automation hooks
+  - `notify.sh`: Multi-platform notification system
+- **`claude/rules/`**: Always-follow guidelines (automatically loaded)
+  - `coding-style.md`: Immutability, file organization, error handling
+  - `git-workflow.md`: Commit format, PR process
+  - `patterns.md`: API response formats, common patterns
+  - `performance.md`: Model selection strategy (Haiku/Sonnet/Opus)
+  - `security.md`: Security best practices
+  - `testing.md`: TDD workflow, 80% coverage requirement
+- **`claude/settings.json`**: Claude permissions, advanced hooks, and status line configuration
 - **`claude/skills/`**: User-invocable skills (via `/skill-name`)
-  - `validate/`: Run lint, typecheck, tests with auto-fix
-  - `docs-sync/`: Documentation sync and gap analysis
   - `aws-operations/`: AWS CLI operations
+  - `docs-sync/`: Documentation sync and gap analysis
+  - `git-workflow/`: Git workflow guidance
   - `k8s-troubleshoot/`: Kubernetes troubleshooting
   - `security-review/`: Security review checklist
   - `shell-scripting/`: Shell scripting best practices
-  - `git-workflow/`: Git workflow guidance
-- **`claude/agents/`**: Custom agent definitions
-  - `validator.md`: Runs lint, typecheck, tests and fixes issues
-  - `code-reviewer.md`: Code review specialist
-  - `debugger.md`: Debugging and error resolution
-  - `test-writer.md`: Test generation specialist
-  - `refactorer.md`: Code refactoring specialist
-  - `doc-writer.md`: Documentation specialist
+  - `validate/`: Run lint, typecheck, tests with auto-fix
 - **`claude/sounds/`**: Audio notifications (ding1.mp3, ding2.mp3, ding3.mp3)
-- **`claude/env.sample`**: Environment variables template
 
 ### Notification System
 The `notify.sh` hook provides notifications when Claude completes tasks or needs input:
@@ -77,6 +98,23 @@ The `notify.sh` hook provides notifications when Claude completes tasks or needs
 - **WSL**: PowerShell beep notifications
 - **ntfy.sh**: Cross-platform push notifications to mobile devices (set `NTFY_TOPIC`)
 - **Slack**: Webhook-based notifications (set `SLACK_WEBHOOK_URL`)
+
+### Advanced Hooks System
+Automated quality checks and workflow enforcement via PreToolUse, PostToolUse, and Stop hooks:
+
+**PreToolUse Hooks** (run before tool execution):
+- **Git Push Guard**: Pauses before push to allow final review
+- **Documentation Control**: Warns about creating documentation files outside docs/
+
+**PostToolUse Hooks** (run after tool execution):
+- **Auto-formatting**: Runs Prettier on JS/TS files after edits
+- **TypeScript Check**: Validates types after editing .ts/.tsx files
+- **console.log Detection**: Warns about console.log statements
+- **PR Info Logging**: Displays PR URL and review commands after creation
+
+**Stop Hooks** (run when session ends):
+- **Final console.log Audit**: Checks modified files for console.log before commit
+- **Session Notifications**: Sends completion notifications via notify.sh
 
 ### Status Line Integration
 Uses `ccusage statusline` to display Claude Code usage statistics in the CLI
@@ -112,14 +150,50 @@ Other available skills:
 - **shell-scripting**: Shell scripting best practices
 - **git-workflow**: Git workflow for commits, PRs, branches
 
+### Slash Commands
+Quick workflow invocation via `/command-name`:
+
+- **`/tdd`**: Test-driven development workflow (write tests first, then implement)
+- **`/plan`**: Create detailed implementation plan using planner agent (Opus)
+- **`/code-review`**: Comprehensive code quality and security review
+- **`/build-fix`**: Analyze and fix build errors
+- **`/refactor-clean`**: Remove dead code and unused imports
+- **`/update-docs`**: Sync documentation with code changes
+
+### Always-Follow Rules
+Modular guidelines automatically loaded by Claude Code:
+
+**Code Quality Rules**:
+- **coding-style.md**: Immutability (NEVER mutate), file organization (max 800 lines), function size (max 50 lines), error handling
+- **testing.md**: TDD workflow (RED → GREEN → REFACTOR), 80%+ coverage requirement
+- **patterns.md**: API response formats, hook patterns, common architectures
+
+**Development Rules**:
+- **performance.md**: Model selection strategy (Haiku for speed, Sonnet for coding, Opus for reasoning)
+- **git-workflow.md**: Commit format (imperative mood), PR process, branch strategy
+- **security.md**: Input validation, no hardcoded secrets, least privilege
+
 ### Custom Agents
-Custom agents provide specialized workflows:
+Specialized agents for delegated tasks:
+
+**Planning & Architecture**:
+- **planner**: Implementation planning with detailed step breakdown (Opus)
+- **architect**: System design decisions and architecture review
+
+**Development**:
+- **tdd-guide**: Test-driven development workflow enforcement
 - **validator**: Runs lint, typecheck, tests and fixes issues
-- **code-reviewer**: Code review specialist
-- **debugger**: Debugging and error resolution
+- **build-error-resolver**: Analyzes and resolves build errors
+
+**Quality & Security**:
+- **code-reviewer**: Code review for quality and maintainability
+- **security-reviewer**: Security vulnerability analysis and recommendations
 - **test-writer**: Test generation specialist
 - **refactorer**: Code refactoring specialist
-- **doc-writer**: Documentation specialist
+
+**Documentation & Debugging**:
+- **doc-writer**: Documentation sync and updates
+- **debugger**: Debugging and error resolution
 
 ### Permission Management
 Pre-configured allow/deny lists for safe AI operations:

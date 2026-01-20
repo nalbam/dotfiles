@@ -38,21 +38,24 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 ```
 .
+├── claude/            # Claude Code environment (synced to ~/.claude/ on all machines)
+│   ├── CLAUDE.ko.md   # Claude Code instructions (KO)
+│   ├── CLAUDE.md      # Claude Code instructions (EN)
+│   ├── agents/        # Custom agent definitions (planner, architect, etc.)
+│   ├── commands/      # Slash commands (/tdd, /plan, /code-review, etc.)
+│   ├── hooks/         # Notification and automation hooks
+│   ├── rules/         # Always-follow guidelines (coding-style, testing, performance, etc.)
+│   ├── settings.json  # Claude Code configuration with advanced hooks
+│   ├── skills/        # Custom skills (/validate, /docs-sync, etc.)
+│   └── sounds/        # Audio notification files
 ├── darwin/            # macOS specific settings
 │   ├── Brewfile       # macOS Homebrew package list
-│   └── .zprofile.*    # macOS architecture-specific profile settings
-├── linux/             # Linux specific settings
-│   ├── Brewfile       # Linux Homebrew package list
-│   └── .zprofile.*    # Linux profile settings
-├── claude/            # Claude Code environment (synced to ~/.claude/ on all machines)
-│   ├── CLAUDE.md      # Claude Code instructions (EN)
-│   ├── CLAUDE.ko.md   # Claude Code instructions (KO)
-│   ├── settings.json  # Claude Code configuration
-│   ├── hooks/         # Notification system
-│   ├── skills/        # Custom skills (/validate, /docs-sync, etc.)
-│   └── agents/        # Custom agent definitions
-└── docs/              # Technical documentation
-    └── ARCHITECTURE.md # System architecture
+│   └── zprofile.*     # macOS architecture-specific profile settings
+├── docs/              # Technical documentation
+│   └── ARCHITECTURE.md # System architecture
+└── linux/             # Linux specific settings
+    ├── Brewfile       # Linux Homebrew package list
+    └── zprofile.*     # Linux profile settings
 ```
 
 ## Main Configuration Files
