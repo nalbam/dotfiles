@@ -50,47 +50,50 @@ The dotfiles include comprehensive Claude Code (AI pair programming CLI) setup.
 **Purpose**: The `claude/` directory enables consistent Claude Code environments across all development machines. During installation (Step 10), all files from `~/.dotfiles/claude/` are automatically synced to `~/.claude/` on every machine, ensuring identical settings, skills, agents, and hooks everywhere.
 
 ### Directory Structure
-- **`claude/CLAUDE.ko.md`**: Claude Code instructions (Korean)
-- **`claude/CLAUDE.md`**: Claude Code instructions (English)
-- **`claude/agents/`**: Custom agent definitions
-  - `architect.md`: System design and architecture decisions
-  - `build-error-resolver.md`: Build error resolution
-  - `code-reviewer.md`: Code review specialist
-  - `debugger.md`: Debugging and error resolution
-  - `doc-writer.md`: Documentation specialist
-  - `planner.md`: Implementation planning specialist (Opus)
-  - `refactorer.md`: Code refactoring specialist
-  - `security-reviewer.md`: Security vulnerability analysis
-  - `tdd-guide.md`: Test-driven development guide
-  - `test-writer.md`: Test generation specialist
-  - `validator.md`: Runs lint, typecheck, tests and fixes issues
-- **`claude/commands/`**: Slash commands for quick workflows
-  - `build-fix.md`: `/build-fix` - Fix build errors
-  - `code-review.md`: `/code-review` - Quality review
-  - `plan.md`: `/plan` - Implementation planning
-  - `refactor-clean.md`: `/refactor-clean` - Dead code removal
-  - `tdd.md`: `/tdd` - Test-driven development workflow
-  - `update-docs.md`: `/update-docs` - Sync documentation
-- **`claude/env.sample`**: Environment variables template
-- **`claude/hooks/`**: Notification and automation hooks
-  - `notify.sh`: Multi-platform notification system
-- **`claude/rules/`**: Always-follow guidelines (automatically loaded)
-  - `coding-style.md`: Immutability, file organization, error handling
-  - `git-workflow.md`: Commit format, PR process
-  - `patterns.md`: API response formats, common patterns
-  - `performance.md`: Model selection strategy (Haiku/Sonnet/Opus)
-  - `security.md`: Security best practices
-  - `testing.md`: TDD workflow, 80% coverage requirement
-- **`claude/settings.json`**: Claude permissions, advanced hooks, and status line configuration
-- **`claude/skills/`**: User-invocable skills (via `/skill-name`)
-  - `aws-operations/`: AWS CLI operations
-  - `docs-sync/`: Documentation sync and gap analysis
-  - `git-workflow/`: Git workflow guidance
-  - `k8s-troubleshoot/`: Kubernetes troubleshooting
-  - `security-review/`: Security review checklist
-  - `shell-scripting/`: Shell scripting best practices
-  - `validate/`: Run lint, typecheck, tests with auto-fix
-- **`claude/sounds/`**: Audio notifications (ding1.mp3, ding2.mp3, ding3.mp3)
+
+```
+claude/
+├── CLAUDE.ko.md              - Claude Code instructions (Korean)
+├── CLAUDE.md                 - Claude Code instructions (English)
+├── env.sample                - Environment variables template
+├── settings.json             - Claude permissions, advanced hooks, and status line configuration
+│
+├── agents/                   - Custom agent definitions
+│   ├── architect.md          - System design and architecture decisions
+│   ├── builder.md            - Build error resolution specialist
+│   ├── code-reviewer.md      - Code review specialist
+│   ├── debugger.md           - Debugging and error resolution
+│   ├── doc-writer.md         - Documentation specialist
+│   ├── planner.md            - Implementation planning specialist (Opus)
+│   ├── refactorer.md         - Code refactoring specialist
+│   ├── security-reviewer.md  - Security vulnerability analysis
+│   └── test-writer.md        - Test generation specialist
+│
+├── hooks/                    - Notification and automation hooks
+│   └── notify.sh             - Multi-platform notification system
+│
+├── rules/                    - Always-follow guidelines (automatically loaded)
+│   ├── coding-style.md       - Immutability, file organization, error handling
+│   ├── git-workflow.md       - Commit format, PR process
+│   ├── patterns.md           - API response formats, common patterns
+│   ├── performance.md        - Model selection strategy (Haiku/Sonnet/Opus)
+│   ├── security.md           - Security best practices
+│   └── testing.md            - TDD workflow, 80% coverage requirement
+│
+├── skills/                   - User-invocable skills (via `/skill-name`)
+│   ├── aws-operations/       - AWS CLI operations
+│   ├── docs-sync/            - Documentation sync and gap analysis
+│   ├── git-workflow/         - Git workflow guidance
+│   ├── k8s-troubleshoot/     - Kubernetes troubleshooting
+│   ├── security-review/      - Security review checklist
+│   ├── shell-scripting/      - Shell scripting best practices
+│   └── validate/             - Run lint, typecheck, tests with auto-fix
+│
+└── sounds/                   - Audio notifications
+    ├── ding1.mp3
+    ├── ding2.mp3
+    └── ding3.mp3
+```
 
 ### Notification System
 The `notify.sh` hook provides notifications when Claude completes tasks or needs input:
@@ -150,16 +153,6 @@ Other available skills:
 - **shell-scripting**: Shell scripting best practices
 - **git-workflow**: Git workflow for commits, PRs, branches
 
-### Slash Commands
-Quick workflow invocation via `/command-name`:
-
-- **`/tdd`**: Test-driven development workflow (write tests first, then implement)
-- **`/plan`**: Create detailed implementation plan using planner agent (Opus)
-- **`/code-review`**: Comprehensive code quality and security review
-- **`/build-fix`**: Analyze and fix build errors
-- **`/refactor-clean`**: Remove dead code and unused imports
-- **`/update-docs`**: Sync documentation with code changes
-
 ### Always-Follow Rules
 Modular guidelines automatically loaded by Claude Code:
 
@@ -181,9 +174,7 @@ Specialized agents for delegated tasks:
 - **architect**: System design decisions and architecture review
 
 **Development**:
-- **tdd-guide**: Test-driven development workflow enforcement
-- **validator**: Runs lint, typecheck, tests and fixes issues
-- **build-error-resolver**: Analyzes and resolves build errors
+- **builder**: Build, lint, typecheck specialist with automatic issue resolution
 
 **Quality & Security**:
 - **code-reviewer**: Code review for quality and maintainability
