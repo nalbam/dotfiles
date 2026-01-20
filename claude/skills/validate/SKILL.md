@@ -23,32 +23,24 @@ Scan for configuration files to determine project type:
 
 | File | Project Type | Tools |
 |------|--------------|-------|
-| `package.json` | Node.js | npm/yarn/pnpm scripts |
+| `package.json` | Node.js | npm/pnpm scripts |
 | `pyproject.toml` / `setup.py` | Python | pytest, mypy, ruff/pylint |
 | `go.mod` | Go | go vet, golangci-lint, go test |
-| `Cargo.toml` | Rust | cargo clippy, cargo test |
-| `Gemfile` | Ruby | rubocop, rspec |
-| `pom.xml` / `build.gradle` | Java | maven/gradle tasks |
 
 ### 2. Run Lint
 ```bash
-# Node.js
-npm run lint  # or: npx eslint .
+# Node.js (Primary)
+npm run lint
+pnpm lint
+npx eslint .
 
 # Python
-ruff check .  # or: pylint **/*.py
+ruff check .
+pylint **/*.py
 
 # Go
-golangci-lint run  # or: go vet ./...
-
-# Rust
-cargo clippy
-
-# Ruby
-bundle exec rubocop
-
-# Java
-./gradlew checkstyleMain  # or: ./mvnw checkstyle:check
+golangci-lint run
+go vet ./...
 ```
 
 On failure:
@@ -60,23 +52,17 @@ On failure:
 
 ### 3. Run Typecheck
 ```bash
-# Node.js (TypeScript)
-npm run typecheck  # or: npx tsc --noEmit
+# Node.js (TypeScript) (Primary)
+npm run typecheck
+pnpm typecheck
+npx tsc --noEmit
 
 # Python
-mypy .  # or: pyright
+mypy .
+pyright
 
 # Go (built-in)
 go build ./...
-
-# Rust (built-in)
-cargo check
-
-# Ruby (Sorbet, if configured)
-bundle exec srb tc
-
-# Java (compile check)
-./gradlew compileJava  # or: ./mvnw compile
 ```
 
 On failure:
@@ -87,23 +73,17 @@ On failure:
 
 ### 4. Run Tests
 ```bash
-# Node.js
-npm test  # or: npx jest / npx vitest
+# Node.js (Primary)
+npm test
+pnpm test
+npx jest
+npx vitest
 
 # Python
 pytest
 
 # Go
 go test ./...
-
-# Rust
-cargo test
-
-# Ruby
-bundle exec rspec
-
-# Java
-./gradlew test  # or: ./mvnw test
 ```
 
 On failure:

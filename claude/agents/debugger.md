@@ -1,6 +1,6 @@
 ---
 name: debugger
-description: Debugging specialist for errors and test failures.
+description: Debugging specialist for errors and test failures. 에러 및 테스트 실패 디버깅 전문가.
 tools: Read, Edit, Bash, Grep, Glob
 model: opus
 ---

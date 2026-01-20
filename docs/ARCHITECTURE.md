@@ -38,13 +38,12 @@ graph TD
 │   │                   # Synced to ~/.claude/ on all machines (Step 10)
 │   ├── CLAUDE.ko.md    # Claude Code instructions (KO)
 │   ├── CLAUDE.md       # Claude Code instructions (EN)
-│   ├── agents/         # Custom agent definitions (11 specialized agents)
-│   ├── commands/       # Slash commands (6 workflow commands)
+│   ├── agents/         # Custom agent definitions (9 specialized agents)
 │   ├── env.sample      # Environment variables template
 │   ├── hooks/          # Notification and automation hooks
 │   ├── rules/          # Always-follow guidelines (6 rule files)
 │   ├── settings.json   # Claude Code configuration with advanced hooks
-│   ├── skills/         # User-invocable skills (7 skill sets)
+│   ├── skills/         # User-invocable skills (6 skill sets)
 │   └── sounds/         # Audio notification files
 ├── darwin/             # macOS specific configurations
 │   ├── Brewfile        # macOS Homebrew package list

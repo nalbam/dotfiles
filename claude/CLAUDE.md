@@ -59,15 +59,21 @@ When troubleshooting issues, follow this systematic process:
 
 ## File Size Guidelines
 
-- Keep source code files under 700 lines.
+- Keep source code files under 800 lines (absolute maximum).
+- Typical files should be 200-400 lines.
 - Consider refactoring when files approach 500+ lines.
 - Split large components into smaller, focused modules.
+
+## Function Size Guidelines
+
+- Keep functions under 50 lines.
+- Extract helper functions when logic becomes complex.
+- Single Responsibility Principle: one function, one purpose.
 
 ## Testing Strategy
 
 - **Unit tests**: Test logic in isolation, fast (<10ms), deterministic
 - **Integration tests**: Test component interactions with realistic scenarios
-- **E2E tests**: Critical user flows only, expensive to maintain
 - **Coverage**: Aim for 80%+ on core logic, 100% on critical paths
 - **Bug fixes**: Must include regression tests
 - **Dependencies**: Use mocks/stubs for external services

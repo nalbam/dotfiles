@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Code review for quality, security, and maintainability.
+description: Code review for quality, security, and maintainability. 코드 품질, 보안, 유지보수성 검토.
 tools: Read, Grep, Glob, Bash
 model: opus
 ---
@@ -24,7 +24,7 @@ Review code for quality and security. Read-only.
 - Input validation
 - Error handling
 - Test coverage
-- File size < 700 lines
+- File size < 800 lines
 
 ## Report Format
 **Critical** (must fix): Security, data loss

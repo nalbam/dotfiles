@@ -1,6 +1,6 @@
 ---
 name: refactorer
-description: Code refactoring without changing behavior.
+description: Code refactoring without changing behavior. 동작 변경 없이 코드 리팩토링.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: opus
 ---
@@ -13,7 +13,7 @@ Restructure code without changing behavior.
 - Read files completely before changing
 - Run tests after each change
 - Never change behavior
-- Keep files under 700 lines
+- Keep files under 800 lines (max)
 
 ## Focus Areas
 - Extract repeated code (DRY)

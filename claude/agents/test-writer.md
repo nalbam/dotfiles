@@ -1,6 +1,6 @@
 ---
 name: test-writer
-description: Test writing specialist for unit, integration, and E2E tests.
+description: Test writing specialist for unit and integration tests. 단위 및 통합 테스트 작성 전문가.
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: opus
 ---

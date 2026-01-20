@@ -35,9 +35,8 @@ This directory contains the technical documentation for the dotfiles project.
 ### Claude Code Integration
 - `claude/CLAUDE.ko.md` - Claude Code project instructions (Korean)
 - `claude/CLAUDE.md` - Claude Code project instructions (English)
-- `claude/agents/` - Custom agent definitions (11 specialized agents)
-- `claude/commands/` - Slash commands (/tdd, /plan, /code-review, etc.)
+- `claude/agents/` - Custom agent definitions (9 specialized agents)
 - `claude/hooks/` - Notification and automation hooks
-- `claude/rules/` - Always-follow guidelines (coding-style, testing, performance, etc.)
+- `claude/rules/` - Always-follow guidelines (6 rule files)
 - `claude/settings.json` - Claude Code configuration with advanced hooks
-- `claude/skills/` - User-invocable skills (/validate, /docs-sync, etc.)
+- `claude/skills/` - User-invocable skills (6 skill sets)

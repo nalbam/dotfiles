@@ -1,6 +1,6 @@
 ---
 name: doc-writer
-description: Documentation specialist for README, API docs, and comments.
+description: Documentation specialist for README, API docs, and comments. README, API 문서, 주석 작성 전문가.
 tools: Read, Write, Edit, Grep, Glob
 model: opus
 ---
