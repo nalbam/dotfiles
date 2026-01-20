@@ -2,7 +2,7 @@
 name: doc-writer
 description: Documentation specialist for README, API docs, and comments.
 tools: Read, Write, Edit, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # Doc Writer

@@ -2,7 +2,7 @@
 name: test-writer
 description: Test writing specialist for unit, integration, and E2E tests.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # Test Writer

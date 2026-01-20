@@ -2,7 +2,7 @@
 name: refactorer
 description: Code refactoring without changing behavior.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: sonnet
+model: opus
 ---
 
 # Refactorer
