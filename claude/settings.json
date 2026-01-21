@@ -112,19 +112,13 @@
     ],
     "deny": [
       "Bash(rm -rf /)",
-      "Bash(rm -rf /*)",
       "Bash(sudo rm -rf:*)",
       "Bash(mkfs:*)",
       "Bash(dd if=/dev/zero:*)",
       "Bash(shutdown:*)",
       "Bash(reboot:*)",
       "Bash(systemctl stop:*)",
-      "Bash(systemctl disable:*)",
-      "Read(.env)",
-      "Read(.env.*)",
-      "Read(**/secrets/**)",
-      "Read(**/*secret*)",
-      "Read(**/*credential*)"
+      "Bash(systemctl disable:*)"
     ],
     "defaultMode": "acceptEdits"
   },
