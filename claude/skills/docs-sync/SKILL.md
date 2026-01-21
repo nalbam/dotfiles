@@ -6,6 +6,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Documentation Sync
 
+**IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
+
 Analyze entire codebase and documentation, find gaps, update docs.
 
 ## Rules
