@@ -1,8 +1,8 @@
 {
+  "cleanupPeriodDays": 30,
   "env": {
     "MAX_THINKING_TOKENS": "31999"
   },
-  "cleanupPeriodDays": 30,
   "permissions": {
     "allow": [
       "Bash(apk:*)",
@@ -123,11 +123,7 @@
     ],
     "defaultMode": "acceptEdits"
   },
-  "statusLine": {
-    "type": "command",
-    "command": "npx -y ccusage statusline",
-    "padding": 0
-  },
+  "model": "opus",
   "hooks": {
     "PreToolUse": [
       {
@@ -137,8 +133,7 @@
             "type": "command",
             "command": "~/.claude/hooks/git-push-guard.sh"
           }
-        ],
-        "description": "Pause before git push to review changes"
+        ]
       },
       {
         "matcher": "tool == \"Write\" && tool_input.file_path matches \"\\\\.md$\" && !(tool_input.file_path matches \"(README\\\\.md|CLAUDE\\\\.md|^docs/)\")",
@@ -147,8 +142,7 @@
             "type": "command",
             "command": "~/.claude/hooks/doc-warning.sh"
           }
-        ],
-        "description": "Warn about creating documentation files outside docs/"
+        ]
       }
     ],
     "PostToolUse": [
@@ -159,8 +153,7 @@
             "type": "command",
             "command": "~/.claude/hooks/pr-info.sh"
           }
-        ],
-        "description": "Log PR URL and provide review command after PR creation"
+        ]
       },
       {
         "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx|js|jsx)$\"",
@@ -169,8 +162,7 @@
             "type": "command",
             "command": "~/.claude/hooks/prettier-format.sh"
           }
-        ],
-        "description": "Auto-format JS/TS files with Prettier after edits"
+        ]
       },
       {
         "matcher": "tool == \"Edit\" && tool_input.file_path matches \"\\\\.(ts|tsx)$\"",
@@ -179,8 +171,7 @@
             "type": "command",
             "command": "~/.claude/hooks/typescript-check.sh"
           }
-        ],
-        "description": "TypeScript check after editing .ts/.tsx files"
+        ]
       }
     ],
     "Stop": [
@@ -191,8 +182,7 @@
             "type": "command",
             "command": "~/.claude/hooks/console-log-audit.sh"
           }
-        ],
-        "description": "Final audit for console.log in modified files before session ends"
+        ]
       },
       {
         "hooks": [
@@ -200,8 +190,7 @@
             "type": "command",
             "command": "~/.claude/hooks/notify.sh"
           }
-        ],
-        "description": "Send notification when session stops"
+        ]
       }
     ],
     "Notification": [
@@ -211,9 +200,19 @@
             "type": "command",
             "command": "~/.claude/hooks/notify.sh"
           }
-        ],
-        "description": "Send notification when waiting for user input"
+        ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "npx -y ccusage statusline",
+    "padding": 0
+  },
+  "enabledPlugins": {
+    "context7@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true,
+    "code-review@claude-plugins-official": true,
+    "superpowers@superpowers-marketplace": true
   }
 }
