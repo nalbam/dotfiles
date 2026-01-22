@@ -30,6 +30,7 @@ alias h='helm'
 
 # Claude CLI shortcuts
 alias cc='claude'
+alias ccc='claude --continue'
 alias ccd='claude doctor'
 alias ccu='ccusage'
 
