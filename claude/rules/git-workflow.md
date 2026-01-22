@@ -1,5 +1,13 @@
 # Git Workflow
 
+## CRITICAL: Commit & Push Policy
+
+**NEVER commit or push without explicit user permission.**
+- 사용자가 명시적으로 요청할 때만 `git commit` 실행
+- 사용자가 명시적으로 요청할 때만 `git push` 실행
+- 코드 변경 후 자동으로 커밋하지 않음
+- "커밋해", "커밋하세요", "commit" 등 명확한 지시가 있을 때만 수행
+
 ## Commit Message Format
 
 ```

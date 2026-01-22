@@ -2,6 +2,19 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in any project.
 
+# Language / 언어
+
+**Always respond in Korean (한국어로 응답하세요).**
+- 모든 응답은 한국어로 작성
+- 코드, 명령어, 기술 용어는 영어 유지
+- 커밋 메시지, 코드 주석은 영어 유지
+
+# Git Safety / Git 안전 규칙
+
+**NEVER commit or push without explicit user permission.**
+- 사용자가 명시적으로 요청할 때만 `git commit`, `git push` 실행
+- 코드 변경 후 자동으로 커밋하지 않음
+
 # Global Code Guidelines
 
 **Important: Refer to project-specific documentation (e.g., docs/, README.md) when available.**
