@@ -2,13 +2,15 @@
  * Claude Code Status Display
  * ESP32-C6-LCD-1.47 (172x320, ST7789V2)
  *
- * USB Serial + HTTP 지원
+ * Pixel art character (128x128) with animated states
+ * USB Serial + HTTP support
  */
 
 #include <TFT_eSPI.h>
 #include <ArduinoJson.h>
+#include "sprites.h"
 
-// WiFi (HTTP fallback용, 선택사항)
+// WiFi (HTTP fallback, optional)
 #ifdef USE_WIFI
 #include <WiFi.h>
 #include <WebServer.h>
@@ -19,48 +21,38 @@ WebServer server(80);
 
 TFT_eSPI tft = TFT_eSPI();
 
-// 화면 크기
+// Screen size
 #define SCREEN_WIDTH  172
 #define SCREEN_HEIGHT 320
 
-// 색상 정의
-#define COLOR_BG        TFT_BLACK
-#define COLOR_IDLE      0x07E0  // 녹색
-#define COLOR_WORKING   0x001F  // 파란색
-#define COLOR_NOTIFY    0xFFE0  // 노란색
-#define COLOR_SESSION   0x07FF  // 시안
-#define COLOR_TEXT      TFT_WHITE
-#define COLOR_DIM       0x7BEF  // 회색
+// Layout positions (adjusted for 128x128 character)
+#define CHAR_X        22   // (172 - 128) / 2 = 22
+#define CHAR_Y        20
+#define STATUS_TEXT_Y 160
+#define LOADING_Y     195
+#define PROJECT_Y     235
+#define TOOL_Y        255
+#define BRAND_Y       295
 
-// 상태
+// State
 String currentState = "idle";
+String previousState = "";
 String currentProject = "";
 String currentTool = "";
 unsigned long lastUpdate = 0;
+unsigned long lastBlink = 0;
 int animFrame = 0;
-
-// 아이콘 (16x16 비트맵)
-const uint16_t ICON_IDLE[] PROGMEM = {
-  // 체크마크 아이콘
-  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x0000, 0x0000, 0x0000,
-  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000,
-  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000,
-  0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-  0x0000, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-  0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-  0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-  0x0000, 0x0000, 0x0000, 0x07E0, 0x07E0, 0x07E0, 0x07E0, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000,
-};
+bool needsRedraw = true;
 
 void setup() {
   Serial.begin(115200);
 
-  // TFT 초기화
+  // TFT init
   tft.init();
-  tft.setRotation(0);  // 세로 모드
-  tft.fillScreen(COLOR_BG);
+  tft.setRotation(0);  // Portrait mode
+  tft.fillScreen(TFT_BLACK);
 
-  // 시작 화면
+  // Start screen
   drawStartScreen();
 
 #ifdef USE_WIFI
@@ -69,7 +61,7 @@ void setup() {
 }
 
 void loop() {
-  // USB 시리얼 체크
+  // USB Serial check
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
     processInput(input);
@@ -79,10 +71,17 @@ void loop() {
   server.handleClient();
 #endif
 
-  // 애니메이션 업데이트
+  // Animation update (100ms interval)
   if (millis() - lastUpdate > 100) {
     lastUpdate = millis();
+    animFrame++;
     updateAnimation();
+  }
+
+  // Idle blink (every 3 seconds)
+  if (currentState == "idle" && millis() - lastBlink > 3000) {
+    lastBlink = millis();
+    drawBlinkAnimation();
   }
 }
 
@@ -95,148 +94,138 @@ void processInput(String input) {
     return;
   }
 
+  previousState = currentState;
   currentState = doc["state"].as<String>();
   currentProject = doc["project"].as<String>();
   currentTool = doc["tool"].as<String>();
 
-  drawStatus();
+  // Redraw if state changed
+  if (currentState != previousState) {
+    needsRedraw = true;
+    drawStatus();
+  }
 }
 
 void drawStartScreen() {
-  tft.fillScreen(COLOR_BG);
-  tft.setTextColor(COLOR_TEXT);
-  tft.setTextSize(2);
+  uint16_t bgColor = TFT_BLACK;
+  tft.fillScreen(bgColor);
 
-  // 로고/타이틀
-  tft.setCursor(20, 120);
+  // Draw character in idle state (128x128)
+  drawCharacter(tft, CHAR_X, CHAR_Y, EYE_NORMAL, bgColor);
+
+  // Title
+  tft.setTextColor(COLOR_TEXT_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(20, STATUS_TEXT_Y);
   tft.println("Claude Code");
 
   tft.setTextSize(1);
-  tft.setTextColor(COLOR_DIM);
-  tft.setCursor(30, 160);
+  tft.setTextColor(COLOR_TEXT_DIM);
+  tft.setCursor(30, STATUS_TEXT_Y + 30);
   tft.println("Status Display");
 
-  tft.setCursor(20, 200);
+  tft.setCursor(30, PROJECT_Y);
   tft.println("Waiting for");
-  tft.setCursor(20, 215);
+  tft.setCursor(30, PROJECT_Y + 15);
   tft.println("connection...");
+
+  // Brand
+  tft.setCursor(40, BRAND_Y);
+  tft.println("v2.0 Pixel Art");
 }
 
 void drawStatus() {
-  tft.fillScreen(COLOR_BG);
+  uint16_t bgColor = getBackgroundColor(currentState);
+  EyeType eyeType = getEyeType(currentState);
+  String statusText = getStatusText(currentState);
 
-  // 상태별 색상 및 아이콘
-  uint16_t statusColor;
-  String statusText;
-  String statusIcon;
+  // Fill background
+  tft.fillScreen(bgColor);
 
-  if (currentState == "idle") {
-    statusColor = COLOR_IDLE;
-    statusText = "Ready";
-    statusIcon = "OK";
-  } else if (currentState == "working") {
-    statusColor = COLOR_WORKING;
-    statusText = "Working";
-    statusIcon = "...";
-  } else if (currentState == "notification") {
-    statusColor = COLOR_NOTIFY;
-    statusText = "Input";
-    statusIcon = "?";
-  } else if (currentState == "session_start") {
-    statusColor = COLOR_SESSION;
-    statusText = "Session";
-    statusIcon = ">";
-  } else if (currentState == "tool_done") {
-    statusColor = COLOR_IDLE;
-    statusText = "Done";
-    statusIcon = "v";
-  } else {
-    statusColor = COLOR_DIM;
-    statusText = currentState;
-    statusIcon = "-";
-  }
+  // Draw character (128x128)
+  drawCharacter(tft, CHAR_X, CHAR_Y, eyeType, bgColor);
 
-  // 상단 상태 원
-  int centerX = SCREEN_WIDTH / 2;
-  int centerY = 80;
-  int radius = 50;
-
-  // 원 그리기 (채우기 + 테두리)
-  tft.fillCircle(centerX, centerY, radius, statusColor);
-  tft.drawCircle(centerX, centerY, radius + 2, COLOR_TEXT);
-
-  // 아이콘 텍스트
-  tft.setTextColor(COLOR_BG);
-  tft.setTextSize(4);
-  int iconWidth = statusIcon.length() * 24;
-  tft.setCursor(centerX - iconWidth / 2 + 5, centerY - 15);
-  tft.println(statusIcon);
-
-  // 상태 텍스트
-  tft.setTextColor(statusColor);
+  // Status text
+  tft.setTextColor(COLOR_TEXT_WHITE);
   tft.setTextSize(3);
   int textWidth = statusText.length() * 18;
-  tft.setCursor(centerX - textWidth / 2, 160);
+  int textX = (SCREEN_WIDTH - textWidth) / 2;
+  tft.setCursor(textX, STATUS_TEXT_Y);
   tft.println(statusText);
 
-  // 프로젝트명
-  if (currentProject.length() > 0) {
-    tft.setTextColor(COLOR_TEXT);
-    tft.setTextSize(1);
-    tft.setCursor(10, 210);
-    tft.print("Project: ");
-    tft.setTextColor(COLOR_DIM);
+  // Loading dots (working state only)
+  if (currentState == "working") {
+    drawLoadingDots(tft, SCREEN_WIDTH / 2, LOADING_Y, animFrame);
+  }
 
-    // 긴 이름 자르기
+  // Project name
+  if (currentProject.length() > 0) {
+    tft.setTextColor(COLOR_TEXT_WHITE);
+    tft.setTextSize(1);
+    tft.setCursor(10, PROJECT_Y);
+    tft.print("Project: ");
+    tft.setTextColor(COLOR_TEXT_DIM);
+
     String displayProject = currentProject;
-    if (displayProject.length() > 18) {
-      displayProject = displayProject.substring(0, 15) + "...";
+    if (displayProject.length() > 16) {
+      displayProject = displayProject.substring(0, 13) + "...";
     }
     tft.println(displayProject);
   }
 
-  // 현재 도구
+  // Tool name (working state only)
   if (currentTool.length() > 0 && currentState == "working") {
-    tft.setTextColor(COLOR_TEXT);
+    tft.setTextColor(COLOR_TEXT_WHITE);
     tft.setTextSize(1);
-    tft.setCursor(10, 230);
+    tft.setCursor(10, TOOL_Y);
     tft.print("Tool: ");
-    tft.setTextColor(COLOR_WORKING);
+    tft.setTextColor(COLOR_TEXT_DIM);
     tft.println(currentTool);
   }
 
-  // 하단 정보
-  tft.setTextColor(COLOR_DIM);
+  // Brand
+  tft.setTextColor(COLOR_TEXT_DIM);
   tft.setTextSize(1);
-  tft.setCursor(10, 300);
+  int brandText = 10;
+  tft.setCursor(brandText, BRAND_Y);
   tft.println("Claude Code Monitor");
+
+  needsRedraw = false;
 }
 
 void updateAnimation() {
-  if (currentState != "working") return;
-
-  animFrame = (animFrame + 1) % 8;
-
-  int centerX = SCREEN_WIDTH / 2;
-  int centerY = 80;
-
-  // 회전 점 애니메이션
-  for (int i = 0; i < 8; i++) {
-    float angle = (i * 45 + animFrame * 45) * PI / 180;
-    int x = centerX + cos(angle) * 60;
-    int y = centerY + sin(angle) * 60;
-
-    uint16_t dotColor = (i == 0) ? COLOR_TEXT : COLOR_DIM;
-    tft.fillCircle(x, y, 3, dotColor);
+  if (currentState == "working") {
+    // Update loading dots
+    drawLoadingDots(tft, SCREEN_WIDTH / 2, LOADING_Y, animFrame);
+  } else if (currentState == "session_start") {
+    // Update sparkle animation
+    uint16_t bgColor = getBackgroundColor(currentState);
+    drawCharacter(tft, CHAR_X, CHAR_Y, EYE_SPARKLE, bgColor);
   }
+}
+
+void drawBlinkAnimation() {
+  if (currentState != "idle") return;
+
+  uint16_t bgColor = getBackgroundColor(currentState);
+
+  // Close eyes (redraw body area with closed eyes)
+  tft.fillRect(CHAR_X + (6 * SCALE), CHAR_Y + (8 * SCALE), 52 * SCALE, 30 * SCALE, COLOR_CLAUDE);
+  drawBlinkEyes(tft, CHAR_X, CHAR_Y, 0);  // Closed
+
+  delay(100);
+
+  // Open eyes
+  tft.fillRect(CHAR_X + (6 * SCALE), CHAR_Y + (8 * SCALE), 52 * SCALE, 30 * SCALE, COLOR_CLAUDE);
+  drawBlinkEyes(tft, CHAR_X, CHAR_Y, 1);  // Open
 }
 
 #ifdef USE_WIFI
 void setupWiFi() {
   WiFi.begin(ssid, password);
 
-  tft.setCursor(20, 250);
-  tft.setTextColor(COLOR_DIM);
+  tft.setCursor(10, BRAND_Y - 30);
+  tft.setTextColor(COLOR_TEXT_DIM);
   tft.setTextSize(1);
   tft.print("WiFi: ");
 
@@ -249,11 +238,11 @@ void setupWiFi() {
 
   if (WiFi.status() == WL_CONNECTED) {
     tft.println("OK");
-    tft.setCursor(20, 265);
+    tft.setCursor(10, BRAND_Y - 15);
     tft.print("IP: ");
     tft.println(WiFi.localIP());
 
-    // HTTP 서버 설정
+    // HTTP server setup
     server.on("/status", HTTP_POST, handleStatus);
     server.begin();
   } else {

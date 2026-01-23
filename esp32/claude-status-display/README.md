@@ -1,11 +1,43 @@
 # Claude Code Status Display
 
-ESP32-C6-LCD-1.47 보드를 사용한 Claude Code 상태 표시기
+ESP32-C6-LCD-1.47 보드를 사용한 Claude Code 상태 표시기 (픽셀 아트 버전)
+
+## 미리보기
+
+```
+┌────────────────────┐
+│                    │
+│     ┌──────────┐   │
+│     │██████████│   │
+│ ████│█ ■    ■ █│████│  ← Claude 캐릭터
+│     │██████████│   │     (64x64 픽셀)
+│     └─┬─┬──┬─┬─┘   │
+│       │█│  │█│     │
+├────────────────────┤
+│      Working       │  ← 상태 텍스트
+│      ● ● ● ○       │  ← 로딩 애니메이션
+├────────────────────┤
+│  Project: dotfiles │
+│  Tool: Bash        │
+├────────────────────┤
+│  Claude Code       │
+└────────────────────┘
+```
 
 ## 하드웨어
 
 - **보드**: ESP32-C6-LCD-1.47 (172x320, ST7789V2)
 - **연결**: USB-C (시리얼 통신)
+
+## 상태별 표시
+
+| 상태 | 배경색 | 눈 모양 | 애니메이션 |
+|------|--------|--------|-----------|
+| `idle` | 🟢 녹색 | ■ ■ 사각 | 3초마다 깜빡임 |
+| `working` | 🔵 파란색 | ▬ ▬ 집중 | 로딩 점 |
+| `notification` | 🟡 노란색 | ● ● 둥근 | - |
+| `session_start` | 🔵 시안 | ■ ■ + ✦ | 반짝이 회전 |
+| `tool_done` | 🟢 녹색 | ◠ ◠ 웃음 | - |
 
 ## 설치
 
@@ -63,15 +95,15 @@ ls /dev/cu.*
 ls /dev/ttyUSB* /dev/ttyACM*
 ```
 
-## 상태 표시
+## 파일 구조
 
-| 상태 | 색상 | 설명 |
-|------|------|------|
-| `idle` | 🟢 녹색 | Ready - 대기 중 |
-| `working` | 🔵 파란색 | Working - 작업 중 (애니메이션) |
-| `notification` | 🟡 노란색 | Input - 입력 대기 |
-| `session_start` | 🔵 시안 | Session - 세션 시작 |
-| `tool_done` | 🟢 녹색 | Done - 도구 완료 |
+```
+claude-status-display/
+├── claude-status-display.ino   # 메인 코드
+├── sprites.h                   # 캐릭터 그리기 함수
+├── User_Setup.h                # TFT 디스플레이 설정
+└── README.md                   # 이 문서
+```
 
 ## WiFi 모드 (선택사항)
 
@@ -90,13 +122,20 @@ const char* password = "YOUR_PASSWORD";
 ## 테스트
 
 ```bash
-# USB 시리얼 테스트
-echo '{"state":"working","event":"PreToolUse","tool":"Bash","project":"test"}' > /dev/cu.usbmodem1101
+# USB 시리얼 테스트 - idle (녹색, 사각 눈)
+echo '{"state":"idle","event":"Stop","tool":"","project":"test"}' > /dev/cu.usbmodem1101
 
-# HTTP 테스트 (WiFi 모드)
-curl -X POST http://esp32.local/status \
-  -H "Content-Type: application/json" \
-  -d '{"state":"idle","event":"Stop","tool":"","project":"test"}'
+# working (파란색, 집중 눈)
+echo '{"state":"working","event":"PreToolUse","tool":"Bash","project":"dotfiles"}' > /dev/cu.usbmodem1101
+
+# notification (노란색, 둥근 눈)
+echo '{"state":"notification","event":"Notification","tool":"","project":"test"}' > /dev/cu.usbmodem1101
+
+# session_start (시안, 반짝이)
+echo '{"state":"session_start","event":"SessionStart","tool":"","project":"test"}' > /dev/cu.usbmodem1101
+
+# tool_done (녹색, 웃는 눈)
+echo '{"state":"tool_done","event":"PostToolUse","tool":"Bash","project":"test"}' > /dev/cu.usbmodem1101
 ```
 
 ## 트러블슈팅
@@ -121,3 +160,8 @@ screen /dev/cu.usbmodem1101 115200
 
 시리얼 모니터에서 "JSON parse error" 메시지 확인
 → 줄바꿈 문자 확인 (LF만 사용)
+
+## 버전 히스토리
+
+- **v2.0**: 픽셀 아트 캐릭터 버전 (Claude 마스코트)
+- **v1.0**: 원형 상태 표시 버전
