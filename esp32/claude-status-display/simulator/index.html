@@ -61,6 +61,16 @@
       width: 128px;
       height: 128px;
       image-rendering: pixelated;
+      animation: float 2s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-8px);
+      }
     }
 
     /* Status Text */
