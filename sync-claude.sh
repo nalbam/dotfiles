@@ -213,7 +213,7 @@ while IFS= read -r -d '' source_file; do
     if ! _is_binary "$source_file"; then
       _echo "  Content preview:" 4
       head -20 "$source_file" | sed 's/^/    /'
-      local total_lines=$(wc -l < "$source_file")
+      total_lines=$(wc -l < "$source_file")
       if [ "$total_lines" -gt 20 ]; then
         _warn "    ... (${total_lines} lines total)"
       fi
