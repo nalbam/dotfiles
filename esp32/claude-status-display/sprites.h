@@ -82,16 +82,16 @@ void drawCharacter(TFT_eSPI &tft, int x, int y, EyeType eyeType, uint16_t bgColo
   // Right arm (starts at 58, body ends at 58)
   tft.fillRect(x + (58 * SCALE), armY, armW, armH, COLOR_CLAUDE);
 
-  // Draw legs (4 legs with clear gap in middle)
+  // Draw legs (4 legs: shorter, thinner, wider gap between pairs)
   int legY = y + (44 * SCALE);
-  int legH = 16 * SCALE;
-  int legW = 8 * SCALE;
-  // Left pair (close together)
-  tft.fillRect(x + (12 * SCALE), legY, legW, legH, COLOR_CLAUDE);
-  tft.fillRect(x + (22 * SCALE), legY, legW, legH, COLOR_CLAUDE);
-  // Right pair (close together, gap from left pair)
-  tft.fillRect(x + (34 * SCALE), legY, legW, legH, COLOR_CLAUDE);
-  tft.fillRect(x + (44 * SCALE), legY, legW, legH, COLOR_CLAUDE);
+  int legH = 12 * SCALE;
+  int legW = 6 * SCALE;
+  // Left pair
+  tft.fillRect(x + (10 * SCALE), legY, legW, legH, COLOR_CLAUDE);
+  tft.fillRect(x + (18 * SCALE), legY, legW, legH, COLOR_CLAUDE);
+  // Right pair (wider gap from left pair)
+  tft.fillRect(x + (40 * SCALE), legY, legW, legH, COLOR_CLAUDE);
+  tft.fillRect(x + (48 * SCALE), legY, legW, legH, COLOR_CLAUDE);
 
   // Draw eyes based on type
   drawEyes(tft, x, y, eyeType);
@@ -100,9 +100,9 @@ void drawCharacter(TFT_eSPI &tft, int x, int y, EyeType eyeType, uint16_t bgColo
 // Draw eyes based on eye type (scaled 2x)
 void drawEyes(TFT_eSPI &tft, int x, int y, EyeType eyeType) {
   // Eye base positions (scaled 2x)
-  int leftEyeX = x + (18 * SCALE);
-  int rightEyeX = x + (40 * SCALE);
-  int eyeY = y + (16 * SCALE);
+  int leftEyeX = x + (14 * SCALE);
+  int rightEyeX = x + (44 * SCALE);
+  int eyeY = y + (22 * SCALE);
 
   switch (eyeType) {
     case EYE_NORMAL:
@@ -188,9 +188,9 @@ void drawLoadingDots(TFT_eSPI &tft, int centerX, int y, int frame) {
 
 // Draw blink animation (for idle state)
 void drawBlinkEyes(TFT_eSPI &tft, int x, int y, int frame) {
-  int leftEyeX = x + (18 * SCALE);
-  int rightEyeX = x + (40 * SCALE);
-  int eyeY = y + (16 * SCALE);
+  int leftEyeX = x + (14 * SCALE);
+  int rightEyeX = x + (44 * SCALE);
+  int eyeY = y + (22 * SCALE);
 
   if (frame == 0) {
     // Eyes closed (thin line, 6x2 -> 12x4)
