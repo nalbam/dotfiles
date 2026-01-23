@@ -53,7 +53,6 @@ The dotfiles include comprehensive Claude Code (AI pair programming CLI) setup.
 
 ```
 claude/
-├── CLAUDE.ko.md              - Claude Code instructions (Korean)
 ├── CLAUDE.md                 - Claude Code instructions (English)
 ├── env.sample                - Environment variables template
 ├── settings.json             - Claude permissions, advanced hooks, and status line configuration
@@ -66,7 +65,6 @@ claude/
 │   ├── doc-writer.md         - Documentation specialist
 │   ├── planner.md            - Implementation planning specialist (Opus)
 │   ├── refactorer.md         - Code refactoring specialist
-│   ├── security-reviewer.md  - Security vulnerability analysis
 │   └── test-writer.md        - Test generation specialist
 │
 ├── hooks/                    - Hook scripts for automated workflows
@@ -87,12 +85,8 @@ claude/
 │   └── testing.md            - TDD workflow, 80% coverage requirement
 │
 ├── skills/                   - User-invocable skills (via `/skill-name`)
-│   ├── aws-operations/       - AWS CLI operations
 │   ├── docs-sync/            - Documentation sync and gap analysis
-│   ├── git-workflow/         - Git workflow guidance
-│   ├── k8s-troubleshoot/     - Kubernetes troubleshooting
-│   ├── security-review/      - Security review checklist
-│   ├── shell-scripting/      - Shell scripting best practices
+│   ├── pr-create/            - Create pull request with proper format
 │   └── validate/             - Run lint, typecheck, tests with auto-fix
 │
 └── sounds/                   - Audio notifications
@@ -153,11 +147,7 @@ Perfect for pre-commit validation or CI/CD pipeline simulation.
 
 Other available skills:
 - **docs-sync**: Analyze code and documentation, find gaps, update docs
-- **aws-operations**: AWS CLI operations and best practices
-- **k8s-troubleshoot**: Kubernetes troubleshooting guide
-- **security-review**: Security review checklist
-- **shell-scripting**: Shell scripting best practices
-- **git-workflow**: Git workflow for commits, PRs, branches
+- **pr-create**: Create pull request with proper format
 
 ### Always-Follow Rules
 Modular guidelines automatically loaded by Claude Code:
@@ -184,7 +174,6 @@ Specialized agents for delegated tasks:
 
 **Quality & Security**:
 - **code-reviewer**: Code review for quality and maintainability
-- **security-reviewer**: Security vulnerability analysis and recommendations
 - **test-writer**: Test generation specialist
 - **refactorer**: Code refactoring specialist
 

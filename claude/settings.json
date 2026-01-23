@@ -103,11 +103,8 @@
       "WebFetch(domain:typescriptlang.org)",
       "WebFetch(domain:vercel.com)",
       "WebSearch",
-      "Skill(aws-operations)",
       "Skill(docs-sync)",
-      "Skill(git-workflow)",
-      "Skill(k8s-troubleshoot)",
-      "Skill(shell-scripting)",
+      "Skill(pr-create)",
       "Skill(validate)"
     ],
     "deny": [

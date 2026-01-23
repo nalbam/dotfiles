@@ -247,7 +247,7 @@ function processData(data: Array<{ value: number }>) {
 - Architectural changes needed (use architect)
 - New features required (use planner)
 - Tests failing (use debugger)
-- Security issues found (use security-reviewer)
+- Security issues found (review manually)
 
 ## Build Error Priority Levels
 
