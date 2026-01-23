@@ -4,6 +4,7 @@
 alias t='toast'
 alias tu='python3 -m pip install --user -U toast-cli'
 alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
+alias tc='bash -c "$(curl -fsSL nalbam.github.io/claude-config/sync.sh)"'
 
 # Change directory with toast cdw
 c() {
