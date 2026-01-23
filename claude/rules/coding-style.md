@@ -65,6 +65,5 @@ Before marking work complete:
 - [ ] Files are focused (<800 lines)
 - [ ] No deep nesting (>4 levels)
 - [ ] Proper error handling
-- [ ] No console.log statements
 - [ ] No hardcoded values
 - [ ] No mutation (immutable patterns used)

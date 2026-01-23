@@ -32,6 +32,7 @@
       "Bash(export:*)",
       "Bash(find:*)",
       "Bash(for:*)",
+      "Bash(gh:*)",
       "Bash(git:*)",
       "Bash(go:*)",
       "Bash(gradle:*)",
