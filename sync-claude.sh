@@ -99,7 +99,7 @@ _prompt_sync() {
 
   while true; do
     _echo "\n  $prompt [y/n/a/q] " 5
-    read -r -n 1 answer
+    read -r -n 1 answer </dev/tty
     echo
     case "$answer" in
       y|Y) return 0 ;;
