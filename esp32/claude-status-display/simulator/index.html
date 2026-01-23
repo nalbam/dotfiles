@@ -356,31 +356,36 @@
         bgColor: '#00AA00',
         text: 'Ready',
         eyeType: 'normal',
-        showLoading: false
+        showLoading: false,
+        textColor: '#FFFFFF'
       },
       working: {
         bgColor: '#0066CC',
         text: 'Working',
         eyeType: 'focused',
-        showLoading: true
+        showLoading: true,
+        textColor: '#FFFFFF'
       },
       notification: {
         bgColor: '#FFCC00',
         text: 'Input?',
         eyeType: 'alert',
-        showLoading: false
+        showLoading: false,
+        textColor: '#000000'  // Dark text on yellow
       },
       session_start: {
         bgColor: '#00CCCC',
         text: 'Hello!',
         eyeType: 'sparkle',
-        showLoading: false
+        showLoading: false,
+        textColor: '#000000'  // Dark text on cyan
       },
       tool_done: {
         bgColor: '#00AA00',
         text: 'Done!',
         eyeType: 'happy',
-        showLoading: false
+        showLoading: false,
+        textColor: '#FFFFFF'
       }
     };
 
@@ -431,8 +436,9 @@
       // Update background
       display.style.background = state.bgColor;
 
-      // Update text
+      // Update text and color
       statusText.textContent = state.text;
+      statusText.style.color = state.textColor;
 
       // Update loading dots visibility
       loadingDots.style.display = state.showLoading ? 'flex' : 'none';
@@ -445,6 +451,17 @@
       const toolName = document.getElementById('tool-input').value;
       projectValue.textContent = projectName.length > 16 ? projectName.substring(0, 13) + '...' : projectName;
       toolValue.textContent = toolName;
+
+      // Update all text colors based on state
+      document.querySelectorAll('.info-text').forEach(el => {
+        el.style.color = state.textColor;
+      });
+      document.querySelectorAll('.info-label').forEach(el => {
+        el.style.color = state.textColor;
+      });
+      document.querySelectorAll('.info-value').forEach(el => {
+        el.style.color = state.textColor;
+      });
 
       // Update current state display
       currentStateDisplay.textContent = currentState;

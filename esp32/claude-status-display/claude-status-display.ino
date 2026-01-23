@@ -136,6 +136,7 @@ void drawStartScreen() {
 
 void drawStatus() {
   uint16_t bgColor = getBackgroundColor(currentState);
+  uint16_t textColor = getTextColor(currentState);
   EyeType eyeType = getEyeType(currentState);
   String statusText = getStatusText(currentState);
 
@@ -145,8 +146,8 @@ void drawStatus() {
   // Draw character (128x128)
   drawCharacter(tft, CHAR_X, CHAR_Y, eyeType, bgColor);
 
-  // Status text
-  tft.setTextColor(COLOR_TEXT_WHITE);
+  // Status text (color based on background)
+  tft.setTextColor(textColor);
   tft.setTextSize(3);
   int textWidth = statusText.length() * 18;
   int textX = (SCREEN_WIDTH - textWidth) / 2;
@@ -160,11 +161,10 @@ void drawStatus() {
 
   // Project name
   if (currentProject.length() > 0) {
-    tft.setTextColor(COLOR_TEXT_WHITE);
+    tft.setTextColor(textColor);
     tft.setTextSize(1);
     tft.setCursor(10, PROJECT_Y);
     tft.print("Project: ");
-    tft.setTextColor(COLOR_TEXT_DIM);
 
     String displayProject = currentProject;
     if (displayProject.length() > 16) {
@@ -175,16 +175,15 @@ void drawStatus() {
 
   // Tool name (working state only)
   if (currentTool.length() > 0 && currentState == "working") {
-    tft.setTextColor(COLOR_TEXT_WHITE);
+    tft.setTextColor(textColor);
     tft.setTextSize(1);
     tft.setCursor(10, TOOL_Y);
     tft.print("Tool: ");
-    tft.setTextColor(COLOR_TEXT_DIM);
     tft.println(currentTool);
   }
 
   // Brand
-  tft.setTextColor(COLOR_TEXT_DIM);
+  tft.setTextColor(textColor);
   tft.setTextSize(1);
   int brandText = 10;
   tft.setCursor(brandText, BRAND_Y);

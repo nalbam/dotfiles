@@ -233,4 +233,11 @@ String getStatusText(String state) {
   return state;
 }
 
+// Get text color for state (dark text on bright backgrounds)
+uint16_t getTextColor(String state) {
+  if (state == "notification") return TFT_BLACK;   // Dark on yellow
+  if (state == "session_start") return TFT_BLACK;  // Dark on cyan
+  return COLOR_TEXT_WHITE;  // White on dark backgrounds
+}
+
 #endif // SPRITES_H
