@@ -38,15 +38,6 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 ```
 .
-├── claude/            # Claude Code environment (synced to ~/.claude/ on all machines)
-│   ├── CLAUDE.ko.md   # Claude Code instructions (KO)
-│   ├── CLAUDE.md      # Claude Code instructions (EN)
-│   ├── agents/        # Custom agent definitions (9 specialized agents)
-│   ├── hooks/         # Notification and automation hooks
-│   ├── rules/         # Always-follow guidelines (6 rule files)
-│   ├── settings.json  # Claude Code configuration with advanced hooks
-│   ├── skills/        # User-invocable skills (6 skill sets)
-│   └── sounds/        # Audio notification files
 ├── darwin/            # macOS specific settings
 │   ├── Brewfile       # macOS Homebrew package list
 │   └── zprofile.*     # macOS architecture-specific profile settings

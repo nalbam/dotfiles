@@ -12,7 +12,6 @@ This directory contains the technical documentation for the dotfiles project.
 
 - [aliases](../aliases) - Complete shell alias and helper function definitions
 - [CLAUDE.md](../CLAUDE.md) - Claude Code AI instructions and advanced development features
-- [claude/](../claude/) - Claude Code settings, custom skills, and agents
 - [Main README](../README.md) - Project overview, installation guide, and feature list
 - [zshrc](../zshrc) - ZSH configuration and environment setup
 
@@ -33,10 +32,4 @@ This directory contains the technical documentation for the dotfiles project.
 - `linux/zprofile.*.sh` - Linux architecture-specific profiles
 
 ### Claude Code Integration
-- `claude/CLAUDE.ko.md` - Claude Code project instructions (Korean)
-- `claude/CLAUDE.md` - Claude Code project instructions (English)
-- `claude/agents/` - Custom agent definitions (9 specialized agents)
-- `claude/hooks/` - Notification and automation hooks
-- `claude/rules/` - Always-follow guidelines (6 rule files)
-- `claude/settings.json` - Claude Code configuration with advanced hooks
-- `claude/skills/` - User-invocable skills (6 skill sets)
+Claude Code settings are managed in a separate repository: [claude-config](https://github.com/nalbam/claude-config)

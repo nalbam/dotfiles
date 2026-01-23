@@ -776,19 +776,5 @@ _download .zshrc zshrc
 _download .zprofile $OS_NAME/zprofile.$OS_ARCH.sh
 _ok "Shell configuration files applied"
 
-# Claude AI 설정 (~/.claude/ 디렉토리 동기화)
-if [ -d ~/.dotfiles/claude ]; then
-  if [ -f ~/.dotfiles/sync-claude.sh ]; then
-    _run "Syncing Claude Code settings..."
-    bash ~/.dotfiles/sync-claude.sh -y
-  else
-    mkdir -p ~/.claude
-    cp -r ~/.dotfiles/claude/* ~/.claude/
-    _ok "Claude Code settings synced to ~/.claude/"
-  fi
-else
-  _skip "Claude Code settings not found"
-fi
-
 # Success
 _success

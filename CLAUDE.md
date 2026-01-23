@@ -31,7 +31,7 @@ The installation follows a 10-step process:
 7. OS-specific settings (macOS system preferences, Xcode)
 8. ZSH and Oh-My-ZSH installation
 9. Theme and UI settings (Dracula theme, iTerm2)
-10. User configuration files deployment + **Claude Code environment sync** (`~/.dotfiles/claude/*` → `~/.claude/`)
+10. User configuration files deployment
 
 ## Key Components
 
@@ -40,154 +40,16 @@ The installation follows a 10-step process:
 - **`darwin/Brewfile`**: macOS package definitions
 - **`linux/Brewfile`**: Linux package definitions
 - **`docs/`**: Technical documentation (ARCHITECTURE.md)
-- **`claude/`**: Claude Code AI settings and instructions
 - **Configuration files**: `.gitconfig`, `.zshrc`, `.aliases`, `.vimrc`, `.bashrc`, `.profile`, etc.
 
 ## Claude Code Integration
 
-The dotfiles include comprehensive Claude Code (AI pair programming CLI) setup.
+Claude Code settings are managed in a separate repository: [claude-config](https://github.com/nalbam/claude-config)
 
-**Purpose**: The `claude/` directory enables consistent Claude Code environments across all development machines. During installation (Step 10), all files from `~/.dotfiles/claude/` are automatically synced to `~/.claude/` on every machine, ensuring identical settings, skills, agents, and hooks everywhere.
-
-### Directory Structure
-
-```
-claude/
-├── .env.sample               - Environment variables template
-├── CLAUDE.md                 - Claude Code instructions (English)
-├── settings.json             - Claude permissions, advanced hooks, and status line configuration
-│
-├── agents/                   - Custom agent definitions
-│   ├── architect.md          - System design and architecture decisions
-│   ├── builder.md            - Build error resolution specialist
-│   ├── code-reviewer.md      - Code review specialist
-│   ├── debugger.md           - Debugging and error resolution
-│   ├── doc-writer.md         - Documentation specialist
-│   ├── planner.md            - Implementation planning specialist (Opus)
-│   ├── refactorer.md         - Code refactoring specialist
-│   └── test-writer.md        - Test generation specialist
-│
-├── hooks/                    - Hook scripts for automated workflows
-│   ├── console-log-audit.sh  - Audit console.log in modified files before session ends
-│   ├── doc-warning.sh        - Warn about creating docs outside docs/ directory
-│   ├── esp32-status.sh       - Send status to ESP32 display via USB/HTTP
-│   ├── git-push-guard.sh     - Pause before git push for review
-│   ├── notify.sh             - Multi-platform notification system
-│   ├── pr-info.sh            - Display PR URL and review commands after creation
-│   ├── prettier-format.sh    - Auto-format JS/TS files after edits
-│   └── typescript-check.sh   - TypeScript validation after editing .ts/.tsx files
-│
-├── rules/                    - Always-follow guidelines (automatically loaded)
-│   ├── coding-style.md       - Immutability, file organization, error handling
-│   ├── git-workflow.md       - Commit format, PR process
-│   ├── language.md           - Response language setting (Korean)
-│   ├── patterns.md           - API response formats, common patterns
-│   ├── performance.md        - Model selection strategy (Haiku/Sonnet/Opus)
-│   ├── security.md           - Security best practices
-│   └── testing.md            - TDD workflow, 80% coverage requirement
-│
-├── skills/                   - User-invocable skills (via `/skill-name`)
-│   ├── docs-sync/            - Documentation sync and gap analysis
-│   ├── pr-create/            - Create pull request with proper format
-│   └── validate/             - Run lint, typecheck, tests with auto-fix
-│
-└── sounds/                   - Audio notifications
-    ├── ding1.mp3
-    ├── ding2.mp3
-    └── ding3.mp3
-```
-
-### Notification System
-The `notify.sh` hook provides notifications when Claude completes tasks or needs input:
-- **macOS**: Native system notifications + audio alerts (afplay)
-- **WSL**: PowerShell beep notifications
-- **ntfy.sh**: Cross-platform push notifications to mobile devices (set `NTFY_TOPIC`)
-- **Slack**: Webhook-based notifications (set `SLACK_WEBHOOK_URL`)
-
-### Advanced Hooks System
-Automated quality checks and workflow enforcement via PreToolUse, PostToolUse, and Stop hooks:
-
-**PreToolUse Hooks** (run before tool execution):
-- **Git Push Guard**: Pauses before push to allow final review
-- **Documentation Control**: Warns about creating documentation files outside docs/
-
-**PostToolUse Hooks** (run after tool execution):
-- **Auto-formatting**: Runs Prettier on JS/TS files after edits
-- **TypeScript Check**: Validates types after editing .ts/.tsx files
-- **console.log Detection**: Warns about console.log statements
-- **PR Info Logging**: Displays PR URL and review commands after creation
-
-**Stop Hooks** (run when session ends):
-- **Final console.log Audit**: Checks modified files for console.log before commit
-- **Session Notifications**: Sends completion notifications via notify.sh
-
-### Status Line Integration
-Uses `ccusage statusline` to display Claude Code usage statistics in the CLI
-
-### Custom Skills
-User-invocable skills via `/skill-name` command:
-
-**validate** - Run lint, typecheck, and tests with auto-fix:
+To sync Claude Code settings:
 ```bash
-# Usage in Claude Code CLI
-/validate
-
-# Or ask Claude naturally
-"Run validate to check my code"
+bash -c "$(curl -fsSL raw.githubusercontent.com/nalbam/claude-config/main/sync.sh)"
 ```
-
-The validate skill:
-1. Detects project type (Node.js, Python, Go, Ruby, Java, Rust)
-2. Runs lint checks (eslint, ruff, golangci-lint, cargo clippy, etc.)
-3. Runs type checks (tsc, mypy, go build, cargo check, etc.)
-4. Runs test suite (jest/vitest, pytest, go test, cargo test, etc.)
-5. Analyzes failures and identifies root causes
-6. Fixes all issues automatically
-7. Re-validates until all checks pass
-
-Perfect for pre-commit validation or CI/CD pipeline simulation.
-
-Other available skills:
-- **docs-sync**: Analyze code and documentation, find gaps, update docs
-- **pr-create**: Create pull request with proper format
-
-### Always-Follow Rules
-Modular guidelines automatically loaded by Claude Code:
-
-**Code Quality Rules**:
-- **coding-style.md**: Immutability (NEVER mutate), file organization (max 800 lines), function size (max 50 lines), error handling
-- **testing.md**: TDD workflow (RED → GREEN → REFACTOR), 80%+ coverage requirement
-- **patterns.md**: API response formats, hook patterns, common architectures
-
-**Development Rules**:
-- **performance.md**: Model selection strategy (Haiku for speed, Sonnet for coding, Opus for reasoning)
-- **git-workflow.md**: Commit format (imperative mood), PR process, branch strategy
-- **security.md**: Input validation, no hardcoded secrets, least privilege
-
-### Custom Agents
-Specialized agents for delegated tasks:
-
-**Planning & Architecture**:
-- **planner**: Implementation planning with detailed step breakdown (Opus)
-- **architect**: System design decisions and architecture review
-
-**Development**:
-- **builder**: Build, lint, typecheck specialist with automatic issue resolution
-
-**Quality & Security**:
-- **code-reviewer**: Code review for quality and maintainability
-- **test-writer**: Test generation specialist
-- **refactorer**: Code refactoring specialist
-
-**Documentation & Debugging**:
-- **doc-writer**: Documentation sync and updates
-- **debugger**: Debugging and error resolution
-
-### Permission Management
-Pre-configured allow/deny lists for safe AI operations:
-- Allows standard development tools (git, npm, docker, kubectl, etc.)
-- Denies destructive operations (rm -rf /, shutdown, etc.)
-- Protects sensitive files (.env, secrets, credentials)
 
 ## Organization-Specific Features
 

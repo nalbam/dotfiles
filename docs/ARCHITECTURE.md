@@ -38,17 +38,6 @@ graph TD
 ├── run.ps1             # Windows PowerShell installation script
 ├── run.sh              # Main installation script (10-step process)
 │
-├── claude/             # Claude Code environment sync directory
-│   │                   # Synced to ~/.claude/ on all machines (Step 10)
-│   ├── .env.sample     # Environment variables template
-│   ├── CLAUDE.md       # Claude Code instructions
-│   ├── settings.json   # Claude Code configuration with advanced hooks
-│   ├── agents/         # Custom agent definitions (8 agents)
-│   ├── hooks/          # Hook scripts (8 scripts)
-│   ├── rules/          # Always-follow guidelines (7 rule files)
-│   ├── skills/         # User-invocable skills (3 skills)
-│   └── sounds/         # Audio notification files (3 files)
-│
 ├── darwin/             # macOS specific configurations
 │   ├── Brewfile        # macOS Homebrew package list
 │   └── zprofile.*.sh   # Architecture-specific profile settings
@@ -56,9 +45,6 @@ graph TD
 ├── docs/               # Technical documentation
 │   ├── ARCHITECTURE.md # System architecture
 │   └── README.md       # Documentation index
-│
-├── esp32/              # ESP32 projects
-│   └── claude-status-display/  # Claude Code status display for ESP32-C6-LCD
 │
 └── linux/              # Linux specific configurations
     ├── Brewfile        # Linux Homebrew package list
@@ -95,11 +81,9 @@ graph TD
    - VS Code and Kiro terminal shell integration
    - Toast CLI workspace management integration
 
-5. Claude Code Environment Sync
-   - Automatic synchronization of `~/.dotfiles/claude/*` to `~/.claude/`
-   - Maintains consistent Claude Code settings across all development machines
-   - Includes: settings, hooks, skills, agents, sounds, and instructions
-   - Executed during Step 10 of installation process
+5. Claude Code Integration
+   - Claude Code settings managed in separate repository: [claude-config](https://github.com/nalbam/claude-config)
+   - Use `sync.sh` script to sync settings to `~/.claude/`
 
 ## Installation Flow
 
@@ -121,8 +105,7 @@ sequenceDiagram
     Script->>System: Step 7: OS-specific settings
     Script->>System: Step 8: Install ZSH & Oh My ZSH
     Script->>System: Step 9: Apply theme & UI settings
-    Script->>System: Step 10: Deploy user config files & sync Claude Code settings
-    Note over System: ~/.dotfiles/claude/* → ~/.claude/
+    Script->>System: Step 10: Deploy user config files
     Script->>User: Complete Installation
 ```
 
