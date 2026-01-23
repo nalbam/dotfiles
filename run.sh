@@ -599,7 +599,6 @@ if command -v npm >/dev/null; then
   _install_npm_package "npm" "npm"
   _install_npm_package "corepack" "corepack"
   _install_npm_package "serverless" "serverless"
-  _install_npm_package "claude-code" "@anthropic-ai/claude-code"
   _install_npm_package "ccusage" "ccusage"
 else
   _skip "NPM not found"
