@@ -53,8 +53,8 @@ The dotfiles include comprehensive Claude Code (AI pair programming CLI) setup.
 
 ```
 claude/
+├── .env.sample               - Environment variables template
 ├── CLAUDE.md                 - Claude Code instructions (English)
-├── env.sample                - Environment variables template
 ├── settings.json             - Claude permissions, advanced hooks, and status line configuration
 │
 ├── agents/                   - Custom agent definitions
@@ -70,6 +70,7 @@ claude/
 ├── hooks/                    - Hook scripts for automated workflows
 │   ├── console-log-audit.sh  - Audit console.log in modified files before session ends
 │   ├── doc-warning.sh        - Warn about creating docs outside docs/ directory
+│   ├── esp32-status.sh       - Send status to ESP32 display via USB/HTTP
 │   ├── git-push-guard.sh     - Pause before git push for review
 │   ├── notify.sh             - Multi-platform notification system
 │   ├── pr-info.sh            - Display PR URL and review commands after creation
@@ -79,6 +80,7 @@ claude/
 ├── rules/                    - Always-follow guidelines (automatically loaded)
 │   ├── coding-style.md       - Immutability, file organization, error handling
 │   ├── git-workflow.md       - Commit format, PR process
+│   ├── language.md           - Response language setting (Korean)
 │   ├── patterns.md           - API response formats, common patterns
 │   ├── performance.md        - Model selection strategy (Haiku/Sonnet/Opus)
 │   ├── security.md           - Security best practices
@@ -328,7 +330,7 @@ Multiple gitconfig profiles for different contexts:
   - `darwin/zprofile.arm64.sh`, `darwin/zprofile.x86_64.sh`
   - `linux/zprofile.x86_64.sh`, `linux/zprofile.aarch64.sh`, `linux/zprofile.armv7l.sh`
 - Graceful handling of missing tools (brew, pyenv) in profile scripts
-- Environment variable support via `~/.claude/env.local` (auto-sourced in `.zshrc`)
+- Environment variable support via `~/.claude/.env.local` (auto-sourced in `.zshrc`)
 
 ### Toast CLI Integration
 The dotfiles provide extensive integration with Toast CLI for workspace management:

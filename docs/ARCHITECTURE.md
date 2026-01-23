@@ -34,28 +34,35 @@ graph TD
 
 ```
 .
+├── CLAUDE.md           # Project-specific Claude Code instructions
+├── run.ps1             # Windows PowerShell installation script
+├── run.sh              # Main installation script (10-step process)
+│
 ├── claude/             # Claude Code environment sync directory
 │   │                   # Synced to ~/.claude/ on all machines (Step 10)
-│   ├── CLAUDE.ko.md    # Claude Code instructions (KO)
-│   ├── CLAUDE.md       # Claude Code instructions (EN)
-│   ├── agents/         # Custom agent definitions (9 specialized agents)
-│   ├── env.sample      # Environment variables template
-│   ├── hooks/          # Notification and automation hooks
-│   ├── rules/          # Always-follow guidelines (6 rule files)
+│   ├── .env.sample     # Environment variables template
+│   ├── CLAUDE.md       # Claude Code instructions
 │   ├── settings.json   # Claude Code configuration with advanced hooks
-│   ├── skills/         # User-invocable skills (6 skill sets)
-│   └── sounds/         # Audio notification files
+│   ├── agents/         # Custom agent definitions (8 agents)
+│   ├── hooks/          # Hook scripts (8 scripts)
+│   ├── rules/          # Always-follow guidelines (7 rule files)
+│   ├── skills/         # User-invocable skills (3 skills)
+│   └── sounds/         # Audio notification files (3 files)
+│
 ├── darwin/             # macOS specific configurations
 │   ├── Brewfile        # macOS Homebrew package list
-│   └── zprofile.*      # Architecture-specific profile settings
+│   └── zprofile.*.sh   # Architecture-specific profile settings
+│
 ├── docs/               # Technical documentation
 │   ├── ARCHITECTURE.md # System architecture
 │   └── README.md       # Documentation index
-├── linux/              # Linux specific configurations
-│   ├── Brewfile        # Linux Homebrew package list
-│   └── zprofile.*      # Profile settings
-├── run.ps1             # Windows PowerShell installation script
-└── run.sh              # Main installation script (10-step process)
+│
+├── esp32/              # ESP32 projects
+│   └── claude-status-display/  # Claude Code status display for ESP32-C6-LCD
+│
+└── linux/              # Linux specific configurations
+    ├── Brewfile        # Linux Homebrew package list
+    └── zprofile.*.sh   # Architecture-specific profile settings
 ```
 
 ## Core Functions
@@ -152,7 +159,7 @@ sequenceDiagram
    - **tfenv**: Automatic Terraform version installation with ARM64 support
    - **Korean keyboard**: Native Korean character aliases for common commands
    - **Terminal integration**: VS Code and Kiro terminal shell integration
-   - **Environment variables**: Support for `.claude/env.local` configuration
+   - **Environment variables**: Support for `.claude/.env.local` configuration
 
 ## Performance Optimization
 

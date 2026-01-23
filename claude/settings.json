@@ -123,6 +123,16 @@
   },
   "model": "opus",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/esp32-status.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "tool == \"Bash\" && tool_input.command matches \"git push\"",
@@ -139,6 +149,15 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/doc-warning.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/esp32-status.sh"
           }
         ]
       }
@@ -187,6 +206,10 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/esp32-status.sh"
           }
         ]
       }
@@ -197,6 +220,10 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/esp32-status.sh"
           }
         ]
       }

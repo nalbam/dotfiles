@@ -18,8 +18,8 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
-if [ -f ~/.claude/env.local ]; then
-  source ~/.claude/env.local
+if [ -f ~/.claude/.env.local ]; then
+  source ~/.claude/.env.local
 fi
 
 export PATH="$HOME/.local/bin${PATH+:$PATH}"

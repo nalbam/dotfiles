@@ -51,3 +51,4 @@ prompt.md
 
 # claude local env
 claude/env.local
+claude/.env.local
