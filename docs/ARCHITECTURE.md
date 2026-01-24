@@ -82,7 +82,7 @@ graph TD
    - Toast CLI workspace management integration
 
 5. Claude Code Integration
-   - Claude Code settings managed in separate repository: [claude-config](https://github.com/nalbam/claude-config)
+   - Claude Code settings managed in separate repository: [vibe-config](https://github.com/nalbam/vibe-config)
    - Use `sync.sh` script to sync settings to `~/.claude/`
 
 ## Installation Flow

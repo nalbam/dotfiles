@@ -32,4 +32,4 @@ This directory contains the technical documentation for the dotfiles project.
 - `linux/zprofile.*.sh` - Linux architecture-specific profiles
 
 ### Claude Code Integration
-Claude Code settings are managed in a separate repository: [claude-config](https://github.com/nalbam/claude-config)
+Claude Code settings are managed in a separate repository: [vibe-config](https://github.com/nalbam/vibe-config)

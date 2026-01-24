@@ -44,11 +44,11 @@ The installation follows a 10-step process:
 
 ## Claude Code Integration
 
-Claude Code settings are managed in a separate repository: [claude-config](https://github.com/nalbam/claude-config)
+Claude Code settings are managed in a separate repository: [vibe-config](https://github.com/nalbam/vibe-config)
 
 To sync Claude Code settings:
 ```bash
-bash -c "$(curl -fsSL raw.githubusercontent.com/nalbam/claude-config/main/sync.sh)"
+bash -c "$(curl -fsSL raw.githubusercontent.com/nalbam/vibe-config/main/sync.sh)"
 ```
 
 ## Organization-Specific Features
