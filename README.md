@@ -65,7 +65,7 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 - AWS CLI, eksctl
 - Kubernetes tools (kubectl, helm, argo, argocd, istioctl, k9s, kubectx, kube-ps1)
 - Terraform tools (tenv, terraform-docs, tfenv)
-- Development tools (jq, yq, fzf, ripgrep, curl, wget, htop, httpie, grpcurl, graphviz, colordiff, figlet, fx, telnet)
+- Development tools (jq, yq, fzf, ripgrep, curl, wget, htop, httpie, grpcurl, graphviz, colordiff, figlet, fx, telnet, xz)
 - Language tools (Go, Ruby, Python/pyenv/pipenv, Node.js/nvm)
 - Security tools (gpg)
 - ZSH and Oh-My-ZSH with plugins (zsh-autosuggestions, zsh-syntax-highlighting)
@@ -94,12 +94,14 @@ The `.aliases` file provides many useful shortcuts:
 - **Toast CLI**: `t` (toast), `c` (change directory), `m` (caller-identity), `x` (context), `d` (dot), `e` (env), `g` (git), `r` (region), `p` (prompt), `ssm` (SSM)
 - **AWS**: `a` (aws), `av` (aws-vault helper with profile shortcuts: alpha, data, prod, nalbam, etc.)
 - **Kubernetes**: `k` (kubectl), `h` (helm)
-- **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy), `tfs` (state), `tfo` (output)
+- **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy), `tfs` (state), `tfo` (output), `tfdoc` (docs)
 - **Node.js**: `nn` (clean install with pnpm/npm detection), `nb` (build), `nd` (dev server), `nk` (kill dev servers on ports 3000-3999)
 - **Local Servers**: `ss` (start HTTP server), `sl` (list all servers), `sk` (kill by port or all)
-- **Claude**: `cc` (claude), `ccd` (claude doctor), `ccu` (ccusage)
-- **Python**: `py`, `py3`, `pip` (pip3), `pipi` (install), `pipu` (upgrade)
-- **Utilities**: `dt` (UTC timestamp), `dff` (colordiff)
+- **Claude**: `cc` (claude), `ccc` (--continue), `ccd` (claude doctor), `ccu` (ccusage)
+- **Python**: `py`, `py3`, `pip` (pip3), `pipi` (install), `pipu` (upgrade), `pipr` (requirements), `pipf` (freeze), `pipl` (list)
+- **Utilities**: `dt` (UTC timestamp), `dff` (colordiff), `ll` (ls -l), `l` (ls -al)
+- **Serverless**: `slsd` (sls deploy), `amp` (amplify)
+- **SSM**: `sg` (ssm get), `sp` (ssm put)
 - **Korean**: `ㅊ` (c), `ㅊㅇ` (cd), `ㅅㅅ` (tt)
 
 ## How to Contribute

@@ -21,8 +21,10 @@ This directory contains the technical documentation for the dotfiles project.
 - `aliases` - Custom aliases and helper functions
 - `bashrc` - Bash shell configuration
 - `gitconfig*` - Git configuration profiles
+- `macos` - macOS system preferences script
 - `profile` - Shell environment variables
 - `vimrc` - Vim editor settings
+- `wgetrc` - wget configuration
 - `zshrc` - ZSH shell configuration
 
 ### Platform-Specific

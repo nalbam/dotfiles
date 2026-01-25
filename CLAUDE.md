@@ -79,7 +79,7 @@ The installer detects organization context from hostname:
 Key tools include:
 - **Cloud/DevOps**: awscli, eksctl, tenv, helm, kubectl, argo, argocd, istioctl, k9s, kubectx, kube-ps1
 - **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, nvm, pyenv, pipenv, direnv
-- **Utilities**: jq, yq, fzf, ripgrep, tree, htop, httpie, curl, wget, grpcurl, graphviz, colordiff, figlet, fx
+- **Utilities**: jq, yq, fzf, ripgrep, tree, htop, httpie, curl, wget, grpcurl, graphviz, colordiff, figlet, fx, telnet, xz
 - **Security**: gpg, 1password-cli
 - **Shell**: zsh, zsh-autosuggestions, zsh-syntax-highlighting
 

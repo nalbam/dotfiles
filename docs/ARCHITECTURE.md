@@ -34,28 +34,49 @@ graph TD
 
 ```
 .
-├── CLAUDE.md           # Project-specific Claude Code instructions
-├── run.ps1             # Windows PowerShell installation script
-├── run.sh              # Main installation script (10-step process)
+├── CLAUDE.md              # Project-specific Claude Code instructions
+├── README.md              # Project overview and installation guide
+├── run.sh                 # Main installation script (10-step process)
+├── run.ps1                # Windows PowerShell installation script
 │
-├── darwin/             # macOS specific configurations
-│   ├── Brewfile        # macOS Homebrew package list
-│   └── zprofile.*.sh   # Architecture-specific profile settings
+├── aliases                # Custom command aliases and helper functions
+├── bashrc                 # Bash shell configuration
+├── gitconfig              # Git default settings
+├── gitconfig-bruce        # Bruce organization Git profile
+├── gitconfig-nalbam       # nalbam organization Git profile
+├── macos                  # macOS system preferences script
+├── profile                # Shell environment variables
+├── vimrc                  # Vim editor settings
+├── wgetrc                 # wget configuration
+├── zshrc                  # ZSH shell configuration
 │
-├── docs/               # Technical documentation
-│   ├── ARCHITECTURE.md # System architecture
-│   └── README.md       # Documentation index
-│
-└── linux/              # Linux specific configurations
-    ├── Brewfile        # Linux Homebrew package list
-    └── zprofile.*.sh   # Architecture-specific profile settings
+├── aws/                   # AWS configuration templates
+│   └── config             # AWS CLI config template
+├── darwin/                # macOS specific configurations
+│   ├── Brewfile           # macOS Homebrew package list
+│   ├── zprofile.arm64.sh  # Apple Silicon profile
+│   └── zprofile.x86_64.sh # Intel Mac profile
+├── docs/                  # Technical documentation
+│   ├── ARCHITECTURE.md    # System architecture
+│   └── README.md          # Documentation index
+├── iterm2/                # iTerm2 configuration
+│   └── profiles.json      # Dracula theme profile
+├── linux/                 # Linux specific configurations
+│   ├── Brewfile           # Linux Homebrew package list
+│   ├── zprofile.aarch64.sh  # Raspberry Pi 64-bit profile
+│   ├── zprofile.armv7l.sh   # Raspberry Pi 32-bit profile
+│   └── zprofile.x86_64.sh   # WSL/Ubuntu profile
+├── mac/                   # macOS keyboard settings
+│   └── DefaultkeyBinding.dict  # Korean won symbol mapping
+└── ssh/                   # SSH configuration templates
+    └── config             # SSH config template
 ```
 
 ## Core Functions
 
 1. System Detection
    - OS detection (darwin/linux/windows)
-   - Architecture detection (x86_64/arm64)
+   - Architecture detection (x86_64/arm64/aarch64/armv7l)
    - Package manager selection (brew/apt/choco)
 
 2. Configuration Management
