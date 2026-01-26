@@ -64,7 +64,6 @@ The installer detects organization context from hostname:
 - **npm**: Package manager itself (auto-update)
 - **corepack**: Node.js package manager manager
 - **serverless**: Serverless framework CLI
-- **@anthropic-ai/claude-code**: Claude Code AI assistant
 - **ccusage**: Claude Code usage tracking and status line
 
 ### PIP Packages
@@ -77,9 +76,9 @@ The installer detects organization context from hostname:
 
 ### Homebrew Packages (macOS & Linux)
 Key tools include:
-- **Cloud/DevOps**: awscli, eksctl, tenv, helm, kubectl, argo, argocd, istioctl, k9s, kubectx, kube-ps1
-- **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, nvm, pyenv, pipenv, direnv
-- **Utilities**: jq, yq, fzf, ripgrep, tree, htop, httpie, curl, wget, grpcurl, graphviz, colordiff, figlet, fx, telnet, xz
+- **Cloud/DevOps**: awscli, eksctl, tenv, helm, kubectl, argo, argocd, k9s, kubectx, kube-ps1, istioctl (macOS only)
+- **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, nvm, pyenv, direnv, pipenv (macOS only)
+- **Utilities**: jq, yq, fzf, tree, httpie, curl, wget, grpcurl, colordiff, figlet, fx, xz, ripgrep/htop/telnet/graphviz (macOS only)
 - **Security**: gpg, 1password-cli
 - **Shell**: zsh, zsh-autosuggestions, zsh-syntax-highlighting
 
@@ -243,3 +242,4 @@ Native Korean character aliases for quick command execution:
 - `ㅊ` → `c` (change directory with toast)
 - `ㅊㅇ` → `cd` (change directory)
 - `ㅅㅅ` → `tt` (re-run dotfiles installer)
+- `ㅍㅍ` → `vv` (sync vibe-config)

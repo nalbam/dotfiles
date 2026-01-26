@@ -89,7 +89,7 @@ graph TD
    - Homebrew for macOS and Linux
    - APT for Linux
    - Chocolatey for Windows
-   - NPM for Node.js packages (npm, corepack, serverless, @anthropic-ai/claude-code, ccusage)
+   - NPM for Node.js packages (npm, corepack, serverless, ccusage)
    - PIP for Python packages (toast-cli) with intelligent fallback (normal → --user → --break-system-packages → sudo)
    - Update throttling with timestamp tracking (12-hour interval minimum between updates)
 

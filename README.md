@@ -79,9 +79,9 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 ### Via NPM
 
-- Claude Code (@anthropic-ai/claude-code)
 - ccusage (Claude Code usage tracker)
 - Serverless Framework
+- corepack (Node.js package manager manager)
 
 ### Via PIP
 
@@ -91,7 +91,7 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 The `.aliases` file provides many useful shortcuts:
 
-- **Toast CLI**: `t` (toast), `c` (change directory), `m` (caller-identity), `x` (context), `d` (dot), `e` (env), `g` (git), `r` (region), `p` (prompt), `ssm` (SSM)
+- **Toast CLI**: `t` (toast), `c` (change directory), `m` (caller-identity), `x` (context), `d` (dot), `e` (env), `g` (git), `r` (region), `p` (prompt), `ssm` (SSM), `tt` (dotfiles reinstall), `vv` (vibe-config sync)
 - **AWS**: `a` (aws), `av` (aws-vault helper with profile shortcuts: alpha, data, prod, nalbam, etc.)
 - **Kubernetes**: `k` (kubectl), `h` (helm)
 - **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy), `tfs` (state), `tfo` (output), `tfdoc` (docs)
@@ -102,7 +102,7 @@ The `.aliases` file provides many useful shortcuts:
 - **Utilities**: `dt` (UTC timestamp), `dff` (colordiff), `ll` (ls -l), `l` (ls -al)
 - **Serverless**: `slsd` (sls deploy), `amp` (amplify)
 - **SSM**: `sg` (ssm get), `sp` (ssm put)
-- **Korean**: `ㅊ` (c), `ㅊㅇ` (cd), `ㅅㅅ` (tt)
+- **Korean**: `ㅊ` (c), `ㅊㅇ` (cd), `ㅅㅅ` (tt), `ㅍㅍ` (vv)
 
 ## How to Contribute
 
