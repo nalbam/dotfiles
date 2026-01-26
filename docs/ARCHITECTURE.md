@@ -23,7 +23,7 @@ graph TD
 
     D --> D1[Homebrew]
     D --> D2[APT]
-    D --> D3[Chocolatey]
+    D --> D3[winget]
 
     E --> E1[ZSH]
     E --> E2[Oh My ZSH]
@@ -88,7 +88,7 @@ graph TD
 3. Package Management
    - Homebrew for macOS and Linux
    - APT for Linux
-   - Chocolatey for Windows
+   - winget for Windows
    - NPM for Node.js packages (npm, corepack, serverless, ccusage)
    - PIP for Python packages (toast-cli) with intelligent fallback (normal → --user → --break-system-packages → sudo)
    - Update throttling with timestamp tracking (12-hour interval minimum between updates)
