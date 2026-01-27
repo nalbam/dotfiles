@@ -42,6 +42,7 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 │   ├── Brewfile       # macOS Homebrew package list
 │   └── zprofile.*     # macOS architecture-specific profile settings
 ├── docs/              # Technical documentation
+│   ├── README.md      # Documentation index
 │   └── ARCHITECTURE.md # System architecture
 └── linux/             # Linux specific settings
     ├── Brewfile       # Linux Homebrew package list
@@ -91,7 +92,7 @@ bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
 
 The `.aliases` file provides many useful shortcuts:
 
-- **Toast CLI**: `t` (toast), `c` (change directory), `m` (caller-identity), `x` (context), `d` (dot), `e` (env), `g` (git), `r` (region), `p` (prompt), `ssm` (SSM), `tt` (dotfiles reinstall), `vv` (vibe-config sync)
+- **Toast CLI**: `t` (toast), `tu` (toast-cli update), `c` (change directory), `m` (caller-identity), `x` (context), `d` (dot), `e` (env), `g` (git), `r` (region), `p` (prompt), `ssm` (SSM), `tt` (dotfiles reinstall), `vv` (vibe-config sync)
 - **AWS**: `a` (aws), `av` (aws-vault helper with profile shortcuts: alpha, data, prod, nalbam, etc.)
 - **Kubernetes**: `k` (kubectl), `h` (helm)
 - **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy), `tfs` (state), `tfo` (output), `tfdoc` (docs)

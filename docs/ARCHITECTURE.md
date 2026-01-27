@@ -77,7 +77,7 @@ graph TD
 1. System Detection
    - OS detection (darwin/linux/windows)
    - Architecture detection (x86_64/arm64/aarch64/armv7l)
-   - Package manager selection (brew/apt/choco)
+   - Package manager selection (brew/apt/winget)
 
 2. Configuration Management
    - Git configuration with organization-specific settings
