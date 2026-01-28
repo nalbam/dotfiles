@@ -48,7 +48,7 @@ Claude Code settings are managed in a separate repository: [vibe-config](https:/
 
 To sync Claude Code settings:
 ```bash
-bash -c "$(curl -fsSL raw.githubusercontent.com/nalbam/vibe-config/main/sync.sh)"
+bash -c "$(curl -fsSL nalbam.github.io/vibe-config/sync.sh)"
 ```
 
 ## Organization-Specific Features
@@ -191,7 +191,6 @@ Multiple gitconfig profiles for different contexts:
   - `darwin/zprofile.arm64.sh`, `darwin/zprofile.x86_64.sh`
   - `linux/zprofile.x86_64.sh`, `linux/zprofile.aarch64.sh`, `linux/zprofile.armv7l.sh`
 - Graceful handling of missing tools (brew, pyenv) in profile scripts
-- Environment variable support via `~/.claude/.env.local` (auto-sourced in `.zshrc`)
 
 ### Toast CLI Integration
 The dotfiles provide extensive integration with Toast CLI for workspace management:
@@ -204,24 +203,24 @@ The dotfiles provide extensive integration with Toast CLI for workspace manageme
 ### Development Helper Functions
 Beyond simple aliases, the repository includes intelligent helper functions:
 
-**Node.js Ecosystem** (in `aliases:114-156`):
+**Node.js Ecosystem** (in `aliases:116-158`):
 - `nn()`: Smart clean install with automatic pnpm/npm detection
 - `nb()`: Smart build command (pnpm/npm auto-detection)
 - `nd()`: Start dev server with automatic port cleanup
 - `nk()`: Kill dev servers on ports 3000-3999
 
-**Local Server Management** (in `aliases:173-241`):
+**Local Server Management** (in `aliases:176-243`):
 - `ss([dir], [port])`: Start Python HTTP server (default: docs/, port 8000)
 - `sl()`: List all running local dev servers
 - `sk(<port|all>)`: Kill servers by port or all at once
 
-**AWS Vault Helper** (in `aliases:36-78`):
+**AWS Vault Helper** (in `aliases:39-79`):
 - `av()`: Profile-aware AWS Vault execution with shortcuts
   - Profiles: `a|alpha`, `d|data`, `p|prod`, `n|nalbam`, `t|two`, `k|krug`, `o|ops`, `b|bruce`
   - Commands: `c|clear`, `l|list`
   - Example: `av n kubectl get pods` (execute kubectl in nalbam profile)
 
-**Terraform Workflows** (in `aliases:83-106`):
+**Terraform Workflows** (in `aliases:84-107`):
 - Complete set of aliases for init, plan, apply, destroy
 - State management shortcuts (`tfsl`, `tfss`, `tfsr`)
 - Auto-formatting and validation (`tff`, `tfp`)
