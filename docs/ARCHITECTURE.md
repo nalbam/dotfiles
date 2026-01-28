@@ -163,7 +163,6 @@ sequenceDiagram
    - **tfenv**: Automatic Terraform version installation with ARM64 support
    - **Korean keyboard**: Native Korean character aliases for common commands
    - **Terminal integration**: VS Code and Kiro terminal shell integration
-   - **Environment variables**: Support for `.claude/.env.local` configuration
 
 ## Performance Optimization
 
