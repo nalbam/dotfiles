@@ -84,25 +84,24 @@ alias sp='m && ssm put'
 # Terraform
 alias tf='terraform'
 alias tfc='rm -rf .terraform .terraform.lock.hcl'
-alias tff='m && tf init && tf fmt'
-alias tfp='m && tf init && tf fmt && tf plan'
-alias tfa='m && tf init && tf fmt && tf apply'
-alias tfd='m && tf init && tf destroy'
-alias tfs='m && tf init && tf state'
-alias tfg='m && tf init && tf graph'
-alias tfo='m && tf init && tf output'
+alias tff='m && tf init -upgrade && tf fmt'
+alias tfp='m && tf init -upgrade && tf fmt && tf plan'
+alias tfa='m && tf init -upgrade && tf fmt && tf apply'
+alias tfd='m && tf init -upgrade && tf destroy'
+alias tfs='m && tf init -upgrade && tf state'
+alias tfg='m && tf init -upgrade && tf graph'
+alias tfo='m && tf init -upgrade && tf output'
 
 alias tfcp='tfc && tfp'
 alias tfca='tfc && tfa'
 
 alias tfat='tfa -target'
 
-alias tfim='tf init && tf import'
+alias tfim='m && tf init -upgrade && tf import'
 
-alias tfsl='tf init && tf state list'
-alias tfss='tf init && tf state show'
-alias tfsr='tf init && tf state rm'
-
+alias tfsl='m && tf init -upgrade && tf state list'
+alias tfss='m && tf init -upgrade && tf state show'
+alias tfsr='m && tf init -upgrade && tf state rm'
 # Terraform docs
 alias tfdoc="terraform-docs markdown"
 
