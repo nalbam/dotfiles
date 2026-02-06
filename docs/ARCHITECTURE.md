@@ -98,7 +98,7 @@ graph TD
    - Oh My ZSH installation with plugins (git, kube-ps1)
    - Dracula theme integration (ZSH and iTerm2)
    - Custom aliases and profiles
-   - Tool version managers (tfenv, pyenv, nvm)
+   - Tool version managers (tenv, tfenv, pyenv, nvm)
    - VS Code and Kiro terminal shell integration
    - Toast CLI workspace management integration
 
@@ -160,7 +160,7 @@ sequenceDiagram
    - **AWS Vault**: Profile shortcuts with automatic credential handling
 
 3. Shell Customization
-   - **tfenv**: Automatic Terraform version installation with ARM64 support
+   - **tenv/tfenv**: Terraform version management (tenv via Homebrew, tfenv optional at ~/.tfenv) with ARM64 support
    - **Korean keyboard**: Native Korean character aliases for common commands
    - **Terminal integration**: VS Code and Kiro terminal shell integration
 

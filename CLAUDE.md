@@ -76,17 +76,17 @@ The installer detects organization context from hostname:
 
 ### Homebrew Packages (macOS & Linux)
 Key tools include:
-- **Cloud/DevOps**: awscli, eksctl, tenv, helm, kubectl, argo, argocd, k9s, kubectx, kube-ps1, istioctl (macOS only)
-- **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, nvm, pyenv, direnv, pipenv (macOS only)
+- **Cloud/DevOps**: awscli, eksctl, tenv, helm, kubectl, argo, argocd, k9s, kubectx, kube-ps1
+- **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, node, nvm, pyenv, direnv, pipenv (macOS only)
 - **Utilities**: jq, yq, fzf, tree, httpie, curl, wget, grpcurl, colordiff, figlet, fx, xz, ripgrep/htop/telnet/graphviz (macOS only)
 - **Security**: gpg, 1password-cli
 - **Shell**: zsh, zsh-autosuggestions, zsh-syntax-highlighting
 
 ### macOS Casks
 - **Essential**: 1password-cli, aws-vault-binary, iterm2, visual-studio-code, google-drive
-- **Fonts**: font-dejavu-sans-mono-nerd-font
+- **Fonts**: font-dejavu-sans-mono-nerd-font (macOS & Linux)
 - **User-specific** (if USER=nalbam): 1password, google-chrome, slack, zoom
-- **Third-party taps**: opspresso/tap/toast, pakerwreah/calendr/calendr
+- **Third-party taps**: opspresso/tap/toast, pakerwreah/calendr/calendr (macOS only)
 
 ## Error Handling & Resilience
 
@@ -203,13 +203,13 @@ The dotfiles provide extensive integration with Toast CLI for workspace manageme
 ### Development Helper Functions
 Beyond simple aliases, the repository includes intelligent helper functions:
 
-**Node.js Ecosystem** (in `aliases:116-158`):
+**Node.js Ecosystem** (in `aliases:115-158`):
 - `nn()`: Smart clean install with automatic pnpm/npm detection
 - `nb()`: Smart build command (pnpm/npm auto-detection)
 - `nd()`: Start dev server with automatic port cleanup
 - `nk()`: Kill dev servers on ports 3000-3999
 
-**Local Server Management** (in `aliases:176-243`):
+**Local Server Management** (in `aliases:175-242`):
 - `ss([dir], [port])`: Start Python HTTP server (default: docs/, port 8000)
 - `sl()`: List all running local dev servers
 - `sk(<port|all>)`: Kill servers by port or all at once
@@ -227,7 +227,8 @@ Beyond simple aliases, the repository includes intelligent helper functions:
 
 ### Tool Version Managers
 Integrated version managers with automatic configuration:
-- **tfenv**: Terraform version manager with `TFENV_AUTO_INSTALL=true` and ARM64 support
+- **tenv**: Terraform version manager installed via Homebrew
+- **tfenv**: Legacy Terraform version manager (optional, manually installed at `~/.tfenv`) with `TFENV_AUTO_INSTALL=true` and ARM64 support
 - **pyenv**: Python version manager with automatic initialization
 - **nvm**: Node.js version manager with automatic loading
 
