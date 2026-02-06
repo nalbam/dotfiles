@@ -25,7 +25,7 @@ Development environment automation tool that helps you quickly set up a consiste
 ### macOS / Linux
 
 ```bash
-bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
+curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 ```
 
 ### Windows (PowerShell)

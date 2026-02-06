@@ -10,7 +10,7 @@ This is a dotfiles repository that provides automated development environment se
 
 ```bash
 # Primary installation method (run from anywhere)
-bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"
+curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 
 # Local installation (if repository is already cloned)
 ./run.sh

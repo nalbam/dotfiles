@@ -3,8 +3,8 @@
 # Toast CLI shortcuts
 alias t='toast'
 alias tu='python3 -m pip install --user -U toast-cli'
-alias tt='bash -c "$(curl -fsSL nalbam.github.io/dotfiles/run.sh)"'
-alias vv='bash -c "$(curl -fsSL nalbam.github.io/vibe-config/sync.sh)"'
+alias tt='curl -fsSL nalbam.github.io/dotfiles/run.sh | bash'
+alias vv='curl -fsSL nalbam.github.io/vibe-config/sync.sh | bash'
 
 # Change directory with toast cdw
 c() {
