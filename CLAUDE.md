@@ -48,7 +48,7 @@ Claude Code settings are managed in a separate repository: [vibe-config](https:/
 
 To sync Claude Code settings:
 ```bash
-bash -c "$(curl -fsSL nalbam.github.io/vibe-config/sync.sh)"
+curl -fsSL nalbam.github.io/vibe-config/sync.sh | bash
 ```
 
 ## Organization-Specific Features
