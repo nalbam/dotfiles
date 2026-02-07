@@ -47,7 +47,6 @@ if ENV['USER'] == "nalbam"
   cask "1password"
   cask "google-chrome"
   cask "slack"
-  cask "zoom"
 end
 
 cask "1password-cli"
