@@ -13,7 +13,7 @@ if [ "${OS_NAME}" == "darwin" ]; then
 elif [ "${OS_NAME}" == "linux" ]; then
   INSTALLER="apt"
 elif [ "${OS_NAME}" == "mingw64_nt" ]; then
-  INSTALLER="choco"
+  INSTALLER="winget"
 fi
 
 # 설치 진행 단계 설정

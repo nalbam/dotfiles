@@ -64,7 +64,7 @@ curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 
 - Git, GitHub CLI (gh), hub, git-lfs, git-secrets
 - AWS CLI, eksctl
-- Kubernetes tools (kubectl, helm, argo, argocd, istioctl, k9s, kubectx, kube-ps1)
+- Kubernetes tools (kubectl, helm, argo, argocd, k9s, kubectx, kube-ps1)
 - Terraform tools (tenv, terraform-docs)
 - Development tools (jq, yq, fzf, ripgrep, curl, wget, htop, httpie, grpcurl, graphviz, colordiff, figlet, fx, telnet, xz)
 - Language tools (Go, Ruby, Python/pyenv/pipenv, Node.js/node/nvm)

@@ -85,7 +85,7 @@ Key tools include:
 ### macOS Casks
 - **Essential**: 1password-cli, aws-vault-binary, iterm2, visual-studio-code, google-drive
 - **Fonts**: font-dejavu-sans-mono-nerd-font (macOS & Linux)
-- **User-specific** (if USER=nalbam): 1password, google-chrome, slack, zoom
+- **User-specific** (if USER=nalbam): 1password, google-chrome, slack
 - **Third-party taps**: opspresso/tap/toast, pakerwreah/calendr/calendr (macOS only)
 
 ## Error Handling & Resilience
@@ -147,13 +147,12 @@ This allows secure storage of credentials in 1Password vaults instead of plain t
 - **aarch64**: Raspberry Pi 64-bit OS
 - **armv7l**: Raspberry Pi 32-bit OS
 - Homebrew at `/home/linuxbrew/.linuxbrew` (optional)
-- APT package manager with daily update throttling
+- APT package manager with 12-hour update throttling
 - All zprofile files gracefully handle missing brew/pyenv
 
 ### WSL-Specific Considerations
 - Detected as Linux with x86_64 architecture
 - Homebrew installation is optional but supported
-- Windows notifications available via notify.sh
 - Network access inherits from Windows host
 
 ### Raspberry Pi Considerations
