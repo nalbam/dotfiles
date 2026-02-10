@@ -32,10 +32,10 @@ alias h='helm'
 # tmux
 alias tm='tmux'
 alias tl='tmux ls'
+alias tn='tmux new -s'
 alias ta='tmux attach -t'
 alias tk='tmux kill-session -t'
 alias tka='tmux kill-server'
-alias tn='tmux new -s'
 
 # Claude CLI shortcuts
 alias cc='claude'
