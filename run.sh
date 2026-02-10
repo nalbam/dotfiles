@@ -771,6 +771,7 @@ _download .bashrc bashrc
 _download .profile profile
 _download .aliases aliases
 _download .vimrc vimrc
+_download .tmux.conf tmux.conf
 _download .zshrc zshrc
 _download .zprofile $OS_NAME/zprofile.$OS_ARCH.sh
 _ok "Shell configuration files applied"

@@ -82,3 +82,16 @@ fi
 
 # kiro
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
+
+# tmux auto-start
+# Auto-start tmux in iTerm2 (macOS) or WSL (Linux)
+if [[ -z "$TMUX" ]] && [[ -z "$SSH_CONNECTION" ]]; then
+  # Check if we're in iTerm2 or WSL environment
+  if [[ "$TERM_PROGRAM" == "iTerm.app" ]] || [[ -n "$WSL_DISTRO_NAME" ]] || [[ "$(uname -r)" == *microsoft* ]]; then
+    # Check if tmux is installed
+    if command -v tmux &> /dev/null; then
+      # Try to attach to 'main' session, create if doesn't exist
+      tmux new-session -A -s main
+    fi
+  fi
+fi
