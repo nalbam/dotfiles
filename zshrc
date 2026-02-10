@@ -90,17 +90,28 @@ if [[ -z "$TMUX" ]] && [[ -z "$SSH_CONNECTION" ]]; then
   if [[ "$TERM_PROGRAM" == "iTerm.app" ]] || [[ -n "$WSL_DISTRO_NAME" ]] || [[ "$(uname -r)" == *microsoft* ]]; then
     # Check if tmux is installed
     if command -v tmux &> /dev/null; then
-      # Check if 'main' session exists
-      if ! tmux has-session -t main 2>/dev/null; then
-        # New session - show welcome message before starting
+      # Show welcome message once per day
+      TMUX_WELCOME_FLAG=~/.tmux-welcome-shown
+      CURRENT_DATE=$(date +%Y%m%d)
+      if [ ! -f "$TMUX_WELCOME_FLAG" ] || [ "$CURRENT_DATE" != "$(cat "$TMUX_WELCOME_FLAG" 2>/dev/null)" ]; then
         if [ -f ~/.tmux-welcome.sh ]; then
           bash ~/.tmux-welcome.sh
           echo -e "\033[0;36mPress Enter to start tmux...\033[0m"
           read
+          echo "$CURRENT_DATE" > "$TMUX_WELCOME_FLAG"
         fi
       fi
-      # Try to attach to 'main' session, create if doesn't exist
-      tmux new-session -A -s main
+
+      # Find next available session number
+      SESSION_PREFIX="tab"
+      SESSION_NUM=1
+      while tmux has-session -t "$SESSION_PREFIX-$SESSION_NUM" 2>/dev/null; do
+        SESSION_NUM=$((SESSION_NUM + 1))
+      done
+      SESSION_NAME="$SESSION_PREFIX-$SESSION_NUM"
+
+      # Create new independent session
+      tmux new-session -s "$SESSION_NAME"
     fi
   fi
 fi
