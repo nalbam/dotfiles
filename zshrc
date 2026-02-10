@@ -82,24 +82,3 @@ fi
 
 # kiro
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
-
-# # tmux auto-start
-# # Auto-start tmux in iTerm2 (macOS) or WSL (Linux)
-# if [[ -z "$TMUX" ]] && [[ -z "$SSH_CONNECTION" ]]; then
-#   # Check if we're in iTerm2 or WSL environment
-#   if [[ "$TERM_PROGRAM" == "iTerm.app" ]] || [[ -n "$WSL_DISTRO_NAME" ]] || [[ "$(uname -r)" == *microsoft* ]]; then
-#     # Check if tmux is installed
-#     if command -v tmux &> /dev/null; then
-#       # Find next available session number
-#       SESSION_PREFIX="tab"
-#       SESSION_NUM=1
-#       while tmux has-session -t "$SESSION_PREFIX-$SESSION_NUM" 2>/dev/null; do
-#         SESSION_NUM=$((SESSION_NUM + 1))
-#       done
-#       SESSION_NAME="$SESSION_PREFIX-$SESSION_NUM"
-
-#       # Create new independent session
-#       tmux new-session -s "$SESSION_NAME"
-#     fi
-#   fi
-# fi
