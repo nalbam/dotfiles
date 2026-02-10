@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# tmux welcome message with usage guide
+# tmux help - quick reference guide
 
 # Colors
 CYAN='\033[0;36m'

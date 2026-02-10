@@ -29,12 +29,13 @@ alias a='aws'
 alias k='kubectl'
 alias h='helm'
 
-# tmux session management
-alias tl='tmux ls'                    # List sessions
-alias ta='tmux attach -t'             # Attach to session
-alias tk='tmux kill-session -t'       # Kill session
-alias tka='tmux kill-server'          # Kill all sessions
-alias tn='tmux new -s'                # New named session
+# tmux 세션 관리
+alias tl='tmux ls'                    # 세션 목록
+alias ta='tmux attach -t'             # 세션 연결
+alias tk='tmux kill-session -t'       # 세션 종료
+alias tka='tmux kill-server'          # 모든 세션 종료
+alias tn='tmux new -s'                # 새 세션 생성
+alias th='bash ~/.tmux-help.sh'       # tmux 도움말
 
 # Claude CLI shortcuts
 alias cc='claude'

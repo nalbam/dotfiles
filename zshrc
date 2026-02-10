@@ -90,18 +90,6 @@ if [[ -z "$TMUX" ]] && [[ -z "$SSH_CONNECTION" ]]; then
   if [[ "$TERM_PROGRAM" == "iTerm.app" ]] || [[ -n "$WSL_DISTRO_NAME" ]] || [[ "$(uname -r)" == *microsoft* ]]; then
     # Check if tmux is installed
     if command -v tmux &> /dev/null; then
-      # Show welcome message once per day
-      TMUX_WELCOME_FLAG=~/.tmux-welcome-shown
-      CURRENT_DATE=$(date +%Y%m%d)
-      if [ ! -f "$TMUX_WELCOME_FLAG" ] || [ "$CURRENT_DATE" != "$(cat "$TMUX_WELCOME_FLAG" 2>/dev/null)" ]; then
-        if [ -f ~/.tmux-welcome.sh ]; then
-          bash ~/.tmux-welcome.sh
-          echo -e "\033[0;36mPress Enter to start tmux...\033[0m"
-          read
-          echo "$CURRENT_DATE" > "$TMUX_WELCOME_FLAG"
-        fi
-      fi
-
       # Find next available session number
       SESSION_PREFIX="tab"
       SESSION_NUM=1
