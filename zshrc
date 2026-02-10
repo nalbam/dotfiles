@@ -90,6 +90,15 @@ if [[ -z "$TMUX" ]] && [[ -z "$SSH_CONNECTION" ]]; then
   if [[ "$TERM_PROGRAM" == "iTerm.app" ]] || [[ -n "$WSL_DISTRO_NAME" ]] || [[ "$(uname -r)" == *microsoft* ]]; then
     # Check if tmux is installed
     if command -v tmux &> /dev/null; then
+      # Check if 'main' session exists
+      if ! tmux has-session -t main 2>/dev/null; then
+        # New session - show welcome message before starting
+        if [ -f ~/.tmux-welcome.sh ]; then
+          bash ~/.tmux-welcome.sh
+          echo -e "\033[0;36mPress Enter to start tmux...\033[0m"
+          read
+        fi
+      fi
       # Try to attach to 'main' session, create if doesn't exist
       tmux new-session -A -s main
     fi
