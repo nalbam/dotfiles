@@ -36,7 +36,6 @@ alias ta='tmux attach -t'
 alias tk='tmux kill-session -t'
 alias tka='tmux kill-server'
 alias tn='tmux new -s'
-alias th='bash ~/.tmux-help.sh'
 
 # Claude CLI shortcuts
 alias cc='claude'
