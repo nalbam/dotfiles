@@ -37,6 +37,23 @@ alias ta='tmux attach -t'
 alias tk='tmux kill-session -t'
 alias tka='tmux kill-server'
 
+# Claude tasks in tmux
+tc() {
+  # View Claude Code background tasks/agents
+  if [ -d ~/.claude/tasks ]; then
+    if [ -n "$TMUX" ]; then
+      # If in tmux, open new window
+      tmux new-window -n "claude-tasks" "ls -lath ~/.claude/tasks/ && echo '\nPress any key to exit' && read -n 1"
+    else
+      ls -lath ~/.claude/tasks/
+    fi
+  else
+    echo "No Claude tasks directory found"
+  fi
+}
+alias tcl='ls -lath ~/.claude/tasks/ 2>/dev/null || echo "No Claude tasks found"'
+alias tcw='watch -n 1 "ls -lath ~/.claude/tasks/ 2>/dev/null || echo No Claude tasks found"'
+
 # Claude CLI shortcuts
 alias cc='claude'
 alias ccc='claude --continue'
