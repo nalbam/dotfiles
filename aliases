@@ -37,22 +37,78 @@ alias ta='tmux attach -t'
 alias tk='tmux kill-session -t'
 alias tka='tmux kill-server'
 
-# Claude tasks in tmux
+# Claude tasks in tmux - Monitor multiple agents in split panes
 tc() {
-  # View Claude Code background tasks/agents
-  if [ -d ~/.claude/tasks ]; then
-    if [ -n "$TMUX" ]; then
-      # If in tmux, open new window
-      tmux new-window -n "claude-tasks" "ls -lath ~/.claude/tasks/ && echo '\nPress any key to exit' && read -n 1"
-    else
-      ls -lath ~/.claude/tasks/
-    fi
-  else
+  # Monitor Claude Code agents in split tmux panes
+  # Usage: tc [num_panes]
+
+  local num_panes="${1:-4}"  # Default 4 panes
+
+  if [ -z "$TMUX" ]; then
+    echo "Error: Must be run inside tmux"
+    echo "Start tmux first: tmux new -s claude"
+    return 1
+  fi
+
+  local tasks_dir="$HOME/.claude/tasks"
+
+  if [ ! -d "$tasks_dir" ]; then
     echo "No Claude tasks directory found"
+    return 1
+  fi
+
+  # Find all task output files (most recent first)
+  local task_files=($(find "$tasks_dir" -type f -name "*.txt" -o -name "*.log" 2>/dev/null | head -n 10))
+  local num_tasks=${#task_files[@]}
+
+  echo "Creating tmux layout with $num_panes panes for monitoring Claude agents..."
+
+  # Create new window
+  tmux new-window -n "claude-agents"
+
+  # First pane - task overview
+  if [ $num_tasks -gt 0 ]; then
+    tmux send-keys "watch -n 1 'echo \"=== Claude Code Agents ===\" && ls -lth $tasks_dir | head -15'" C-m
+  else
+    tmux send-keys "watch -n 1 'echo \"=== Claude Code Agents ===\" && echo \"No active tasks\" && ls -lth $tasks_dir'" C-m
+  fi
+
+  # Create additional panes
+  for (( i=1; i<$num_panes; i++ )); do
+    if [ $i -eq 1 ]; then
+      tmux split-window -v
+    elif [ $((i % 2)) -eq 0 ]; then
+      tmux split-window -h
+    else
+      tmux split-window -v
+    fi
+
+    # If we have task files, tail them
+    if [ $((i-1)) -lt $num_tasks ]; then
+      local task_file="${task_files[$((i-1))]}"
+      local task_name=$(basename "$task_file")
+      tmux send-keys "echo '=== Agent $i: $task_name ===' && tail -f '$task_file'" C-m
+    else
+      tmux send-keys "echo '=== Pane $i: Ready ===' && echo 'Waiting for agent tasks...' && sleep 1 && ls -lth $tasks_dir" C-m
+    fi
+  done
+
+  # Balance layout
+  tmux select-layout tiled
+  tmux select-pane -t 0
+
+  if [ $num_tasks -gt 0 ]; then
+    echo "✓ Monitoring $num_tasks agent(s) in $num_panes panes"
+  else
+    echo "✓ Layout ready. Agent outputs will appear when tasks start."
   fi
 }
+
+# Quick aliases
 alias tcl='ls -lath ~/.claude/tasks/ 2>/dev/null || echo "No Claude tasks found"'
-alias tcw='watch -n 1 "ls -lath ~/.claude/tasks/ 2>/dev/null || echo No Claude tasks found"'
+alias tc2='tc 2'  # 2 panes
+alias tc4='tc 4'  # 4 panes (default)
+alias tc6='tc 6'  # 6 panes
 
 # Claude CLI shortcuts
 alias cc='claude'
