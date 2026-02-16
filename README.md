@@ -56,6 +56,7 @@ curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 - `.vimrc`: Vim editor settings
 - `.aliases`: Custom command aliases
 - `.profile`: Shell environment variables
+- `.tmux.conf`: Tmux terminal multiplexer configuration
 - `.macos`: macOS system settings
 
 ## Automatically Installed Tools
@@ -66,7 +67,7 @@ curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 - AWS CLI, eksctl
 - Kubernetes tools (kubectl, helm, argo, argocd, k9s, kubectx, kube-ps1)
 - Terraform tools (tenv, terraform-docs)
-- Development tools (jq, yq, fzf, ripgrep, curl, wget, htop, httpie, grpcurl, graphviz, colordiff, figlet, fx, telnet, xz)
+- Development tools (jq, yq, fzf, ripgrep, curl, wget, htop, httpie, grpcurl, graphviz, colordiff, figlet, fx, telnet, xz, tmux)
 - Language tools (Go, Ruby, Python/pyenv/pipenv, Node.js/node/nvm)
 - Security tools (gpg)
 - ZSH and Oh-My-ZSH with plugins (zsh-autosuggestions, zsh-syntax-highlighting)
@@ -98,7 +99,8 @@ The `.aliases` file provides many useful shortcuts:
 - **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy), `tfs` (state), `tfo` (output), `tfdoc` (docs)
 - **Node.js**: `nn` (clean install with pnpm/npm detection), `nb` (build), `nd` (dev server), `nk` (kill dev servers on ports 3000-3999)
 - **Local Servers**: `ss` (start HTTP server), `sl` (list all servers), `sk` (kill by port or all)
-- **Claude**: `cc` (claude), `ccc` (--continue), `ccd` (claude doctor), `ccu` (ccusage)
+- **Tmux**: `tm` (tmux), `tl` (list), `tn` (new session), `ta` (attach), `tk` (kill session), `tka` (kill server)
+- **Claude**: `cc` (claude), `ccc` (--continue), `ccd` (claude doctor), `ccu` (ccusage), `tc` (monitor agents in tmux), `tcl` (list tasks)
 - **Python**: `py`, `py3`, `pip` (pip3), `pipi` (install), `pipu` (upgrade), `pipr` (requirements), `pipf` (freeze), `pipl` (list)
 - **Utilities**: `dt` (UTC timestamp), `dff` (colordiff), `ll` (ls -l), `l` (ls -al)
 - **Serverless**: `slsd` (sls deploy), `amp` (amplify)

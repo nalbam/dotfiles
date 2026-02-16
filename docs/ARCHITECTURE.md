@@ -46,6 +46,7 @@ graph TD
 ├── gitconfig-nalbam       # nalbam organization Git profile
 ├── macos                  # macOS system preferences script
 ├── profile                # Shell environment variables
+├── tmux.conf              # Tmux terminal multiplexer configuration
 ├── vimrc                  # Vim editor settings
 ├── wgetrc                 # wget configuration
 ├── zshrc                  # ZSH shell configuration
@@ -98,6 +99,8 @@ graph TD
    - Oh My ZSH installation with plugins (git, kube-ps1)
    - Dracula theme integration (ZSH and iTerm2)
    - Custom aliases and profiles
+   - Tmux configuration with system metrics status bar, vim-like navigation, and clipboard integration
+   - Claude tasks monitoring in tmux split panes (`tc` function)
    - Tool version managers (tenv, tfenv, pyenv, nvm)
    - VS Code and Kiro terminal shell integration
    - Toast CLI workspace management integration

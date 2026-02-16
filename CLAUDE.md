@@ -53,10 +53,10 @@ curl -fsSL nalbam.github.io/vibe-config/sync.sh | bash
 
 ## Organization-Specific Features
 
-The installer detects organization context from hostname:
-- `nalbam-*` hostnames: Uses `me@nalbam.com` email default
-- `Karrot-*` or `daangn-*` hostnames: Uses `@daangn.com` email default
-- Other hostnames: Uses `@gmail.com` email default
+Git configuration uses directory-based `includeIf` rules to apply different profiles:
+- `~/workspace/github.com/nalbam/` and `~/workspace/github.com/opspresso/`: Uses `.gitconfig-nalbam` profile
+- `~/workspace/github-emu.com/`, `~/workspace/github.dev.kr.krpay.io/`, `~/workspace/github.com/karrot-emu/`, `~/workspace/github.com/daangn/`: Uses `.gitconfig-bruce` profile
+- Default: Uses `me@nalbam.com` email (set in base `.gitconfig`)
 
 ## Installed Packages
 
@@ -77,7 +77,7 @@ The installer detects organization context from hostname:
 ### Homebrew Packages (macOS & Linux)
 Key tools include:
 - **Cloud/DevOps**: awscli, eksctl, tenv, helm, kubectl, argo, argocd, k9s, kubectx, kube-ps1
-- **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, node, nvm, pyenv, direnv, pipenv (macOS only)
+- **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, node, nvm, pyenv, direnv/pipenv (macOS only)
 - **Utilities**: jq, yq, fzf, tree, httpie, curl, wget, grpcurl, colordiff, figlet, fx, xz, ripgrep/htop/telnet/graphviz (macOS only)
 - **Security**: gpg, 1password-cli
 - **Shell**: zsh, zsh-autosuggestions, zsh-syntax-highlighting
@@ -202,24 +202,24 @@ The dotfiles provide extensive integration with Toast CLI for workspace manageme
 ### Development Helper Functions
 Beyond simple aliases, the repository includes intelligent helper functions:
 
-**Node.js Ecosystem** (in `aliases:115-158`):
+**Node.js Ecosystem** (in `aliases:196-238`):
 - `nn()`: Smart clean install with automatic pnpm/npm detection
 - `nb()`: Smart build command (pnpm/npm auto-detection)
 - `nd()`: Start dev server with automatic port cleanup
 - `nk()`: Kill dev servers on ports 3000-3999
 
-**Local Server Management** (in `aliases:175-242`):
+**Local Server Management** (in `aliases:256-323`):
 - `ss([dir], [port])`: Start Python HTTP server (default: docs/, port 8000)
 - `sl()`: List all running local dev servers
 - `sk(<port|all>)`: Kill servers by port or all at once
 
-**AWS Vault Helper** (in `aliases:39-79`):
+**AWS Vault Helper** (in `aliases:120-152`):
 - `av()`: Profile-aware AWS Vault execution with shortcuts
   - Profiles: `a|alpha`, `d|data`, `p|prod`, `n|nalbam`, `t|two`, `k|krug`, `o|ops`, `b|bruce`
   - Commands: `c|clear`, `l|list`
   - Example: `av n kubectl get pods` (execute kubectl in nalbam profile)
 
-**Terraform Workflows** (in `aliases:84-107`):
+**Terraform Workflows** (in `aliases:166-187`):
 - Complete set of aliases for init, plan, apply, destroy
 - State management shortcuts (`tfsl`, `tfss`, `tfsr`)
 - Auto-formatting and validation (`tff`, `tfp`)
@@ -235,6 +235,23 @@ Integrated version managers with automatic configuration:
 - **VS Code**: Shell integration for VS Code terminal (auto-detected)
 - **Kiro**: Shell integration for Kiro terminal (auto-detected)
 - **Kubernetes**: `kube-ps1` prompt integration showing current cluster/namespace
+
+### Tmux Configuration
+Custom tmux configuration (`tmux.conf`) with:
+- Mouse support and vi-mode copy
+- System clipboard integration (pbcopy on macOS, xclip on Linux)
+- Status bar with system metrics (CPU, memory, battery, network, date/time)
+- Vim-like pane navigation (`h/j/k/l`) and resize (`H/J/K/L`)
+- Split panes with `|` (horizontal) and `-` (vertical)
+- Window numbering starts at 1, auto-renumber on close
+
+**Tmux aliases** (in `aliases:33-38`):
+- `tm` (tmux), `tl` (list sessions), `tn` (new session), `ta` (attach), `tk` (kill session), `tka` (kill server)
+
+**Claude tasks monitoring** (in `aliases:41-111`):
+- `tc([num_panes])`: Monitor Claude Code agents in split tmux panes (default: 4 panes)
+- `tcl`: List Claude tasks
+- `tc2`, `tc4`, `tc6`: Quick shortcuts for 2, 4, 6 pane layouts
 
 ### Korean Keyboard Support
 Native Korean character aliases for quick command execution:
