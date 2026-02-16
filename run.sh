@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# Wrap entire script in a block so the shell reads it fully into memory
+# before execution. This prevents corruption when `git pull` updates this
+# file while it is still running.
+{
+
 ################################################################################
 # 선언 영역 (Declaration Section)
 ################################################################################
@@ -778,3 +783,6 @@ _ok "Shell configuration files applied"
 
 # Success
 _success
+
+exit
+}
