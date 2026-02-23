@@ -652,7 +652,7 @@ if [ "${OS_NAME}" == "darwin" ]; then
 
   # ₩ -> ` 키 바인딩 설정
   if [ ! -f ~/Library/KeyBindings/DefaultkeyBinding.dict ]; then
-    _download Library/KeyBindings/DefaultkeyBinding.dict mac/DefaultkeyBinding.dict
+    _download Library/KeyBindings/DefaultkeyBinding.dict darwin/DefaultkeyBinding.dict
     _ok "Korean keyboard won symbol (₩) mapped to backtick (\`)"
   else
     _skip "Keyboard binding already configured"
