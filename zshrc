@@ -34,7 +34,11 @@ if [ -d "${BREWPATH}/opt/gnu-getopt/bin" ]; then
   export PATH="${BREWPATH}/opt/gnu-getopt/bin:$PATH"
 fi
 
-PS1='$(kube_ps1)'$PS1
+# PS1='$(kube_ps1)'$PS1
+plugins=(
+  kube-ps1
+)
+PROMPT='$(kube_ps1)'$PROMPT # or RPROMPT='$(kube_ps1)'
 
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
 
@@ -62,7 +66,7 @@ fi
 # tfenv
 export TFENV_AUTO_INSTALL=true
 if [[ "${OS_ARCH}" == "arm64" ]]; then
-  export TFENV_ARCH=arm64
+  export TFENV_ARCH="arm64"
 fi
 if [ -d "$HOME/.tfenv" ]; then
   export TFENV_ROOT="$HOME/.tfenv"
