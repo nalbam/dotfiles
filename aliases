@@ -160,9 +160,6 @@ alias avn='av nalbam'
 alias avc='av clear'
 alias avl='av list'
 
-alias sg='m && ssm get'
-alias sp='m && ssm put'
-
 # Terraform
 alias tf='terraform'
 alias tfc='rm -rf .terraform .terraform.lock.hcl'
