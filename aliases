@@ -29,6 +29,13 @@ alias a='aws'
 alias k='kubectl'
 alias h='helm'
 
+# Claude CLI shortcuts
+alias cc='claude'
+alias ccc='claude --continue'
+alias ccr='claude remote-control'
+alias ccd='claude doctor'
+alias ccu='ccusage'
+
 # tmux
 alias tm='tmux'
 alias tl='tmux ls'
@@ -109,12 +116,6 @@ alias tcl='ls -lath ~/.claude/tasks/ 2>/dev/null || echo "No Claude tasks found"
 alias tc2='tc 2'  # 2 panes
 alias tc4='tc 4'  # 4 panes (default)
 alias tc6='tc 6'  # 6 panes
-
-# Claude CLI shortcuts
-alias cc='claude'
-alias ccc='claude --continue'
-alias ccd='claude doctor'
-alias ccu='ccusage'
 
 # AWS Vault helper function
 av() {
