@@ -44,6 +44,9 @@ tm() {
     return
   fi
 
+  local default_name
+  default_name=$(basename "$PWD")
+
   local sessions
   sessions=$(tmux ls 2>/dev/null)
 
@@ -67,9 +70,9 @@ tm() {
 
     case "$selected" in
       "[+ new session]")
-        printf "Session name: "
+        printf "Session name [%s]: " "$default_name"
         read -r name
-        tmux new -s "${name:-main}"
+        tmux new -s "${name:-$default_name}"
         ;;
       "[x kill session]")
         local kill_sel
@@ -95,9 +98,9 @@ tm() {
   else
     # Fallback: numbered menu without fzf
     if [ -z "$sessions" ]; then
-      printf "No tmux sessions. Session name (empty to cancel): "
+      printf "No tmux sessions. Session name [%s]: " "$default_name"
       read -r name
-      [ -n "$name" ] && tmux new -s "$name"
+      tmux new -s "${name:-$default_name}"
       return
     fi
 
@@ -113,9 +116,9 @@ tm() {
 
     case "$choice" in
       n)
-        printf "Session name: "
+        printf "Session name [%s]: " "$default_name"
         read -r name
-        tmux new -s "${name:-main}"
+        tmux new -s "${name:-$default_name}"
         ;;
       k)
         printf "Kill session name: "
