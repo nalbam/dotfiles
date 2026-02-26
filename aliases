@@ -37,104 +37,156 @@ alias ccd='claude doctor'
 alias ccu='ccusage'
 
 # tmux
-alias tm='tmux'
-alias tl='tmux ls'
-alias tn='tmux new -s'
-alias ta='tmux attach -t'
-alias tk='tmux kill-session -t'
-alias tka='tmux kill-server'
-
-# Claude tasks in tmux - Monitor multiple agents in split panes
-tc() {
-  # Monitor Claude Code agents in split tmux panes
-  # Usage: tc [num_panes]
-
-  local num_panes="${1:-4}"  # Default 4 panes
-
-  if [ -z "$TMUX" ]; then
-    echo "Error: Must be run inside tmux"
-    echo "Start tmux first: tmux new -s claude"
-    return 1
+tm() {
+  # Interactive tmux session manager; pass args to tmux directly if provided
+  if [ $# -gt 0 ]; then
+    tmux "$@"
+    return
   fi
 
-  local tasks_dir="$HOME/.claude/tasks"
+  local sessions
+  sessions=$(tmux ls 2>/dev/null)
 
-  if [ ! -d "$tasks_dir" ]; then
-    echo "No Claude tasks directory found"
-    return 1
-  fi
-
-  # Find all task output files (most recent first)
-  local task_files=($(find "$tasks_dir" -type f -name "*.txt" -o -name "*.log" 2>/dev/null | head -n 10))
-  local num_tasks=${#task_files[@]}
-
-  echo "Creating tmux layout with $num_panes panes for monitoring Claude agents..."
-
-  # Create new window
-  tmux new-window -n "claude-agents"
-
-  # First pane - task overview
-  if [ $num_tasks -gt 0 ]; then
-    tmux send-keys "watch -n 1 'echo \"=== Claude Code Agents ===\" && ls -lth $tasks_dir | head -15'" C-m
-  else
-    tmux send-keys "watch -n 1 'echo \"=== Claude Code Agents ===\" && echo \"No active tasks\" && ls -lth $tasks_dir'" C-m
-  fi
-
-  # Create additional panes
-  for (( i=1; i<$num_panes; i++ )); do
-    if [ $i -eq 1 ]; then
-      tmux split-window -v
-    elif [ $((i % 2)) -eq 0 ]; then
-      tmux split-window -h
+  if command -v fzf &>/dev/null; then
+    local options
+    if [ -n "$sessions" ]; then
+      options="$sessions"$'\n'"[+ new session]"$'\n'"[x kill session]"
     else
-      tmux split-window -v
+      options="[+ new session]"
     fi
 
-    # If we have task files, tail them
-    if [ $((i-1)) -lt $num_tasks ]; then
-      local task_file="${task_files[$((i-1))]}"
-      local task_name=$(basename "$task_file")
-      tmux send-keys "echo '=== Agent $i: $task_name ===' && tail -f '$task_file'" C-m
-    else
-      tmux send-keys "echo '=== Pane $i: Ready ===' && echo 'Waiting for agent tasks...' && sleep 1 && ls -lth $tasks_dir" C-m
-    fi
-  done
+    local selected
+    selected=$(echo "$options" | fzf \
+      --prompt="tmux > " \
+      --height=40% \
+      --layout=reverse \
+      --border \
+      --no-sort)
 
-  # Balance layout
-  tmux select-layout tiled
-  tmux select-pane -t 0
+    [ -z "$selected" ] && return
 
-  if [ $num_tasks -gt 0 ]; then
-    echo "✓ Monitoring $num_tasks agent(s) in $num_panes panes"
+    case "$selected" in
+      "[+ new session]")
+        printf "Session name: "
+        read -r name
+        tmux new -s "${name:-main}"
+        ;;
+      "[x kill session]")
+        local kill_sel
+        kill_sel=$(tmux ls 2>/dev/null | fzf \
+          --prompt="kill > " \
+          --height=40% \
+          --layout=reverse \
+          --border \
+          --header="Select session to kill" \
+          --no-sort)
+        if [ -n "$kill_sel" ]; then
+          local kill_name
+          kill_name=$(echo "$kill_sel" | awk -F: '{print $1}')
+          tmux kill-session -t "$kill_name" && echo "Killed: $kill_name"
+        fi
+        ;;
+      *)
+        local session_name
+        session_name=$(echo "$selected" | awk -F: '{print $1}')
+        tmux attach -t "$session_name"
+        ;;
+    esac
   else
-    echo "✓ Layout ready. Agent outputs will appear when tasks start."
+    # Fallback: numbered menu without fzf
+    if [ -z "$sessions" ]; then
+      printf "No tmux sessions. Session name (empty to cancel): "
+      read -r name
+      [ -n "$name" ] && tmux new -s "$name"
+      return
+    fi
+
+    echo "tmux sessions:"
+    local i=1
+    local line
+    while IFS= read -r line; do
+      printf "  %d) %s\n" $i "$(echo "$line" | awk -F: '{print $1}')"
+      i=$((i+1))
+    done <<< "$sessions"
+    printf "  n) new   k) kill   q) quit\nSelect: "
+    read -r choice
+
+    case "$choice" in
+      n)
+        printf "Session name: "
+        read -r name
+        tmux new -s "${name:-main}"
+        ;;
+      k)
+        printf "Kill session name: "
+        read -r name
+        [ -n "$name" ] && tmux kill-session -t "$name" && echo "Killed: $name"
+        ;;
+      q|"") return ;;
+      *)
+        local target
+        target=$(echo "$sessions" | sed -n "${choice}p" | awk -F: '{print $1}')
+        [ -n "$target" ] && tmux attach -t "$target" || echo "Invalid selection"
+        ;;
+    esac
   fi
 }
-
-# Quick aliases
-alias tcl='ls -lath ~/.claude/tasks/ 2>/dev/null || echo "No Claude tasks found"'
-alias tc2='tc 2'  # 2 panes
-alias tc4='tc 4'  # 4 panes (default)
-alias tc6='tc 6'  # 6 panes
+alias tml='tmux ls'
+alias tmn='tmux new -s'
+alias tma='tmux attach -t'
+alias tmk='tmux kill-session -t'
+alias tmka='tmux kill-server'
 
 # AWS Vault helper function
 av() {
-  # AWS Vault helper
-  if [ -z "$1" ]; then
-    echo "Usage: av <profile|command> [args...]"
-    echo "Profiles:"
-    echo "  a|alpha    - daangn-alpha"
-    echo "  d|data     - daangn-data"
-    echo "  p|prod     - daangn-prod"
-    echo "  n|nalbam   - nalbam"
-    echo "  t|two      - nalbam-two"
-    echo "  k|krug     - awskrug-team"
-    echo "  o|ops      - opspresso"
-    echo "  b|bruce    - bruce"
-    echo "Commands:"
-    echo "  c|clear    - clear credentials"
-    echo "  l|list     - list profiles"
-    return 1
+  if [ $# -eq 0 ]; then
+    if command -v fzf &>/dev/null; then
+      # Try to get profiles from aws-vault, fall back to hardcoded list
+      local profiles
+      profiles=$(aws-vault list 2>/dev/null | awk 'NR>2 && $1 ~ /^[a-zA-Z]/ {print $1}')
+      if [ -z "$profiles" ]; then
+        profiles="daangn-alpha
+daangn-data
+daangn-prod
+nalbam
+nalbam-two
+awskrug-team
+opspresso
+bruce"
+      fi
+
+      local selected
+      selected=$(printf "%s\n[clear credentials]" "$profiles" | fzf \
+        --prompt="aws-vault > " \
+        --height=40% \
+        --layout=reverse \
+        --border \
+        --no-sort)
+
+      [ -z "$selected" ] && return
+
+      case "$selected" in
+        "[clear credentials]")
+          aws-vault clear
+          ;;
+        *)
+          export AWS_VAULT=
+          aws-vault exec "$selected"
+          ;;
+      esac
+    else
+      echo "aws-vault profiles:"
+      echo "  a|alpha  - daangn-alpha"
+      echo "  d|data   - daangn-data"
+      echo "  p|prod   - daangn-prod"
+      echo "  n|nalbam - nalbam"
+      echo "  t|two    - nalbam-two"
+      echo "  k|krug   - awskrug-team"
+      echo "  o|ops    - opspresso"
+      echo "  b|bruce  - bruce"
+      echo "Commands: c|clear, l|list"
+    fi
+    return
   fi
 
   case "$1" in
@@ -158,7 +210,9 @@ alias avd='av data'
 alias avp='av prod'
 alias avn='av nalbam'
 alias avt='av nalbam-two'
+alias avk='av awskrug-team'
 alias avo='av opspresso'
+alias avb='av bruce'
 alias avc='av clear'
 alias avl='av list'
 
