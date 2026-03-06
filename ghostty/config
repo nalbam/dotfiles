@@ -5,8 +5,8 @@ theme = Dracula
 font-family = "D2Coding, DejaVuSansM Nerd Font Mono"
 font-size = 16
 
-window-height = 50
-window-width = 200
+window-height = 48
+window-width = 240
 
 split-divider-color = #ff6600
 
