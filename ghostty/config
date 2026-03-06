@@ -1,0 +1,13 @@
+# This is the configuration file for Ghostty.
+
+font-family = Monaco, 'DejaVu Sans Mono', monospace
+font-size = 16
+
+copy-on-select = true
+
+background-opacity = 0.95
+background-blur-radius = 10
+
+scrollback-limit = 99999
+
+confirm-close-surface = false
