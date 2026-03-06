@@ -8,6 +8,8 @@ copy-on-select = true
 background-opacity = 0.95
 background-blur-radius = 10
 
+split-divider-color = #ff6600
+
 scrollback-limit = 99999
 
 confirm-close-surface = false
