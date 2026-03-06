@@ -1,6 +1,6 @@
 # This is the configuration file for Ghostty.
 
-font-family = Monaco, 'DejaVu Sans Mono', monospace
+font-family = "Monaco, 'DejaVu Sans Mono', monospace"
 font-size = 16
 
 copy-on-select = true
