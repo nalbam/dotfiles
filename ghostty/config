@@ -2,16 +2,16 @@
 
 theme = Dracula
 
-background-opacity = 0.95
-background-blur-radius = 10
-
-split-divider-color = #ff6600
-
 font-family = "Monaco, DejaVuSansM Nerd Font Mono"
 font-size = 16
 
 window-height = 50
 window-width = 200
+
+background-opacity = 0.95
+background-blur-radius = 10
+
+split-divider-color = #ff6600
 
 scrollback-limit = 99999
 
