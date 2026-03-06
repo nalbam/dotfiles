@@ -12,6 +12,9 @@ font-size = 16
 
 copy-on-select = true
 
+keybind = super+left=previous_tab
+keybind = super+right=next_tab
+
 scrollback-limit = 99999
 
 confirm-close-surface = false
