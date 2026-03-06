@@ -10,11 +10,14 @@ split-divider-color = #ff6600
 font-family = "Monaco, DejaVuSansM Nerd Font Mono"
 font-size = 16
 
-copy-on-select = true
+window-height = 50
+window-width = 200
+
+scrollback-limit = 99999
 
 keybind = super+left=previous_tab
 keybind = super+right=next_tab
 
-scrollback-limit = 99999
+copy-on-select = true
 
 confirm-close-surface = false
