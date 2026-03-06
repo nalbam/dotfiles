@@ -52,7 +52,7 @@ end
 
 cask "1password-cli"
 cask "aws-vault-binary"
-cask "font-d2coding"
+cask "font-d2coding-nerd-font"
 cask "font-dejavu-sans-mono-nerd-font"
 cask "ghostty"
 cask "gimp"
