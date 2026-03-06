@@ -765,6 +765,9 @@ fi
 if [ "${OS_NAME}" == "darwin" ]; then
   # iTerm2 설정 파일
   _download .iterm2/profiles.json iterm2/profiles.json
+
+  # Ghostty 설정 파일
+  _download .config/ghostty/config ghostty/config
 fi
 
 # Step 10: 사용자 설정 파일 적용
