@@ -53,10 +53,11 @@ end
 cask "1password-cli"
 cask "aws-vault-binary"
 cask "font-dejavu-sans-mono-nerd-font"
+cask "ghostty"
+cask "gimp"
 cask "google-drive"
 cask "iterm2"
 cask "visual-studio-code"
-cask "gimp"
 
 tap "opspresso/tap"
 cask "opspresso/tap/toast"

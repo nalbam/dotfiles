@@ -50,6 +50,12 @@ if [ -d "${BREWPATH}/share/zsh-syntax-highlighting" ]; then
   source ${BREWPATH}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
 
+# bun
+if [ -d "$HOME/.bun" ]; then
+  export BUN_INSTALL="$HOME/.bun"
+  export PATH="$BUN_INSTALL/bin:$PATH"
+fi
+
 # gopath
 if [ -d "$HOME/go" ]; then
   export GOPATH="$HOME/go"
