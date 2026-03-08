@@ -40,12 +40,15 @@ plugins=(
 )
 PROMPT='$(kube_ps1)'$PROMPT # or RPROMPT='$(kube_ps1)'
 
+# kubectl completion
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
 
+# zsh-autosuggestions
 if [ -d "${BREWPATH}/share/zsh-autosuggestions" ]; then
   source ${BREWPATH}/share/zsh-autosuggestions/zsh-autosuggestions.zsh
 fi
 
+# zsh-syntax-highlighting
 if [ -d "${BREWPATH}/share/zsh-syntax-highlighting" ]; then
   source ${BREWPATH}/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 fi
@@ -80,7 +83,6 @@ if [ -d "$HOME/.tfenv" ]; then
 fi
 
 # nvm
-mkdir -p "$HOME/.nvm"
 if [ -d "$HOME/.nvm" ]; then
   export NVM_DIR="$HOME/.nvm"
   [ -s "${BREWPATH}/opt/nvm/nvm.sh" ] && \. "${BREWPATH}/opt/nvm/nvm.sh"  # This loads nvm
@@ -92,3 +94,11 @@ fi
 
 # kiro
 [[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"
+
+# The following lines have been added by Docker Desktop to enable Docker CLI completions.
+if [ -d "$HOME/.docker/completions" ]; then
+  fpath=("$HOME/.docker/completions" $fpath)
+  autoload -Uz compinit
+  compinit
+fi
+# End of Docker CLI completions
