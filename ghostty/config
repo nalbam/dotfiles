@@ -10,7 +10,7 @@ window-width = 240
 
 split-divider-color = #ff6600
 
-scrollback-limit = 99999
+scrollback-limit = 10000000
 
 keybind = shift+enter=text:\x1b\r
 
