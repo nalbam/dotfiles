@@ -22,7 +22,7 @@ elif [ "${OS_NAME}" == "mingw64_nt" ]; then
 fi
 
 # 설치 진행 단계 설정
-TOTAL_STEPS=10
+TOTAL_STEPS=11
 CURRENT_STEP=0
 
 # 타이머 설정
@@ -224,6 +224,65 @@ _dotfiles() {
       cd - >/dev/null || _error "Failed to return to previous directory"
     fi
   fi
+}
+
+# AI 도구 설정 동기화 함수 (Claude Code, Kiro)
+_sync_vibe() {
+  local sync_targets=(
+    "claude:${HOME}/.claude"
+    "kiro:${HOME}/.kiro"
+  )
+
+  local count_new=0
+  local count_updated=0
+  local count_identical=0
+
+  for target_config in "${sync_targets[@]}"; do
+    local src_subdir="${target_config%%:*}"
+    local dst_dir="${target_config#*:}"
+    local src_path="${HOME}/.dotfiles/${src_subdir}"
+
+    # Skip if source directory doesn't exist or is empty
+    if [ ! -d "$src_path" ] || [ -z "$(ls -A "$src_path" 2>/dev/null)" ]; then
+      _skip "$src_subdir/ (empty or not found)"
+      continue
+    fi
+
+    _info "Syncing $src_subdir/ -> $dst_dir/"
+
+    # Create target directory if needed
+    mkdir -p "$dst_dir"
+
+    # Find and process all files
+    while IFS= read -r -d '' src_file; do
+      local rel_path="${src_file#$src_path/}"
+      local dst_file="$dst_dir/$rel_path"
+
+      # Create parent directory if needed
+      mkdir -p "$(dirname "$dst_file")"
+
+      if [ ! -f "$dst_file" ]; then
+        # New file
+        cp "$src_file" "$dst_file"
+        _ok "+ NEW: $src_subdir/$rel_path"
+        count_new=$((count_new + 1))
+      else
+        # Existing file - compare
+        local src_md5=$(_md5 "$src_file")
+        local dst_md5=$(_md5 "$dst_file")
+
+        if [ "$src_md5" = "$dst_md5" ]; then
+          count_identical=$((count_identical + 1))
+        else
+          cp "$src_file" "$dst_file"
+          _ok "UPDATE: $src_subdir/$rel_path"
+          count_updated=$((count_updated + 1))
+        fi
+      fi
+    done < <(find "$src_path" -type f -not -path '*/__pycache__/*' -not -name '*.pyc' -print0 | sort -z)
+  done
+
+  _info "Sync summary: $count_new new, $count_updated updated, $count_identical identical"
 }
 
 # NPM 패키지 설치 함수 (버전 체크 포함)
@@ -445,6 +504,25 @@ should_run_brew_update() {
 
 # 시작 배너 출력
 _banner
+
+# Parse arguments
+VIBE_ONLY=false
+for arg in "$@"; do
+  case "$arg" in
+    --vibe) VIBE_ONLY=true ;;
+  esac
+done
+
+if [ "$VIBE_ONLY" = true ]; then
+  _info "Running AI tools sync only..."
+  if [ -d ~/.dotfiles ]; then
+    _sync_vibe
+    _echo "\n  ✓ AI tools sync complete\n" 2
+    exit 0
+  else
+    _error "Dotfiles not installed. Run full install first."
+  fi
+fi
 
 # Step 1: 시스템 환경 확인
 _progress "Checking system environment..."
@@ -783,6 +861,10 @@ _download .tmux.conf tmux.conf
 _download .zshrc zshrc
 _download .zprofile $OS_NAME/zprofile.$OS_ARCH.sh
 _ok "Shell configuration files applied"
+
+# Step 11: AI 도구 설정 (Claude Code, Kiro)
+_progress "Setting up AI tools (Claude Code, Kiro)..."
+_sync_vibe
 
 # Success
 _success

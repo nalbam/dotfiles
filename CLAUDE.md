@@ -21,7 +21,7 @@ curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 
 ## Architecture
 
-The installation follows a 10-step process:
+The installation follows an 11-step process:
 1. System environment check (OS/architecture detection)
 2. Directory setup and SSH key generation
 3. Dotfiles repository cloning/updating
@@ -32,10 +32,11 @@ The installation follows a 10-step process:
 8. ZSH and Oh-My-ZSH installation
 9. Theme and UI settings (Dracula theme, iTerm2)
 10. User configuration files deployment
+11. AI tools settings (Claude Code, Kiro)
 
 ## Key Components
 
-- **`run.sh`**: Main installation script with 10-step progress tracking
+- **`run.sh`**: Main installation script with 11-step progress tracking
 - **`run.ps1`**: Windows PowerShell installation script
 - **`darwin/Brewfile`**: macOS package definitions
 - **`linux/Brewfile`**: Linux package definitions
@@ -44,11 +45,23 @@ The installation follows a 10-step process:
 
 ## Claude Code Integration
 
-Claude Code settings are managed in a separate repository: [vibe-config](https://github.com/nalbam/vibe-config)
+Claude Code and Kiro settings are managed in this repository:
+- **`claude/`**: Claude Code settings (synced to `~/.claude/`)
+  - `CLAUDE.md` — Global Claude Code instructions
+  - `settings.json` — Permissions, hooks, plugins configuration
+  - `statusline.py` — Custom status line display
+  - `agents/` — Specialized agent definitions (8 agents)
+  - `hooks/` — Lifecycle hooks (VibeMon)
+  - `rules/` — Always-loaded instruction rules (7 rules)
+  - `skills/` — User-invocable skills (9 skills)
+- **`kiro/`**: Kiro settings (synced to `~/.kiro/`)
+  - `agents/` — Agent definitions
+  - `hooks/` — Lifecycle hooks (VibeMon)
 
-To sync Claude Code settings:
+To sync AI tool settings independently:
 ```bash
-curl -fsSL nalbam.github.io/vibe-config/sync.sh | bash
+vv                         # Uses alias
+~/.dotfiles/run.sh --vibe  # Direct command
 ```
 
 ## Organization-Specific Features
@@ -258,4 +271,4 @@ Native Korean character aliases for quick command execution:
 - `ㅊ` → `c` (change directory with toast)
 - `ㅊㅇ` → `cd` (change directory)
 - `ㅅㅅ` → `tt` (re-run dotfiles installer)
-- `ㅍㅍ` → `vv` (sync vibe-config)
+- `ㅍㅍ` → `vv` (sync AI tools settings)

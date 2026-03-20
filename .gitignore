@@ -20,8 +20,9 @@ $RECYCLE.BIN/
 *.war
 *.ear
 
-# pytest
+# python
 __pycache__
+*.pyc
 .pytest_cache
 
 # maven
@@ -48,6 +49,7 @@ target/
 .prompt.md
 prompt-*.md
 prompt.md
+docs/superpowers/
 
 # claude local env
 claude/env.local
