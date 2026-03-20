@@ -100,13 +100,20 @@ _success() {
   exit 0
 }
 
-# 레거시 함수 (하위 호환성 유지)
-_result() {
-  _info "$@"
-}
+# 재시도 헬퍼 함수 (exponential backoff)
+_retry() {
+  local description="$1"
+  shift
+  local max_retries=3 retry_count=0 wait_time=5
 
-_command() {
-  _run "$@"
+  while [ $retry_count -lt $max_retries ]; do
+    if "$@" 2>/dev/null; then return 0; fi
+    retry_count=$((retry_count + 1))
+    if [ $retry_count -eq $max_retries ]; then return 1; fi
+    _warn "$description failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
+    sleep $wait_time
+    wait_time=$((wait_time * 2))
+  done
 }
 
 # MD5 해시 함수 (크로스 플랫폼)
@@ -126,16 +133,12 @@ _backup() {
     fi
     # Set secure permissions for backup files
     chmod 600 "$1.backup"
-    _result "Created backup: $1.backup"
+    _info "Created backup: $1.backup"
   fi
 }
 
 # 파일 다운로드 함수
 _download() {
-  local max_retries=3
-  local retry_count=0
-  local wait_time=5
-
   # 대상 파일의 디렉토리 자동 생성
   local target_file=~/$1
   local target_dir=$(dirname "$target_file")
@@ -154,19 +157,9 @@ _download() {
     fi
   else
     _backup ~/$1
-    while [ $retry_count -lt $max_retries ]; do
-      if curl -fsSL --connect-timeout 10 -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}; then
-        break
-      else
-        retry_count=$((retry_count + 1))
-        if [ $retry_count -eq $max_retries ]; then
-          _error "Failed to download ${2:-$1} after $max_retries attempts"
-        fi
-        _echo "Download failed, retrying in $wait_time seconds..." 3
-        sleep $wait_time
-        wait_time=$((wait_time * 2))
-      fi
-    done
+    if ! _retry "Download ${2:-$1}" curl -fsSL --connect-timeout 10 -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}; then
+      _error "Failed to download ${2:-$1} after 3 attempts"
+    fi
   fi
 
   # Set appropriate permissions for sensitive files
@@ -179,50 +172,27 @@ _download() {
 
 # Dotfiles 저장소 관리 함수
 _dotfiles() {
-  command -v git >/dev/null || HAS_GIT=false
-  if [ -z "${HAS_GIT}" ]; then
-    local max_retries=3
-    local retry_count=0
-    local wait_time=5
+  if ! command -v git >/dev/null 2>&1; then
+    return
+  fi
 
-    if [ ! -d ~/.dotfiles ]; then
-      _run "Cloning dotfiles repository..."
-      while [ $retry_count -lt $max_retries ]; do
-        if git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles 2>/dev/null; then
-          _ok "Dotfiles repository cloned"
-          break
-        else
-          retry_count=$((retry_count + 1))
-          if [ $retry_count -eq $max_retries ]; then
-            _error "Failed to clone dotfiles repository after $max_retries attempts"
-          fi
-          _warn "Clone failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
-          sleep $wait_time
-          wait_time=$((wait_time * 2))
-        fi
-      done
+  if [ ! -d ~/.dotfiles ]; then
+    _run "Cloning dotfiles repository..."
+    if _retry "Clone" git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles; then
+      _ok "Dotfiles repository cloned"
     else
-      cd ~/.dotfiles || _error "Failed to change directory to ~/.dotfiles"
-      _run "Updating dotfiles repository..."
-      retry_count=0
-      wait_time=5
-      while [ $retry_count -lt $max_retries ]; do
-        if git pull 2>/dev/null; then
-          _ok "Dotfiles repository updated"
-          break
-        else
-          retry_count=$((retry_count + 1))
-          if [ $retry_count -eq $max_retries ]; then
-            cd - >/dev/null || _error "Failed to return to previous directory"
-            _error "Failed to update dotfiles repository after $max_retries attempts"
-          fi
-          _warn "Pull failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
-          sleep $wait_time
-          wait_time=$((wait_time * 2))
-        fi
-      done
-      cd - >/dev/null || _error "Failed to return to previous directory"
+      _error "Failed to clone dotfiles repository after 3 attempts"
     fi
+  else
+    cd ~/.dotfiles || _error "Failed to change directory to ~/.dotfiles"
+    _run "Updating dotfiles repository..."
+    if _retry "Pull" git pull; then
+      _ok "Dotfiles repository updated"
+    else
+      cd - >/dev/null || _error "Failed to return to previous directory"
+      _error "Failed to update dotfiles repository after 3 attempts"
+    fi
+    cd - >/dev/null || _error "Failed to return to previous directory"
   fi
 }
 
@@ -286,22 +256,11 @@ _sync_vibe() {
 }
 
 # NPM 패키지 설치 함수 (버전 체크 포함)
+# NPM_CMD is set once before calling this function (see Step 6)
 _install_npm_package() {
   local package_name="$1"
   local package_spec="$2"
-
-  # npm 전역 경로의 쓰기 권한 체크
-  local npm_prefix=$(npm config get prefix 2>/dev/null || echo "/usr/local")
-  local needs_sudo=false
-
-  if [ ! -w "$npm_prefix" ] || [ ! -w "$npm_prefix/lib" ] || [ ! -w "$npm_prefix/lib/node_modules" ] 2>/dev/null; then
-    needs_sudo=true
-  fi
-
-  local npm_cmd="npm"
-  if [ "$needs_sudo" = true ]; then
-    npm_cmd="sudo npm"
-  fi
+  local npm_cmd="${NPM_CMD:-npm}"
 
   # Check if package is installed
   if npm list -g "$package_spec" >/dev/null 2>&1; then
@@ -328,6 +287,18 @@ _install_npm_package() {
   fi
 }
 
+# pip install/upgrade를 4단계 fallback으로 시도
+_pip_try_install() {
+  local package_name="$1"
+  shift
+  local flags="$@"
+
+  python3 -m pip install $flags "$package_name" 2>/dev/null >/dev/null ||
+  python3 -m pip install --user $flags "$package_name" 2>/dev/null >/dev/null ||
+  python3 -m pip install --break-system-packages --user $flags "$package_name" 2>/dev/null >/dev/null ||
+  sudo python3 -m pip install $flags "$package_name" 2>/dev/null >/dev/null
+}
+
 # PIP 패키지 설치 함수 (버전 체크 포함)
 _install_pip_package() {
   local package_name="$1"
@@ -338,9 +309,6 @@ _install_pip_package() {
     return 1
   fi
 
-  # pip 기본 명령어
-  local pip_cmd="python3 -m pip"
-
   # Check if package is installed
   if python3 -m pip show "$package_name" >/dev/null 2>&1; then
     local installed_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
@@ -349,153 +317,43 @@ _install_pip_package() {
     if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
       if [ "$installed_version" != "$latest_version" ]; then
         _run "Updating $package_name: $installed_version → $latest_version"
-        local install_error=$(mktemp)
-
-        # Try normal upgrade first
-        if $pip_cmd install --upgrade "$package_name" 2>"$install_error" >/dev/null; then
+        if _pip_try_install "$package_name" --upgrade; then
           _ok "$package_name updated to $latest_version"
-          rm -f "$install_error"
-        # Try with --user
-        elif python3 -m pip install --user --upgrade "$package_name" 2>"$install_error" >/dev/null; then
-          _ok "$package_name updated to $latest_version (user install)"
-          rm -f "$install_error"
-        # Try with --break-system-packages --user (for PEP 668)
-        elif python3 -m pip install --break-system-packages --user --upgrade "$package_name" 2>"$install_error" >/dev/null; then
-          _ok "$package_name updated to $latest_version (user install, break-system-packages)"
-          rm -f "$install_error"
-        # Try with sudo as last resort
-        elif sudo python3 -m pip install --upgrade "$package_name" 2>"$install_error" >/dev/null; then
-          _ok "$package_name updated to $latest_version (system-wide with sudo)"
-          rm -f "$install_error"
         else
           _warn "Failed to update $package_name after trying all methods"
-          if [ -s "$install_error" ]; then
-            local error_msg=$(grep -i "error" "$install_error" | tail -1)
-            if [ -n "$error_msg" ]; then
-              _warn "Last error: $error_msg"
-            fi
-          fi
-          rm -f "$install_error"
         fi
       else
         _skip "$package_name already up to date ($installed_version)"
       fi
     else
       _run "Installing $package_name..."
-      local install_error=$(mktemp)
-
-      # Try normal install first
-      if $pip_cmd install "$package_name" 2>"$install_error" >/dev/null; then
+      if _pip_try_install "$package_name"; then
         _ok "$package_name installed"
-        rm -f "$install_error"
-      # Try with --user
-      elif python3 -m pip install --user "$package_name" 2>"$install_error" >/dev/null; then
-        _ok "$package_name installed (user install)"
-        rm -f "$install_error"
-      # Try with --break-system-packages --user (for PEP 668)
-      elif python3 -m pip install --break-system-packages --user "$package_name" 2>"$install_error" >/dev/null; then
-        _ok "$package_name installed (user install, break-system-packages)"
-        rm -f "$install_error"
-      # Try with sudo as last resort
-      elif sudo python3 -m pip install "$package_name" 2>"$install_error" >/dev/null; then
-        _ok "$package_name installed (system-wide with sudo)"
-        rm -f "$install_error"
       else
         _warn "Failed to install $package_name after trying all methods"
-        if [ -s "$install_error" ]; then
-          local error_msg=$(grep -i "error" "$install_error" | tail -1)
-          if [ -n "$error_msg" ]; then
-            _warn "Last error: $error_msg"
-          fi
-        fi
-        rm -f "$install_error"
       fi
     fi
   else
     _run "Installing $package_name..."
-    local install_error=$(mktemp)
-
-    # Try normal install first
-    if $pip_cmd install "$package_name" 2>"$install_error" >/dev/null; then
-      if python3 -m pip show "$package_name" >/dev/null 2>&1; then
-        local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
+    if _pip_try_install "$package_name"; then
+      local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
+      if [ -n "$new_version" ]; then
         _ok "$package_name installed (v$new_version)"
       else
         _ok "$package_name installed"
       fi
-      rm -f "$install_error"
-    # Try with --user
-    elif python3 -m pip install --user "$package_name" 2>"$install_error" >/dev/null; then
-      if python3 -m pip show "$package_name" >/dev/null 2>&1; then
-        local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
-        _ok "$package_name installed (v$new_version, user install)"
-      else
-        _ok "$package_name installed (user install)"
-      fi
-      rm -f "$install_error"
-    # Try with --break-system-packages --user (for PEP 668)
-    elif python3 -m pip install --break-system-packages --user "$package_name" 2>"$install_error" >/dev/null; then
-      if python3 -m pip show "$package_name" >/dev/null 2>&1; then
-        local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
-        _ok "$package_name installed (v$new_version, user install, break-system-packages)"
-      else
-        _ok "$package_name installed (user install, break-system-packages)"
-      fi
-      rm -f "$install_error"
-    # Try with sudo as last resort
-    elif sudo python3 -m pip install "$package_name" 2>"$install_error" >/dev/null; then
-      if python3 -m pip show "$package_name" >/dev/null 2>&1; then
-        local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
-        _ok "$package_name installed (v$new_version, system-wide with sudo)"
-      else
-        _ok "$package_name installed (system-wide with sudo)"
-      fi
-      rm -f "$install_error"
     else
       _warn "Failed to install $package_name after trying all methods"
-      if [ -s "$install_error" ]; then
-        local error_msg=$(grep -i "error" "$install_error" | tail -1)
-        if [ -n "$error_msg" ]; then
-          _warn "Last error: $error_msg"
-        fi
-      fi
-      rm -f "$install_error"
     fi
   fi
 }
 
-# APT 업데이트 체크 함수
-should_run_apt_update() {
-  if [ ! -f "$APT_TIMESTAMP_FILE" ]; then
-    return 0
-  fi
-
-  current_time=$(date +%s)
-  last_update=$(cat "$APT_TIMESTAMP_FILE")
-  time_diff=$((current_time - last_update))
-
-  if [ $time_diff -ge $UPDATE_INTERVAL ]; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-# Homebrew 업데이트 체크 함수
-should_run_brew_update() {
-  if [ ! -f "$BREW_TIMESTAMP_FILE" ]; then
-    return 0
-  fi
-
-  current_time=$(date +%s)
-  last_update=$(cat "$BREW_TIMESTAMP_FILE")
-  time_diff=$((current_time - last_update))
-
-  if [ $time_diff -ge $UPDATE_INTERVAL ]; then
-    return 0
-  else
-    return 1
-  fi
+# 업데이트 타이머 체크 함수 (12시간 간격)
+_should_update() {
+  local timestamp_file="$1"
+  if [ ! -f "$timestamp_file" ]; then return 0; fi
+  local time_diff=$(( $(date +%s) - $(cat "$timestamp_file") ))
+  [ $time_diff -ge $UPDATE_INTERVAL ]
 }
 
 ################################################################################
@@ -596,7 +454,7 @@ _progress "Setting up package managers..."
 if [ "${OS_NAME}" == "linux" ]; then
   APT_TIMESTAMP_FILE=~/.apt_last_update
 
-  if should_run_apt_update; then
+  if _should_update "$APT_TIMESTAMP_FILE"; then
     _run "Updating APT packages..."
     sudo apt update
     sudo apt upgrade -y
@@ -619,8 +477,7 @@ if [ "${OS_NAME}" == "linux" ]; then
 fi
 
 # Homebrew 설치
-command -v brew >/dev/null || HAS_BREW=false
-if [ ! -z "${HAS_BREW}" ]; then
+if ! command -v brew >/dev/null 2>&1; then
   _run "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   if [ -d /opt/homebrew/bin ]; then
@@ -642,7 +499,7 @@ _progress "Installing development packages..."
 if command -v brew >/dev/null 2>&1; then
   BREW_TIMESTAMP_FILE=~/.brew_last_update
 
-  if should_run_brew_update; then
+  if _should_update "$BREW_TIMESTAMP_FILE"; then
     _run "Updating Homebrew packages..."
     brew update
     brew upgrade
@@ -679,6 +536,14 @@ fi
 # NPM 패키지 설치 (버전 체크 포함)
 if command -v npm >/dev/null; then
   _info "Installing/updating NPM packages..."
+
+  # npm prefix를 한 번만 계산하여 캐싱
+  NPM_PREFIX=$(npm config get prefix 2>/dev/null || echo "/usr/local")
+  NPM_CMD="npm"
+  if [ ! -w "$NPM_PREFIX" ] || [ ! -w "$NPM_PREFIX/lib" ] 2>/dev/null; then
+    NPM_CMD="sudo npm"
+  fi
+
   _install_npm_package "npm" "npm"
   _install_npm_package "corepack" "corepack"
   _install_npm_package "serverless" "serverless"
@@ -712,8 +577,7 @@ _progress "Configuring OS-specific settings..."
 
 # macOS 설정
 if [ "${OS_NAME}" == "darwin" ]; then
-  command -v xcode-select >/dev/null || HAS_XCODE=false
-  if [ ! -z "${HAS_XCODE}" ]; then
+  if ! command -v xcode-select >/dev/null 2>&1; then
     _run "Installing Xcode Command Line Tools..."
     sudo xcodebuild -license
     xcode-select --install
