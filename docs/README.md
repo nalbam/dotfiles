@@ -34,5 +34,5 @@ This directory contains the technical documentation for the dotfiles project.
 - `linux/Brewfile` - Linux Homebrew packages
 - `linux/zprofile.*.sh` - Linux architecture-specific profiles
 
-### Claude Code Integration
-Claude Code settings are managed in a separate repository: [vibe-config](https://github.com/nalbam/vibe-config)
+### AI Tools Integration
+Claude Code and Kiro settings are managed in this repository under `claude/` and `kiro/` directories, synced to `~/.claude/` and `~/.kiro/` respectively.

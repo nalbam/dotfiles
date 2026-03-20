@@ -102,7 +102,7 @@ The `.aliases` file provides many useful shortcuts:
 - **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy), `tfs` (state), `tfo` (output), `tfdoc` (docs)
 - **Node.js**: `nn` (clean install with pnpm/npm detection), `nb` (build), `nd` (dev server), `nk` (kill dev servers on ports 3000-3999)
 - **Local Servers**: `ss` (start HTTP server), `sl` (list all servers), `sk` (kill by port or all)
-- **Tmux**: `tm` (tmux), `tl` (list), `tn` (new session), `ta` (attach), `tk` (kill session), `tka` (kill server)
+- **Tmux**: `tm` (tmux), `tml` (list), `tmn` (new session), `tma` (attach), `tmk` (kill session), `tmka` (kill server)
 - **Claude**: `cc` (claude), `ccc` (--continue), `ccd` (claude doctor), `ccu` (ccusage)
 - **Python**: `py`, `py3`, `pip` (pip3), `pipi` (install), `pipu` (upgrade), `pipr` (requirements), `pipf` (freeze), `pipl` (list)
 - **Utilities**: `dt` (UTC timestamp), `dff` (colordiff), `ll` (ls -l), `l` (ls -al)
