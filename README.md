@@ -18,7 +18,7 @@ Development environment automation tool that helps you quickly set up a consiste
 - Dracula theme integration
 - iTerm2 configuration (macOS)
 - Custom alias settings
-- **Claude Code environment sync** - Maintain consistent Claude Code settings across all development machines
+- **AI tools sync** - Maintain consistent Claude Code and Kiro settings across all development machines
 
 ## Installation
 
@@ -38,12 +38,15 @@ curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 
 ```
 .
+├── claude/            # Claude Code settings (synced to ~/.claude/)
 ├── darwin/            # macOS specific settings
 │   ├── Brewfile       # macOS Homebrew package list
 │   └── zprofile.*     # macOS architecture-specific profile settings
 ├── docs/              # Technical documentation
 │   ├── README.md      # Documentation index
 │   └── ARCHITECTURE.md # System architecture
+├── ghostty/           # Ghostty terminal settings
+├── kiro/              # Kiro settings (synced to ~/.kiro/)
 └── linux/             # Linux specific settings
     ├── Brewfile       # Linux Homebrew package list
     └── zprofile.*     # Linux profile settings
@@ -75,9 +78,9 @@ curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 ### macOS Casks
 
 - 1password-cli, aws-vault-binary
-- iterm2, visual-studio-code
+- iterm2, visual-studio-code, ghostty, gimp
 - google-drive
-- font-dejavu-sans-mono-nerd-font
+- font-d2coding, font-dejavu-sans-mono-nerd-font
 
 ### Via NPM
 
@@ -93,14 +96,14 @@ curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
 
 The `.aliases` file provides many useful shortcuts:
 
-- **Toast CLI**: `t` (toast), `tu` (toast-cli update), `c` (change directory), `m` (caller-identity), `x` (context), `d` (dot), `e` (env), `g` (git), `r` (region), `p` (prompt), `ssm` (SSM), `tt` (dotfiles reinstall), `vv` (vibe-config sync)
+- **Toast CLI**: `t` (toast), `tu` (toast-cli update), `c` (change directory), `m` (caller-identity), `x` (context), `d` (dot), `e` (env), `g` (git), `r` (region), `p` (prompt), `ssm` (SSM), `tt` (dotfiles reinstall), `vv` (AI tools sync)
 - **AWS**: `a` (aws), `av` (aws-vault helper with profile shortcuts: alpha, data, prod, nalbam, etc.)
 - **Kubernetes**: `k` (kubectl), `h` (helm)
 - **Terraform**: `tf`, `tfp` (plan), `tfa` (apply), `tfd` (destroy), `tfs` (state), `tfo` (output), `tfdoc` (docs)
 - **Node.js**: `nn` (clean install with pnpm/npm detection), `nb` (build), `nd` (dev server), `nk` (kill dev servers on ports 3000-3999)
 - **Local Servers**: `ss` (start HTTP server), `sl` (list all servers), `sk` (kill by port or all)
 - **Tmux**: `tm` (tmux), `tl` (list), `tn` (new session), `ta` (attach), `tk` (kill session), `tka` (kill server)
-- **Claude**: `cc` (claude), `ccc` (--continue), `ccd` (claude doctor), `ccu` (ccusage), `tc` (monitor agents in tmux), `tcl` (list tasks)
+- **Claude**: `cc` (claude), `ccc` (--continue), `ccd` (claude doctor), `ccu` (ccusage)
 - **Python**: `py`, `py3`, `pip` (pip3), `pipi` (install), `pipu` (upgrade), `pipr` (requirements), `pipf` (freeze), `pipl` (list)
 - **Utilities**: `dt` (UTC timestamp), `dff` (colordiff), `ll` (ls -l), `l` (ls -al)
 - **Serverless**: `slsd` (sls deploy), `amp` (amplify)

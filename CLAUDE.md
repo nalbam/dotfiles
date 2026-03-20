@@ -96,8 +96,8 @@ Key tools include:
 - **Shell**: zsh, zsh-autosuggestions, zsh-syntax-highlighting
 
 ### macOS Casks
-- **Essential**: 1password-cli, aws-vault-binary, iterm2, visual-studio-code, google-drive
-- **Fonts**: font-dejavu-sans-mono-nerd-font (macOS & Linux)
+- **Essential**: 1password-cli, aws-vault-binary, iterm2, visual-studio-code, google-drive, ghostty, gimp
+- **Fonts**: font-d2coding, font-dejavu-sans-mono-nerd-font (macOS & Linux)
 - **User-specific** (if USER=nalbam): 1password, google-chrome, slack
 - **Third-party taps**: opspresso/tap/toast, pakerwreah/calendr/calendr (macOS only)
 
@@ -215,24 +215,24 @@ The dotfiles provide extensive integration with Toast CLI for workspace manageme
 ### Development Helper Functions
 Beyond simple aliases, the repository includes intelligent helper functions:
 
-**Node.js Ecosystem** (in `aliases:196-238`):
+**Node.js Ecosystem** (in `aliases:253-295`):
 - `nn()`: Smart clean install with automatic pnpm/npm detection
 - `nb()`: Smart build command (pnpm/npm auto-detection)
 - `nd()`: Start dev server with automatic port cleanup
 - `nk()`: Kill dev servers on ports 3000-3999
 
-**Local Server Management** (in `aliases:256-323`):
+**Local Server Management** (in `aliases:312-380`):
 - `ss([dir], [port])`: Start Python HTTP server (default: docs/, port 8000)
 - `sl()`: List all running local dev servers
 - `sk(<port|all>)`: Kill servers by port or all at once
 
-**AWS Vault Helper** (in `aliases:120-152`):
+**AWS Vault Helper** (in `aliases:144-220`):
 - `av()`: Profile-aware AWS Vault execution with shortcuts
   - Profiles: `a|alpha`, `d|data`, `p|prod`, `n|nalbam`, `t|two`, `k|krug`, `o|ops`, `b|bruce`
   - Commands: `c|clear`, `l|list`
   - Example: `av n kubectl get pods` (execute kubectl in nalbam profile)
 
-**Terraform Workflows** (in `aliases:166-187`):
+**Terraform Workflows** (in `aliases:222-244`):
 - Complete set of aliases for init, plan, apply, destroy
 - State management shortcuts (`tfsl`, `tfss`, `tfsr`)
 - Auto-formatting and validation (`tff`, `tfp`)
@@ -258,13 +258,8 @@ Custom tmux configuration (`tmux.conf`) with:
 - Split panes with `|` (horizontal) and `-` (vertical)
 - Window numbering starts at 1, auto-renumber on close
 
-**Tmux aliases** (in `aliases:33-38`):
-- `tm` (tmux), `tl` (list sessions), `tn` (new session), `ta` (attach), `tk` (kill session), `tka` (kill server)
-
-**Claude tasks monitoring** (in `aliases:41-111`):
-- `tc([num_panes])`: Monitor Claude Code agents in split tmux panes (default: 4 panes)
-- `tcl`: List Claude tasks
-- `tc2`, `tc4`, `tc6`: Quick shortcuts for 2, 4, 6 pane layouts
+**Tmux aliases** (in `aliases:137-141`):
+- `tm` (tmux), `tml` (list sessions), `tmn` (new session), `tma` (attach), `tmk` (kill session), `tmka` (kill server)
 
 ### Korean Keyboard Support
 Native Korean character aliases for quick command execution:

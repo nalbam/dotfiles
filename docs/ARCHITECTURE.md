@@ -36,7 +36,7 @@ graph TD
 .
 ├── CLAUDE.md              # Project-specific Claude Code instructions
 ├── README.md              # Project overview and installation guide
-├── run.sh                 # Main installation script (10-step process)
+├── run.sh                 # Main installation script (11-step process)
 ├── run.ps1                # Windows PowerShell installation script
 │
 ├── aliases                # Custom command aliases and helper functions
@@ -60,15 +60,26 @@ graph TD
 ├── docs/                  # Technical documentation
 │   ├── ARCHITECTURE.md    # System architecture
 │   └── README.md          # Documentation index
+├── claude/                # Claude Code settings (synced to ~/.claude/)
+│   ├── CLAUDE.md          # Global Claude Code instructions
+│   ├── settings.json      # Permissions, hooks, plugins
+│   ├── statusline.py      # Custom status line
+│   ├── agents/            # Specialized agents (8)
+│   ├── hooks/             # Lifecycle hooks (VibeMon)
+│   ├── rules/             # Always-loaded rules (7)
+│   └── skills/            # User-invocable skills (9)
+├── ghostty/               # Ghostty terminal configuration
+│   └── config             # Ghostty settings
 ├── iterm2/                # iTerm2 configuration
 │   └── profiles.json      # Dracula theme profile
+├── kiro/                  # Kiro settings (synced to ~/.kiro/)
+│   ├── agents/            # Agent definitions
+│   └── hooks/             # Lifecycle hooks (VibeMon)
 ├── linux/                 # Linux specific configurations
 │   ├── Brewfile           # Linux Homebrew package list
 │   ├── zprofile.aarch64.sh  # Raspberry Pi 64-bit profile
 │   ├── zprofile.armv7l.sh   # Raspberry Pi 32-bit profile
 │   └── zprofile.x86_64.sh   # WSL/Ubuntu profile
-├── mac/                   # macOS keyboard settings
-│   └── DefaultkeyBinding.dict  # Korean won symbol mapping
 └── ssh/                   # SSH configuration templates
     └── config             # SSH config template
 ```
@@ -100,14 +111,15 @@ graph TD
    - Dracula theme integration (ZSH and iTerm2)
    - Custom aliases and profiles
    - Tmux configuration with system metrics status bar, vim-like navigation, and clipboard integration
-   - Claude tasks monitoring in tmux split panes (`tc` function)
    - Tool version managers (tenv, tfenv, pyenv, nvm)
    - VS Code and Kiro terminal shell integration
    - Toast CLI workspace management integration
 
-5. Claude Code Integration
-   - Claude Code settings managed in separate repository: [vibe-config](https://github.com/nalbam/vibe-config)
-   - Use `sync.sh` script to sync settings to `~/.claude/`
+5. AI Tools Integration
+   - Claude Code settings synced from `claude/` to `~/.claude/` (agents, hooks, rules, skills, settings)
+   - Kiro settings synced from `kiro/` to `~/.kiro/` (agents, hooks)
+   - MD5-based incremental sync (only changed files updated)
+   - Standalone sync via `run.sh --vibe` or `vv` alias
 
 ## Installation Flow
 
@@ -130,6 +142,7 @@ sequenceDiagram
     Script->>System: Step 8: Install ZSH & Oh My ZSH
     Script->>System: Step 9: Apply theme & UI settings
     Script->>System: Step 10: Deploy user config files
+    Script->>System: Step 11: Sync AI tools (Claude Code, Kiro)
     Script->>User: Complete Installation
 ```
 
