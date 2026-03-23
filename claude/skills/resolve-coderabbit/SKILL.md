@@ -1,6 +1,6 @@
 ---
 name: resolve-coderabbit
-description: Use when a PR has CodeRabbit review comments that need to be addressed. Fetches, evaluates, fixes, and resolves CodeRabbit feedback.
+description: Fetch, evaluate, fix, and resolve CodeRabbit review comments on a PR. CodeRabbit 리뷰 코멘트를 가져와 평가, 수정, 해결.
 allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
@@ -143,6 +143,7 @@ For ACCEPT items, fix in severity order (HIGH → MEDIUM → LOW):
 # Detect package manager first
 if [ -f "pnpm-lock.yaml" ]; then PM="pnpm"
 elif [ -f "yarn.lock" ]; then PM="yarn"
+elif [ -f "bun.lockb" ]; then PM="bun"
 else PM="npm"; fi
 
 FOR each ACCEPT item (by severity):
@@ -200,8 +201,6 @@ gh api graphql -f query='
 ```
 
 ## Technical Evaluation Guidelines
-
-Reference: `receiving-code-review` skill principles.
 
 ### When to REJECT
 

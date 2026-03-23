@@ -16,18 +16,46 @@ allowed-tools: Read, Bash, Grep, Glob
 
 ## Workflow
 
-### Phase 1: Commit — `/commit` 워크플로우 수행
+### Phase 1: Commit
 
-**`/commit` 스킬과 동일한 워크플로우를 이 스킬 내에서 직접 수행한다:**
+**1-1. Validation** — lint, typecheck, tests 통과 확인
+- 해당 도구가 프로젝트에 존재하는 경우에만 실행
+- Shell script, dotfiles 등 lint/typecheck/test가 없는 프로젝트는 이 단계를 건너뛴다
 
-1. **Validation** — `/validate` 실행하여 lint, typecheck, tests 통과 확인
-2. **Gather Changes** — `git status`, `git diff`, `git diff --cached` 확인
-3. **Understand Changes** — 변경사항 숙고, "왜?"를 묻고, 영향 파악
-4. **Security Review** — secrets, debug code 확인
-5. **Stage & Commit** — 파일 스테이징, conventional commit 메시지 작성
-6. **Verify Commit** — 커밋 결과 확인
+**1-2. Gather Changes**
+```bash
+git status
+git diff
+git diff --cached
+git log --oneline -10
+```
 
-> 각 단계의 상세 내용은 `/commit` 스킬의 SKILL.md를 참조한다.
+**1-3. Understand Changes** — 변경사항 숙고
+- 각 변경된 파일을 읽고, "왜 이 변경이 필요한가?" 묻기
+- 변경이 논리적으로 관련되어 있는지 확인 (하나의 목적)
+- 의도하지 않은 부작용 점검
+
+**1-4. Security Review**
+- [ ] No secrets (API keys, passwords, tokens)
+- [ ] No debug code (console.log, print statements)
+- [ ] No unintended files (.env, node_modules, etc.)
+
+**1-5. Stage & Commit**
+```bash
+git add path/to/file1 path/to/file2
+git commit -m "$(cat <<'EOF'
+<type>: <subject>
+
+<optional body explaining why>
+EOF
+)"
+```
+
+**1-6. Verify Commit**
+```bash
+git status
+git log --oneline -3
+```
 
 **Commit Message Format:**
 ```
@@ -35,6 +63,8 @@ allowed-tools: Read, Bash, Grep, Glob
 
 <optional body explaining why>
 ```
+
+> **Note:** Commit message에는 scope를 사용하지 않는다. scope는 PR title에서만 선택적으로 사용한다.
 
 Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci`
 

@@ -23,6 +23,7 @@ Before committing, run `/validate` to ensure all checks pass:
 - Tests
 
 **If validation fails, fix all issues before proceeding.**
+**If the project has no lint/typecheck/test tooling (e.g., shell scripts, dotfiles), skip this step.**
 
 ### 1. Gather Changes
 ```bash
@@ -103,6 +104,9 @@ git log --oneline -3
 
 <optional body>
 ```
+
+> **Note:** Commit message에는 scope를 사용하지 않는다. scope는 PR title에서만 선택적으로 사용한다.
+> Commit은 atomic한 단위이므로 type과 subject만으로 충분히 의도를 전달할 수 있다.
 
 **Types:**
 | Type | Description |

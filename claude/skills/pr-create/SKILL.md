@@ -23,6 +23,7 @@ Before creating PR, run `/validate` to ensure all checks pass:
 - Tests
 
 **If validation fails, fix all issues before proceeding.**
+**If the project has no lint/typecheck/test tooling (e.g., shell scripts, dotfiles), skip this step.**
 
 ### 1. Gather Context
 ```bash
@@ -58,20 +59,35 @@ git diff origin/${BASE_BRANCH}...HEAD
 - Are there any **breaking changes** for consumers?
 
 ### 3. Sync with Main (if needed)
+
+**CRITICAL: rebase와 force push는 사용자 확인 후에만 실행한다.**
+
 ```bash
 git fetch origin
-git rebase origin/${BASE_BRANCH}
-# Resolve conflicts if any, then:
-git push --force-with-lease
+
+# Check if rebase is needed
+git log --oneline origin/${BASE_BRANCH}..HEAD
+git log --oneline HEAD..origin/${BASE_BRANCH}
 ```
+
+If the branch is behind `origin/${BASE_BRANCH}`:
+1. **사용자에게 rebase 필요성을 알리고 확인을 요청한다**
+2. 사용자가 승인하면 실행:
+   ```bash
+   git rebase origin/${BASE_BRANCH}
+   # Resolve conflicts if any, then:
+   git push --force-with-lease
+   ```
+3. 사용자가 거부하면 rebase 없이 PR을 생성한다
 
 ### 4. Craft PR Description
 
 **Before writing, articulate:**
 1. What problem does this PR solve? (Summary)
 2. What specific changes were made and why? (Changes)
-3. How should a reviewer verify this works? (Test Plan)
-4. What risks or limitations exist? (if any)
+3. Are there any breaking changes? (Breaking Changes)
+4. How should a reviewer verify this works? (Test Plan)
+5. What risks or limitations exist? (if any)
 
 ```bash
 gh pr create --title "<type>(<scope>): <subject>" --body "$(cat <<'EOF'
@@ -81,6 +97,10 @@ gh pr create --title "<type>(<scope>): <subject>" --body "$(cat <<'EOF'
 ## Changes
 - Change 1: why this was needed
 - Change 2: why this was needed
+
+## Breaking Changes
+- (if any) Description of breaking change and migration path
+- (if none, omit this section entirely)
 
 ## Test Plan
 - [ ] How to verify changes work
@@ -98,6 +118,9 @@ gh pr view --web
 ```
 <type>(<scope>): <subject>
 ```
+
+> **Note:** PR title에는 scope를 선택적으로 사용한다. 여러 커밋을 포괄하는 PR은 scope로 영향 범위를 명시하면 리뷰어에게 도움이 된다.
+> Commit message는 scope 없이 `<type>: <subject>` 형식을 사용한다.
 
 **Types:**
 - `feat`: New feature

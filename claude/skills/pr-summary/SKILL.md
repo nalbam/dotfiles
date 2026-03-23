@@ -193,6 +193,8 @@ If the PR title is vague (e.g., "update", "fix", "WIP"), suggest a better title:
 gh pr edit {PR_NUMBER} --title "<type>(<scope>): <subject>"
 ```
 
+> **Note:** PR title에는 scope를 선택적으로 사용한다. Commit message는 scope 없이 `<type>: <subject>` 형식을 사용한다.
+
 **Only suggest title changes when:**
 - Title is clearly vague or inaccurate
 - Title doesn't reflect the actual changes

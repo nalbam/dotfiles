@@ -34,6 +34,12 @@ Scan for configuration files to determine project type:
 | `package.json` | Node.js | npm/pnpm scripts |
 | `pyproject.toml` / `setup.py` | Python | pytest, mypy, ruff/pylint |
 | `go.mod` | Go | go vet, golangci-lint, go test |
+| `Cargo.toml` | Rust | cargo clippy, cargo check, cargo test |
+
+**프로젝트 타입이 감지되지 않거나, lint/typecheck/test 스크립트가 없는 경우:**
+- 해당 단계를 건너뛰고 다음 단계로 진행한다
+- 건너뛴 단계를 최종 보고서에 `SKIP (not configured)` 으로 표시한다
+- 예: shell script 프로젝트, dotfiles 등은 lint/typecheck/test가 없을 수 있다
 
 ### 2. Detect Package Manager (Node.js)
 
