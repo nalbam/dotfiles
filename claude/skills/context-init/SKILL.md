@@ -1,6 +1,6 @@
 ---
 name: context-init
-description: Initialize project context by reading docs and saving to ./.context.md. 프로젝트 문서 분석 후 컨텍스트 저장.
+description: Initialize project context by reading docs and saving to ./context.md. 프로젝트 문서 분석 후 컨텍스트 저장.
 allowed-tools: Read, Write, Bash, Grep, Glob, Task
 ---
 

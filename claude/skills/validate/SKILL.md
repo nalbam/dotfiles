@@ -35,12 +35,29 @@ Scan for configuration files to determine project type:
 | `pyproject.toml` / `setup.py` | Python | pytest, mypy, ruff/pylint |
 | `go.mod` | Go | go vet, golangci-lint, go test |
 
-### 2. Run Lint
+### 2. Detect Package Manager (Node.js)
+
+Before running any Node.js commands, detect the package manager:
+
 ```bash
-# Node.js (Primary)
-npm run lint
-pnpm lint
-npx eslint .
+# Detect by lockfile
+if [ -f "pnpm-lock.yaml" ]; then
+  PM="pnpm"
+elif [ -f "yarn.lock" ]; then
+  PM="yarn"
+elif [ -f "bun.lockb" ]; then
+  PM="bun"
+else
+  PM="npm"
+fi
+```
+
+Use the detected `$PM` for all subsequent commands.
+
+### 3. Run Lint
+```bash
+# Node.js — use detected package manager
+$PM run lint
 
 # Python
 ruff check .
@@ -61,11 +78,11 @@ On failure — **Root Cause Analysis:**
 4. Fix with minimal changes
 5. Re-run lint
 
-### 3. Run Typecheck
+### 4. Run Typecheck
 ```bash
-# Node.js (TypeScript) (Primary)
-npm run typecheck
-pnpm typecheck
+# Node.js (TypeScript) — use detected package manager
+$PM run typecheck
+# Fallback if no typecheck script
 npx tsc --noEmit
 
 # Python
@@ -88,13 +105,12 @@ On failure — **Root Cause Analysis:**
 5. Do NOT use `any` or `@ts-ignore` to silence errors — fix the actual type
 6. Re-run typecheck
 
-### 4. Run Tests
+### 5. Run Tests
 ```bash
-# Node.js (Primary)
-npm test
-pnpm test
-npx jest
-npx vitest
+# Node.js — use detected package manager
+$PM test
+# Or specific test runner
+$PM run test
 
 # Python
 pytest
@@ -119,7 +135,7 @@ On failure — **Root Cause Analysis:**
 4. Fix the root cause (update test if spec changed, fix code if regression)
 5. Re-run tests
 
-### 5. Identify Cascading Failures
+### 6. Identify Cascading Failures
 
 **Before fixing each failure individually, look for patterns:**
 
@@ -129,7 +145,7 @@ On failure — **Root Cause Analysis:**
 
 **Fix the root cause first**, then re-run to see how many other failures resolve automatically.
 
-### 6. Final Validation
+### 7. Final Validation
 Re-run all checks in sequence:
 1. Lint
 2. Typecheck
@@ -137,7 +153,7 @@ Re-run all checks in sequence:
 
 All must pass before completion.
 
-### 7. Report Summary
+### 8. Report Summary
 ```
 ## Validation Summary
 

@@ -1,7 +1,7 @@
 ---
 name: resolve-coderabbit
 description: Use when a PR has CodeRabbit review comments that need to be addressed. Fetches, evaluates, fixes, and resolves CodeRabbit feedback.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Task
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Resolve CodeRabbit Reviews
@@ -140,12 +140,17 @@ For each unresolved CodeRabbit comment, evaluate against the codebase:
 For ACCEPT items, fix in severity order (HIGH → MEDIUM → LOW):
 
 ```
+# Detect package manager first
+if [ -f "pnpm-lock.yaml" ]; then PM="pnpm"
+elif [ -f "yarn.lock" ]; then PM="yarn"
+else PM="npm"; fi
+
 FOR each ACCEPT item (by severity):
   1. Read the full target file
   2. Understand surrounding context
   3. Make minimal, focused fix
-  4. Run typecheck: pnpm typecheck
-  5. Run tests: pnpm test
+  4. Run typecheck: $PM run typecheck
+  5. Run tests: $PM test
   6. If tests fail, fix or rollback
 ```
 

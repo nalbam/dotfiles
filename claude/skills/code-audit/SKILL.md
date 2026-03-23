@@ -1,7 +1,7 @@
 ---
 name: code-audit
 description: Deep code audit — analyze entire codebase for issues, root causes, and improvements. 전체 코드 심층 감사 — 문제점, 근본원인, 개선사항 분석.
-allowed-tools: Read, Bash, Grep, Glob, Task
+allowed-tools: Read, Bash, Grep, Glob, Agent
 ---
 
 # Code Audit
@@ -81,14 +81,14 @@ ls -d */ 2>/dev/null
 ```
 1. TeamCreate로 "code-audit" 팀 생성
 2. TaskCreate로 4개 감사 태스크 생성
-3. Task 도구로 각 에이전트를 team_name="code-audit"으로 스폰
+3. Agent 도구로 각 에이전트를 team_name="code-audit"으로 스폰
 4. 모든 에이전트가 완료될 때까지 대기 (SendMessage 알림)
 5. TeamDelete로 팀 정리
 ```
 
 **Team 모드 스폰 예시:**
 ```
-Task(
+Agent(
   subagent_type="Explore",
   team_name="code-audit",
   name="security-auditor",
@@ -96,9 +96,9 @@ Task(
 )
 ```
 
-#### Fallback: Task 도구 직접 사용
+#### Fallback: Agent 도구 직접 사용
 
-`TeamCreate`가 없는 경우 Task 도구로 병렬 에이전트를 직접 스폰합니다.
+`TeamCreate`가 없는 경우 Agent 도구로 병렬 에이전트를 직접 스폰합니다.
 
 ---
 

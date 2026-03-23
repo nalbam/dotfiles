@@ -18,14 +18,16 @@ allowed-tools: Read, Bash, Grep, Glob
 
 ### Phase 1: Commit — `/commit` 워크플로우 수행
 
-**`/commit` 스킬의 전체 워크플로우를 따른다:**
+**`/commit` 스킬과 동일한 워크플로우를 이 스킬 내에서 직접 수행한다:**
 
-1. **Validation** — lint, typecheck, tests 통과 확인
-2. **Gather Changes** — `git status`, `git diff` 확인
+1. **Validation** — `/validate` 실행하여 lint, typecheck, tests 통과 확인
+2. **Gather Changes** — `git status`, `git diff`, `git diff --cached` 확인
 3. **Understand Changes** — 변경사항 숙고, "왜?"를 묻고, 영향 파악
 4. **Security Review** — secrets, debug code 확인
 5. **Stage & Commit** — 파일 스테이징, conventional commit 메시지 작성
 6. **Verify Commit** — 커밋 결과 확인
+
+> 각 단계의 상세 내용은 `/commit` 스킬의 SKILL.md를 참조한다.
 
 **Commit Message Format:**
 ```

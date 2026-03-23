@@ -26,15 +26,18 @@ Before creating PR, run `/validate` to ensure all checks pass:
 
 ### 1. Gather Context
 ```bash
+# Detect base branch dynamically
+BASE_BRANCH=$(gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null || git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+
 # Check current branch status
 git status
 
-# View commits since branching from main
-git log origin/main..HEAD --oneline
+# View commits since branching from base
+git log origin/${BASE_BRANCH}..HEAD --oneline
 
 # View full diff for PR description
-git diff origin/main...HEAD --stat
-git diff origin/main...HEAD
+git diff origin/${BASE_BRANCH}...HEAD --stat
+git diff origin/${BASE_BRANCH}...HEAD
 ```
 
 ### 2. Deep Analysis — 변경사항 심층 분석
@@ -57,7 +60,7 @@ git diff origin/main...HEAD
 ### 3. Sync with Main (if needed)
 ```bash
 git fetch origin
-git rebase origin/main
+git rebase origin/${BASE_BRANCH}
 # Resolve conflicts if any, then:
 git push --force-with-lease
 ```
