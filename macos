@@ -207,9 +207,9 @@ defaults write com.apple.dock dashboard-in-overlay -bool true
 # 13: Lock Screen
 # 14: Memo
 defaults write com.apple.dock wvous-tl-corner -int 6 # Disable screen saver
-defaults write com.apple.dock wvous-tr-corner -int 13 # Lock Screen
+defaults write com.apple.dock wvous-tr-corner -int 6 # Disable screen saver
 defaults write com.apple.dock wvous-bl-corner -int 6 # Disable screen saver
-defaults write com.apple.dock wvous-br-corner -int 6 # Disable screen saver
+defaults write com.apple.dock wvous-br-corner -int 13 # Lock Screen
 
 ###############################################################################
 # Safari & WebKit                                                             #
