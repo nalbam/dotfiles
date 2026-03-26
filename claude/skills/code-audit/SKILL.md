@@ -1,7 +1,7 @@
 ---
 name: code-audit
 description: Deep code audit — analyze entire codebase for issues, root causes, and improvements. 전체 코드 심층 감사 — 문제점, 근본원인, 개선사항 분석.
-allowed-tools: Read, Bash, Grep, Glob, Agent
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 ---
 
 # Code Audit

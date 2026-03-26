@@ -1,7 +1,7 @@
 ---
 name: resolve-coderabbit
 description: Fetch, evaluate, fix, and resolve CodeRabbit review comments on a PR. CodeRabbit 리뷰 코멘트를 가져와 평가, 수정, 해결.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 ---
 
 # Resolve CodeRabbit Reviews
