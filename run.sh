@@ -552,6 +552,18 @@ else
   _skip "NPM not found"
 fi
 
+# Claude Code 업데이트
+if command -v claude >/dev/null; then
+  _run "Updating Claude Code..."
+  if claude update --yes 2>/dev/null; then
+    _ok "Claude Code updated"
+  else
+    _skip "Claude Code already up to date"
+  fi
+else
+  _skip "Claude Code not found"
+fi
+
 # PIP 패키지 설치 (버전 체크 포함)
 if command -v python3 >/dev/null; then
   _info "Installing/updating PIP packages..."
