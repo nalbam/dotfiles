@@ -1,8 +1,9 @@
 {
   "cleanupPeriodDays": 3650,
   "env": {
-    "MAX_THINKING_TOKENS": "31999",
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "CLAUDE_CODE_NO_FLICKER": "1",
+    "MAX_THINKING_TOKENS": "31999"
   },
   "permissions": {
     "allow": [
