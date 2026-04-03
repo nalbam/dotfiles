@@ -555,7 +555,8 @@ fi
 # Claude Code 업데이트
 if command -v claude >/dev/null; then
   _run "Updating Claude Code..."
-  if claude update --yes 2>/dev/null; then
+  claude_update_output=$(claude update 2>&1) || true
+  if echo "$claude_update_output" | grep -q "Successfully updated"; then
     _ok "Claude Code updated"
   else
     _skip "Claude Code already up to date"
