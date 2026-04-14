@@ -4,7 +4,6 @@
 alias t='toast'
 alias tu='python3 -m pip install --user -U toast-cli'
 alias tt='curl -fsSL nalbam.github.io/dotfiles/run.sh | bash'
-alias vv='~/.dotfiles/run.sh --vibe'
 
 # Change directory with toast cdw
 c() {
@@ -394,4 +393,3 @@ alias vf='cd'
 alias ㅊ='c'
 alias ㅊㅇ='cd'
 alias ㅅㅅ='tt'
-alias ㅍㅍ='vv'
