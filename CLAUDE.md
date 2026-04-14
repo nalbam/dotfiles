@@ -189,7 +189,7 @@ This allows secure storage of credentials in 1Password vaults instead of plain t
 ### Update Throttling
 - Timestamp-based tracking prevents excessive package manager updates
 - APT and Homebrew updates limited to once per 12 hours
-- Timestamp files: `~/.apt_last_update`, `~/.brew_last_update`
+- Timestamp files stored in `~/.toast/`: `last_update_apt`, `last_update_brew`, `last_update_npm`, `last_update_claude`, `last_update_pip`
 
 ### Git Configuration Variants
 Multiple gitconfig profiles for different contexts:

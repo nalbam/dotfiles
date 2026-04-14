@@ -397,6 +397,7 @@ _progress "Creating directories and setting up SSH keys..."
 
 mkdir -p ~/.aws
 mkdir -p ~/.ssh
+mkdir -p ~/.toast
 _ok "Directories created"
 
 # Generate SSH keys
@@ -452,7 +453,7 @@ _progress "Setting up package managers..."
 
 # Linux 설정 (APT 패키지 관리)
 if [ "${OS_NAME}" == "linux" ]; then
-  APT_TIMESTAMP_FILE=~/.apt_last_update
+  APT_TIMESTAMP_FILE=~/.toast/last_update_apt
 
   if _should_update "$APT_TIMESTAMP_FILE"; then
     _run "Updating APT packages..."
@@ -497,7 +498,7 @@ _progress "Installing development packages..."
 
 # Homebrew 패키지 업데이트 (brew가 설치된 경우에만)
 if command -v brew >/dev/null 2>&1; then
-  BREW_TIMESTAMP_FILE=~/.brew_last_update
+  BREW_TIMESTAMP_FILE=~/.toast/last_update_brew
 
   if _should_update "$BREW_TIMESTAMP_FILE"; then
     _run "Updating Homebrew packages..."
@@ -535,7 +536,7 @@ fi
 
 # NPM 패키지 설치 (버전 체크 포함)
 if command -v npm >/dev/null; then
-  NPM_TIMESTAMP_FILE=~/.npm_last_update
+  NPM_TIMESTAMP_FILE=~/.toast/last_update_npm
 
   if _should_update "$NPM_TIMESTAMP_FILE"; then
     _info "Installing/updating NPM packages..."
@@ -563,7 +564,7 @@ fi
 
 # Claude Code 업데이트
 if command -v claude >/dev/null; then
-  CLAUDE_TIMESTAMP_FILE=~/.claude_last_update
+  CLAUDE_TIMESTAMP_FILE=~/.toast/last_update_claude
 
   if _should_update "$CLAUDE_TIMESTAMP_FILE"; then
     _run "Updating Claude Code..."
@@ -585,7 +586,7 @@ fi
 
 # PIP 패키지 설치 (버전 체크 포함)
 if command -v python3 >/dev/null; then
-  PIP_TIMESTAMP_FILE=~/.pip_last_update
+  PIP_TIMESTAMP_FILE=~/.toast/last_update_pip
 
   if _should_update "$PIP_TIMESTAMP_FILE"; then
     _info "Installing/updating PIP packages..."
