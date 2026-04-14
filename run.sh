@@ -26,7 +26,7 @@ TOTAL_STEPS=11
 CURRENT_STEP=0
 
 # 타이머 설정
-UPDATE_INTERVAL=43200  # 12시간 (초 단위)
+UPDATE_INTERVAL=21600  # 6시간 (초 단위)
 
 # 컬러 출력 설정
 command -v tput >/dev/null && TPUT=true
@@ -463,7 +463,7 @@ if [ "${OS_NAME}" == "linux" ]; then
     # Update timestamp
     date +%s > "$APT_TIMESTAMP_FILE"
   else
-    _skip "APT update (last update was less than 12 hours ago)"
+    _skip "APT update (last update was less than 6 hours ago)"
   fi
 
   # 기본 패키지 설치 (없는 경우에만)
@@ -519,7 +519,7 @@ if command -v brew >/dev/null 2>&1; then
     # Update timestamp
     date +%s > "$BREW_TIMESTAMP_FILE"
   else
-    _skip "Homebrew update (last update was less than 12 hours ago)"
+    _skip "Homebrew update (last update was less than 6 hours ago)"
   fi
 
   # macOS getopt 설정
@@ -535,31 +535,49 @@ fi
 
 # NPM 패키지 설치 (버전 체크 포함)
 if command -v npm >/dev/null; then
-  _info "Installing/updating NPM packages..."
+  NPM_TIMESTAMP_FILE=~/.npm_last_update
 
-  # npm prefix를 한 번만 계산하여 캐싱
-  NPM_PREFIX=$(npm config get prefix 2>/dev/null || echo "/usr/local")
-  NPM_CMD="npm"
-  if [ ! -w "$NPM_PREFIX" ] || [ ! -w "$NPM_PREFIX/lib" ] 2>/dev/null; then
-    NPM_CMD="sudo npm"
+  if _should_update "$NPM_TIMESTAMP_FILE"; then
+    _info "Installing/updating NPM packages..."
+
+    # npm prefix를 한 번만 계산하여 캐싱
+    NPM_PREFIX=$(npm config get prefix 2>/dev/null || echo "/usr/local")
+    NPM_CMD="npm"
+    if [ ! -w "$NPM_PREFIX" ] || [ ! -w "$NPM_PREFIX/lib" ] 2>/dev/null; then
+      NPM_CMD="sudo npm"
+    fi
+
+    _install_npm_package "npm" "npm"
+    _install_npm_package "corepack" "corepack"
+    _install_npm_package "serverless" "serverless"
+    _install_npm_package "ccusage" "ccusage"
+
+    # Update timestamp
+    date +%s > "$NPM_TIMESTAMP_FILE"
+  else
+    _skip "NPM packages update (last update was less than 6 hours ago)"
   fi
-
-  _install_npm_package "npm" "npm"
-  _install_npm_package "corepack" "corepack"
-  _install_npm_package "serverless" "serverless"
-  _install_npm_package "ccusage" "ccusage"
 else
   _skip "NPM not found"
 fi
 
 # Claude Code 업데이트
 if command -v claude >/dev/null; then
-  _run "Updating Claude Code..."
-  claude_update_output=$(claude update 2>&1) || true
-  if echo "$claude_update_output" | grep -q "Successfully updated"; then
-    _ok "Claude Code updated"
+  CLAUDE_TIMESTAMP_FILE=~/.claude_last_update
+
+  if _should_update "$CLAUDE_TIMESTAMP_FILE"; then
+    _run "Updating Claude Code..."
+    claude_update_output=$(claude update 2>&1) || true
+    if echo "$claude_update_output" | grep -q "Successfully updated"; then
+      _ok "Claude Code updated"
+    else
+      _skip "Claude Code already up to date"
+    fi
+
+    # Update timestamp
+    date +%s > "$CLAUDE_TIMESTAMP_FILE"
   else
-    _skip "Claude Code already up to date"
+    _skip "Claude Code update (last update was less than 6 hours ago)"
   fi
 else
   _skip "Claude Code not found"
@@ -567,20 +585,29 @@ fi
 
 # PIP 패키지 설치 (버전 체크 포함)
 if command -v python3 >/dev/null; then
-  _info "Installing/updating PIP packages..."
+  PIP_TIMESTAMP_FILE=~/.pip_last_update
 
-  # 먼저 기본 도구들을 업데이트 (setuptools, wheel 등)
-  _run "Ensuring pip, setuptools, and wheel are up to date..."
-  if python3 -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || \
-     python3 -m pip install --user --upgrade pip setuptools wheel >/dev/null 2>&1 || \
-     python3 -m pip install --break-system-packages --user --upgrade pip setuptools wheel >/dev/null 2>&1; then
-    _ok "pip, setuptools, and wheel updated"
+  if _should_update "$PIP_TIMESTAMP_FILE"; then
+    _info "Installing/updating PIP packages..."
+
+    # 먼저 기본 도구들을 업데이트 (setuptools, wheel 등)
+    _run "Ensuring pip, setuptools, and wheel are up to date..."
+    if python3 -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || \
+       python3 -m pip install --user --upgrade pip setuptools wheel >/dev/null 2>&1 || \
+       python3 -m pip install --break-system-packages --user --upgrade pip setuptools wheel >/dev/null 2>&1; then
+      _ok "pip, setuptools, and wheel updated"
+    else
+      _warn "Failed to update pip tools, continuing anyway..."
+    fi
+
+    # 사용자 패키지 설치
+    _install_pip_package "toast-cli"
+
+    # Update timestamp
+    date +%s > "$PIP_TIMESTAMP_FILE"
   else
-    _warn "Failed to update pip tools, continuing anyway..."
+    _skip "PIP packages update (last update was less than 6 hours ago)"
   fi
-
-  # 사용자 패키지 설치
-  _install_pip_package "toast-cli"
 else
   _skip "Python3 not found"
 fi
