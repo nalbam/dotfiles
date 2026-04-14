@@ -5,9 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Language / 언어
 
 **Always respond in Korean (한국어로 응답하세요).**
-- 모든 응답은 한국어로 작성
+- 사용자와의 대화는 한국어로 진행
 - 코드, 명령어, 기술 용어는 영어 유지
 - 커밋 메시지, 코드 주석은 영어 유지
+- 간결하고 명확한 표현 선호
 
 # Git Safety / Git 안전 규칙
 
