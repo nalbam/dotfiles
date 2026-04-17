@@ -30,8 +30,8 @@ alias h='helm'
 
 # Claude CLI shortcuts
 alias cc='claude'
-alias cca='claude --enable-auto-mode'
-alias ccc='claude --enable-auto-mode --continue'
+alias cca='claude auto-mode'
+alias ccc='claude auto-mode --continue'
 alias ccp='claude --prompt'
 alias ccr='claude remote-control'
 alias ccd='claude doctor'
