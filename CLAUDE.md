@@ -1,269 +1,132 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code (and other AI agents) working in this repository. For a human-facing overview, see [README.md](./README.md).
 
-## Repository Overview
+## What this repo is
 
-This is a dotfiles repository that provides automated development environment setup across macOS, Linux, and Windows platforms. It's a shell-based automation tool that configures Git, SSH, package managers, shell environments, and development tools.
+Cross-platform dotfiles installer. A single shell script (`run.sh`) detects the OS/architecture and provisions a consistent dev environment: SSH keys, Git config, package managers, shell, terminals, and AI tool settings.
 
-## Main Installation Commands
+Everything is POSIX shell — **no bashisms, no build step, no package graph**. Changes land by editing scripts/config files and re-running `run.sh` (or `vv` for AI settings only).
 
-```bash
-# Primary installation method (run from anywhere)
-curl -fsSL nalbam.github.io/dotfiles/run.sh | bash
+## Entry points
 
-# Local installation (if repository is already cloned)
-./run.sh
+| File | Role |
+|------|------|
+| `run.sh` | Main installer — 11 ordered steps (see §Installation flow). Source of truth for what gets installed and in what order. |
+| `run.ps1` | Windows PowerShell equivalent. |
+| `aliases` | All shell aliases and helper functions. Sourced from `zshrc`/`bashrc`. |
+| `darwin/Brewfile`, `linux/Brewfile` | Declarative package lists (read these — do not enumerate packages here). |
 
-# Windows installation
-./run.ps1
+**Before changing installer behavior, read `run.sh` end-to-end.** The steps are interdependent (e.g., Step 5 bootstraps Homebrew before Step 6 uses it).
+
+## Installation flow (run.sh)
+
+1. OS/arch detection (`darwin`/`linux`/`mingw64` × `arm64`/`x86_64`/`aarch64`/`armv7l`)
+2. Directory scaffolding + SSH key generation (RSA + ED25519)
+3. Clone/update dotfiles repo to `~/.dotfiles`
+4. Deploy SSH/AWS/Git config templates
+5. Package manager setup (APT for Linux, Homebrew install)
+6. Package installation (Homebrew, NPM, PIP) — version-aware, skipped if up to date
+7. OS-specific settings (macOS: Xcode CLT, `.macos` system preferences)
+8. ZSH + Oh My ZSH install
+9. Theme/UI (Dracula, iTerm2 profile)
+10. Deploy user config files (`~/.zshrc`, `~/.aliases`, etc.)
+11. AI tools sync (`claude/` → `~/.claude/`, `kiro/` → `~/.kiro/`)
+
+`run.sh --vibe` (or the `vv` alias) runs **only step 11**.
+
+## Repository layout
+
+```
+run.sh / run.ps1          # installers
+aliases, zshrc, bashrc    # shell config
+profile, vimrc, tmux.conf # tool config
+gitconfig                 # base (sets me@nalbam.com)
+gitconfig-nalbam          # personal profile
+gitconfig-bruce           # work profile
+macos                     # macOS system-pref script
+
+darwin/                   # macOS
+  Brewfile
+  DefaultkeyBinding.dict  # Korean ₩ → backtick remap
+  zprofile.arm64.sh       # Homebrew at /opt/homebrew
+  zprofile.x86_64.sh      # Homebrew at /usr/local
+linux/                    # Linux (per-arch zprofile.*.sh)
+ssh/, aws/                # config templates
+iterm2/, ghostty/         # terminal profiles
+
+claude/                   # synced to ~/.claude/
+  CLAUDE.md, settings.json, statusline.py
+  agents/ hooks/ rules/ skills/
+kiro/                     # synced to ~/.kiro/
+  agents/ hooks/
+
+docs/ARCHITECTURE.md      # diagrams + deeper notes
 ```
 
-## Architecture
+## Git profile switching (non-obvious)
 
-The installation follows an 11-step process:
-1. System environment check (OS/architecture detection)
-2. Directory setup and SSH key generation
-3. Dotfiles repository cloning/updating
-4. Basic configuration files setup (SSH, AWS, Git configs)
-5. Package manager setup (APT for Linux, Homebrew installation)
-6. Development packages installation (Homebrew, NPM, PIP)
-7. OS-specific settings (macOS system preferences, Xcode)
-8. ZSH and Oh-My-ZSH installation
-9. Theme and UI settings (Dracula theme, iTerm2)
-10. User configuration files deployment
-11. AI tools settings (Claude Code, Kiro)
+Base `gitconfig` uses `includeIf` to swap email/signing by directory:
 
-## Key Components
+- `~/workspace/github.com/nalbam/`, `~/workspace/github.com/opspresso/` → `gitconfig-nalbam`
+- `~/workspace/github-emu.com/`, `~/workspace/github.dev.kr.krpay.io/`, `~/workspace/github.com/karrot-emu/`, `~/workspace/github.com/daangn/` → `gitconfig-bruce`
+- Otherwise → base `me@nalbam.com`
 
-- **`run.sh`**: Main installation script with 11-step progress tracking
-- **`run.ps1`**: Windows PowerShell installation script
-- **`darwin/Brewfile`**: macOS package definitions
-- **`linux/Brewfile`**: Linux package definitions
-- **`docs/`**: Technical documentation (ARCHITECTURE.md)
-- **Configuration files**: `.gitconfig`, `.zshrc`, `.aliases`, `.vimrc`, `.bashrc`, `.profile`, etc.
+When editing `gitconfig*`, check all three files stay consistent. A wrong email will silently commit under the wrong identity.
 
-## Claude Code Integration
+## Platform-specific gotchas
 
-Claude Code and Kiro settings are managed in this repository:
-- **`claude/`**: Claude Code settings (synced to `~/.claude/`)
-  - `CLAUDE.md` — Global Claude Code instructions
-  - `settings.json` — Permissions, hooks, plugins configuration
-  - `statusline.py` — Custom status line display
-  - `agents/` — Specialized agent definitions (8 agents)
-  - `hooks/` — Lifecycle hooks (VibeMon)
-  - `rules/` — Always-loaded instruction rules (7 rules)
-  - `skills/` — User-invocable skills (9 skills)
-- **`kiro/`**: Kiro settings (synced to `~/.kiro/`)
-  - `agents/` — Agent definitions
-  - `hooks/` — Lifecycle hooks (VibeMon)
+- **macOS arm64**: Homebrew lives at `/opt/homebrew`. Rosetta 2 is auto-installed for x86_64 binaries.
+- **macOS x86_64**: Homebrew at `/usr/local`.
+- **Raspberry Pi (aarch64/armv7l)**: Homebrew is optional (ARM compile cost). npm globals may need `sudo`. Skip heavy packages when possible.
+- **WSL**: detected as Linux x86_64. Homebrew optional.
+- **zprofile scripts** must degrade gracefully when `brew` / `pyenv` / `nvm` are absent — they run early in shell init.
 
-To sync AI tool settings independently:
-```bash
-vv                         # Uses alias
-~/.dotfiles/run.sh --vibe  # Direct command
-```
+## Resilience contracts (keep these when editing run.sh)
 
-## Organization-Specific Features
+- Network calls: exponential backoff, max 3 retries (5s → 10s → 20s).
+- Update throttling: APT / Homebrew / NPM / PIP / Claude update once per 12 h; timestamps in `~/.toast/last_update_*`.
+- File ops: MD5 check before overwrite; sensitive files (`~/.ssh/*`, `~/.aws/*`, `*.backup`) get `chmod 600`.
+- PIP fallback chain: `pip install` → `--user` → `--break-system-packages --user` → `sudo` (for PEP 668 systems).
+- Backup-before-overwrite on user config files.
 
-Git configuration uses directory-based `includeIf` rules to apply different profiles:
-- `~/workspace/github.com/nalbam/` and `~/workspace/github.com/opspresso/`: Uses `.gitconfig-nalbam` profile
-- `~/workspace/github-emu.com/`, `~/workspace/github.dev.kr.krpay.io/`, `~/workspace/github.com/karrot-emu/`, `~/workspace/github.com/daangn/`: Uses `.gitconfig-bruce` profile
-- Default: Uses `me@nalbam.com` email (set in base `.gitconfig`)
+Do not remove these without a clear reason — they exist because of real failure modes on constrained platforms (Pi, locked-down corp machines, WSL).
 
-## Installed Packages
+## Aliases/helpers (source of truth: `aliases`)
 
-### NPM Packages
-- **npm**: Package manager itself (auto-update)
-- **corepack**: Node.js package manager manager
-- **serverless**: Serverless framework CLI
-- **ccusage**: Claude Code usage tracking and status line
+Don't duplicate the alias list here — read `aliases` directly. When adding new helpers:
 
-### PIP Packages
-- **toast-cli**: Workspace and environment management tool (integrated extensively in shell aliases)
-- Intelligent installation with fallback strategies:
-  1. Normal pip install
-  2. User install (--user)
-  3. PEP 668 compliant (--break-system-packages --user)
-  4. System-wide with sudo (last resort)
+- Put them in `aliases` (not `zshrc`), grouped by tool.
+- Keep functions small; prefer POSIX-compatible syntax so `bashrc` can source them too.
+- Toast CLI is the central workspace manager — `c`, `m`, `x`, `g`, `r`, `e`, `d`, `p`, `ssm`, `tu`, `tt` all route through it.
+- Korean keyboard aliases exist (`ㅊ`, `ㅊㅇ`, `ㅅㅅ`, `ㅍㅍ`) — preserve them when refactoring.
 
-### Homebrew Packages (macOS & Linux)
-Key tools include:
-- **Cloud/DevOps**: awscli, eksctl, tenv, helm, kubectl, argo, argocd, k9s, kubectx, kube-ps1
-- **Development**: git, gh, hub, git-lfs, git-secrets, go, ruby, node, nvm, pyenv, direnv/pipenv (macOS only)
-- **Utilities**: jq, yq, fzf, tree, httpie, curl, wget, grpcurl, colordiff, figlet, fx, xz, ripgrep/htop/telnet/graphviz (macOS only)
-- **Security**: gpg, 1password-cli
-- **Shell**: zsh, zsh-autosuggestions, zsh-syntax-highlighting
+## AI tool settings (claude/, kiro/)
 
-### macOS Casks
-- **Essential**: 1password-cli, aws-vault-binary, iterm2, visual-studio-code, google-drive, ghostty, gimp
-- **Fonts**: font-d2coding, font-dejavu-sans-mono-nerd-font (macOS & Linux)
-- **User-specific** (if USER=nalbam): 1password, google-chrome, slack
-- **Third-party taps**: opspresso/tap/toast, pakerwreah/calendr/calendr (macOS only)
+These directories are the **source**; `~/.claude/` and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `vv` run overwrites changed files (MD5-compared).
 
-## Error Handling & Resilience
+When adding a new Claude Code agent/skill/rule:
 
-- Network operations use exponential backoff (3 retries max with increasing wait times: 5s, 10s, 20s)
-- File permissions automatically set for sensitive files (600 for .ssh/*, .aws/*, *.backup)
-- Backup creation before overwriting existing configurations
-- Update throttling for package managers (12 hours minimum between updates)
-- MD5 integrity checks for file operations
-- Automatic sudo detection and fallback for restricted operations
-- Graceful degradation when optional tools are unavailable
+1. Create the file under `claude/agents/` · `claude/skills/<name>/` · `claude/rules/`.
+2. If it needs permissions or hooks, edit `claude/settings.json`.
+3. Run `vv` to deploy. No installer re-run needed.
 
-## Security Features
+## Working rules for agents
 
-- Automatic SSH key generation (RSA and ED25519)
-- Secure file permissions (600) for SSH/AWS configs
-- Safe backup handling with permission preservation
-- Credential handling without exposure
-- 1Password CLI integration for secure credential management
+- **Do not commit or push without explicit user instruction.** Global rule, but especially important here — this repo drives the user's entire environment.
+- **Shell changes are live the next time `run.sh` runs on any machine.** Test locally before recommending risky changes.
+- **Read the whole file before editing** (`run.sh` is ~600 lines but tightly sequenced).
+- **Check both `darwin/` and `linux/` paths** when touching platform logic — one branch is easy to miss.
+- **Prefer editing `aliases` or `Brewfile` over adding logic to `run.sh`.** The installer should stay declarative.
+- **POSIX-compliant** shell only. No `[[ ]]`, no arrays in portable paths, no bash-only expansions in files sourced by both bash and zsh.
 
-### 1Password Integration
-The installer provides templates and instructions for using 1Password CLI:
+## Quick reference paths
 
-```bash
-# SSH config from 1Password
-op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config
+- Installer: `run.sh`
+- Main helper functions: `aliases:137-380` (tmux, aws-vault, terraform, node, local servers)
+- Brewfiles: `darwin/Brewfile`, `linux/Brewfile`
+- Arch zprofiles: `darwin/zprofile.{arm64,x86_64}.sh`, `linux/zprofile.{x86_64,aarch64,armv7l}.sh`
+- Claude Code settings: `claude/settings.json`
+- Korean ₩→` keymap: `darwin/DefaultkeyBinding.dict`
 
-# SSH private keys from 1Password
-op read op://keys/nalbam-seoul.pem/notesPlain > ~/.ssh/nalbam-seoul.pem && chmod 600 ~/.ssh/nalbam-seoul.pem
-
-# AWS credentials from 1Password
-op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config
-op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials
-```
-
-This allows secure storage of credentials in 1Password vaults instead of plain text files.
-
-## Development Notes
-
-- Uses POSIX-compliant shell scripting
-- Progress tracking with colored output using `tput`
-- Modular function design for maintainability
-- Cross-platform compatibility (Darwin/Linux/MinGW64)
-
-## Platform-Specific Notes
-
-### macOS (Darwin)
-- **arm64**: Apple Silicon Macs, Homebrew at `/opt/homebrew`
-  - Automatic Rosetta 2 installation for x86_64 compatibility
-- **x86_64**: Intel Macs, Homebrew at `/usr/local`
-- Includes Xcode Command Line Tools installation
-- iTerm2 Dracula theme integration with profiles.json
-- System preferences automation via `.macos` script
-- Korean keyboard won symbol (₩) mapped to backtick (`) via `DefaultkeyBinding.dict`
-- GNU getopt linking for compatibility
-
-### Linux
-- **x86_64**: WSL (Windows Subsystem for Linux) or native Ubuntu/Debian
-- **aarch64**: Raspberry Pi 64-bit OS
-- **armv7l**: Raspberry Pi 32-bit OS
-- Homebrew at `/home/linuxbrew/.linuxbrew` (optional)
-- APT package manager with 12-hour update throttling
-- All zprofile files gracefully handle missing brew/pyenv
-
-### WSL-Specific Considerations
-- Detected as Linux with x86_64 architecture
-- Homebrew installation is optional but supported
-- Network access inherits from Windows host
-
-### Raspberry Pi Considerations
-- ARM architecture (aarch64 or armv7l)
-- May require `sudo` for npm global package installations
-- Homebrew installation optional due to ARM compilation requirements
-- Lower memory footprint - some heavy packages may be skipped
-
-## Advanced Features
-
-### Version-Aware Package Management
-- NPM and PIP packages check installed vs. latest versions before updating
-- Skip updates if already at latest version to save time
-- Display version changes in update messages (e.g., "Updating npm: 8.1.0 → 10.2.3")
-
-### Intelligent Permission Handling
-- Automatic detection of write permissions for npm global installs
-- Fallback chain for PIP installs (normal → --user → --break-system-packages → sudo)
-- Smart sudo usage only when necessary
-
-### Update Throttling
-- Timestamp-based tracking prevents excessive package manager updates
-- APT and Homebrew updates limited to once per 12 hours
-- Timestamp files stored in `~/.toast/`: `last_update_apt`, `last_update_brew`, `last_update_npm`, `last_update_claude`, `last_update_pip`
-
-### Git Configuration Variants
-Multiple gitconfig profiles for different contexts:
-- `.gitconfig`: Base configuration
-- `.gitconfig-nalbam`: Personal profile
-- `.gitconfig-bruce`: Alternative profile
-- Can be switched or merged based on project needs
-
-### Shell Configuration
-- Platform and architecture-specific `.zprofile` files:
-  - `darwin/zprofile.arm64.sh`, `darwin/zprofile.x86_64.sh`
-  - `linux/zprofile.x86_64.sh`, `linux/zprofile.aarch64.sh`, `linux/zprofile.armv7l.sh`
-- Graceful handling of missing tools (brew, pyenv) in profile scripts
-
-### Toast CLI Integration
-The dotfiles provide extensive integration with Toast CLI for workspace management:
-- **Directory Navigation**: `c()` function for workspace-aware directory changes
-- **Context Management**: Quick shortcuts for AWS (`m`), Kubernetes (`x`), Git (`g`), regions (`r`)
-- **Environment Helpers**: `e` (env), `d` (dot), `p` (prompt), `ssm` (SSM parameters)
-- **Installation**: Auto-installed via PIP, auto-updated with `tu` alias
-- **Quick Reinstall**: `tt` alias to re-run dotfiles installer
-
-### Development Helper Functions
-Beyond simple aliases, the repository includes intelligent helper functions:
-
-**Node.js Ecosystem** (in `aliases:253-295`):
-- `nn()`: Smart clean install with automatic pnpm/npm detection
-- `nb()`: Smart build command (pnpm/npm auto-detection)
-- `nd()`: Start dev server with automatic port cleanup
-- `nk()`: Kill dev servers on ports 3000-3999
-
-**Local Server Management** (in `aliases:312-380`):
-- `ss([dir], [port])`: Start Python HTTP server (default: docs/, port 8000)
-- `sl()`: List all running local dev servers
-- `sk(<port|all>)`: Kill servers by port or all at once
-
-**AWS Vault Helper** (in `aliases:144-220`):
-- `av()`: Profile-aware AWS Vault execution with shortcuts
-  - Profiles: `a|alpha`, `d|data`, `p|prod`, `n|nalbam`, `t|two`, `k|krug`, `o|ops`, `b|bruce`
-  - Commands: `c|clear`, `l|list`
-  - Example: `av n kubectl get pods` (execute kubectl in nalbam profile)
-
-**Terraform Workflows** (in `aliases:222-244`):
-- Complete set of aliases for init, plan, apply, destroy
-- State management shortcuts (`tfsl`, `tfss`, `tfsr`)
-- Auto-formatting and validation (`tff`, `tfp`)
-
-### Tool Version Managers
-Integrated version managers with automatic configuration:
-- **tenv**: Terraform version manager installed via Homebrew
-- **tfenv**: Legacy Terraform version manager (optional, manually installed at `~/.tfenv`) with `TFENV_AUTO_INSTALL=true` and ARM64 support
-- **pyenv**: Python version manager with automatic initialization
-- **nvm**: Node.js version manager with automatic loading
-
-### Terminal Integration
-- **VS Code**: Shell integration for VS Code terminal (auto-detected)
-- **Kiro**: Shell integration for Kiro terminal (auto-detected)
-- **Kubernetes**: `kube-ps1` prompt integration showing current cluster/namespace
-
-### Tmux Configuration
-Custom tmux configuration (`tmux.conf`) with:
-- Mouse support and vi-mode copy
-- System clipboard integration (pbcopy on macOS, xclip on Linux)
-- Status bar with system metrics (CPU, memory, battery, network, date/time)
-- Vim-like pane navigation (`h/j/k/l`) and resize (`H/J/K/L`)
-- Split panes with `|` (horizontal) and `-` (vertical)
-- Window numbering starts at 1, auto-renumber on close
-
-**Tmux aliases** (in `aliases:137-141`):
-- `tm` (tmux), `tml` (list sessions), `tmn` (new session), `tma` (attach), `tmk` (kill session), `tmka` (kill server)
-
-### Korean Keyboard Support
-Native Korean character aliases for quick command execution:
-- `ㅊ` → `c` (change directory with toast)
-- `ㅊㅇ` → `cd` (change directory)
-- `ㅅㅅ` → `tt` (re-run dotfiles installer)
-- `ㅍㅍ` → `vv` (sync AI tools settings)
+For architecture diagrams and installation flow sequence, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
