@@ -60,7 +60,7 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
 2. **Implementation**
    - 신규 기능의 테스트부터 작성
    - 구현 후 테스트로 검증
-   - 80%+ 커버리지 목표
+   - 테스트 전략 상세: `rules/testing.md`
 
 3. **Code Review**
    - code-reviewer 서브에이전트로 품질·보안 검토
