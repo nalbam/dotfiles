@@ -6,7 +6,7 @@ Guidance for Claude Code (and other AI agents) working in this repository. For a
 
 Cross-platform dotfiles installer. A single shell script (`run.sh`) detects the OS/architecture and provisions a consistent dev environment: SSH keys, Git config, package managers, shell, terminals, and AI tool settings.
 
-Everything is POSIX shell — **no bashisms, no build step, no package graph**. Changes land by editing scripts/config files and re-running `run.sh` (or `vv` for AI settings only).
+Everything is POSIX shell — **no bashisms, no build step, no package graph**. Changes land by editing scripts/config files and re-running `run.sh` (or `run.sh --vibe` for AI settings only).
 
 ## Entry points
 
@@ -33,7 +33,7 @@ Everything is POSIX shell — **no bashisms, no build step, no package graph**. 
 10. Deploy user config files (`~/.zshrc`, `~/.aliases`, etc.)
 11. AI tools sync (`claude/` → `~/.claude/`, `codex/` → `~/.codex/`, `kiro/` → `~/.kiro/`)
 
-`run.sh --vibe` (or the `vv` alias) runs **only step 11**.
+`run.sh --vibe` runs **only step 11**.
 
 ## Repository layout
 
@@ -101,18 +101,19 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 
 - Put them in `aliases` (not `zshrc`), grouped by tool.
 - Keep functions small; prefer POSIX-compatible syntax so `bashrc` can source them too.
-- Toast CLI is the central workspace manager — `c`, `m`, `x`, `g`, `r`, `e`, `d`, `p`, `ssm`, `tu`, `tt` all route through it.
-- Korean keyboard aliases exist (`ㅊ`, `ㅊㅇ`, `ㅅㅅ`, `ㅍㅍ`) — preserve them when refactoring.
+- Toast CLI is the central workspace manager — `c`, `x`, `d`, `e`, `g`, `r`, `p`, `ssm` route through `toast`. Separately: `m` runs `aws sts get-caller-identity`, `tu` updates toast-cli itself, `tt` re-runs the dotfiles installer.
+- Claude CLI shortcuts live at `aliases:31-38` (`cc`, `cca`, `ccc`, `ccd`, `ccp`, `ccr`, `ccu`).
+- Korean keyboard aliases exist (`ㅊ`→`c`, `ㅊㅇ`→`cd`, `ㅅㅅ`→`tt`, `ㅊㅊ`→`cc`) — preserve them when refactoring.
 
 ## AI tool settings (claude/, codex/, kiro/)
 
-These directories are the **source**; `~/.claude/`, `~/.codex/`, and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `vv` run overwrites changed files (MD5-compared).
+These directories are the **source**; `~/.claude/`, `~/.codex/`, and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `run.sh --vibe` overwrites changed files (MD5-compared).
 
 When adding a new Claude Code agent/skill/rule:
 
 1. Create the file under `claude/agents/` · `claude/skills/<name>/` · `claude/rules/`.
 2. If it needs permissions or hooks, edit `claude/settings.json`.
-3. Run `vv` to deploy. No installer re-run needed.
+3. Run `run.sh --vibe` to deploy. No installer re-run needed.
 
 ## Working rules for agents
 
@@ -126,7 +127,7 @@ When adding a new Claude Code agent/skill/rule:
 ## Quick reference paths
 
 - Installer: `run.sh`
-- Main helper functions: `aliases:137-380` (tmux, aws-vault, terraform, node, local servers)
+- Main helper functions: `aliases:41-381` — `tm()` (tmux, L41-137), `av()` (aws-vault, L145-209), terraform aliases (L224-245), node helpers `nn`/`nb`/`nk`/`nd` (L254-296), local dev servers `ss`/`sl`/`sk` (L314-381)
 - Brewfiles: `darwin/Brewfile`, `linux/Brewfile`
 - Arch zprofiles: `darwin/zprofile.{arm64,x86_64}.sh`, `linux/zprofile.{x86_64,aarch64,armv7l}.sh`
 - Claude Code settings: `claude/settings.json`

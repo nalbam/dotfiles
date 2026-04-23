@@ -83,7 +83,6 @@ cd ~/.dotfiles
 | Alias | Description |
 |-------|-------------|
 | `tt` | dotfiles 재설치 |
-| `vv` | AI 도구(Claude Code, Codex, Kiro) 설정만 동기화 |
 | `c <workspace>` | toast-cli 워크스페이스 디렉터리 이동 |
 | `av <profile> <cmd>` | aws-vault 프로파일 실행 (e.g. `av n kubectl get pods`) |
 | `nn` / `nb` / `nd` / `nk` | Node.js: clean install / build / dev server / kill ports |
@@ -92,15 +91,14 @@ cd ~/.dotfiles
 | `tm*` | tmux: new / attach / list / kill |
 | `cc`, `ccc`, `ccu` | Claude Code: 실행 / continue / ccusage |
 
-**한글 키보드 단축키**: `ㅊ` → `c`, `ㅊㅇ` → `cd`, `ㅅㅅ` → `tt`, `ㅍㅍ` → `vv`
+**한글 키보드 단축키**: `ㅊ` → `c`, `ㅊㅇ` → `cd`, `ㅅㅅ` → `tt`, `ㅊㅊ` → `cc`
 
 ## AI Tools Sync
 
 Claude Code, Codex, Kiro의 에이전트·훅·규칙·스킬을 저장소에 버전 관리하고 여러 머신에 배포합니다.
 
 ```bash
-vv                         # AI 도구 설정만 빠르게 동기화
-~/.dotfiles/run.sh --vibe  # 동일 (직접 호출)
+~/.dotfiles/run.sh --vibe  # AI 도구 설정만 빠르게 동기화
 ```
 
 - `claude/` → `~/.claude/`

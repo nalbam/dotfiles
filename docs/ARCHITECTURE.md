@@ -124,7 +124,7 @@ graph TD
    - Codex settings synced from `codex/` to `~/.codex/` (hooks, config)
    - Kiro settings synced from `kiro/` to `~/.kiro/` (agents, hooks)
    - MD5-based incremental sync (only changed files updated)
-   - Standalone sync via `run.sh --vibe` or `vv` alias
+   - Standalone sync via `run.sh --vibe`
 
 ## Installation Flow
 
