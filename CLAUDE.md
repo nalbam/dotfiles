@@ -31,7 +31,7 @@ Everything is POSIX shell — **no bashisms, no build step, no package graph**. 
 8. ZSH + Oh My ZSH install
 9. Theme/UI (Dracula, iTerm2 profile)
 10. Deploy user config files (`~/.zshrc`, `~/.aliases`, etc.)
-11. AI tools sync (`claude/` → `~/.claude/`, `kiro/` → `~/.kiro/`)
+11. AI tools sync (`claude/` → `~/.claude/`, `codex/` → `~/.codex/`, `kiro/` → `~/.kiro/`)
 
 `run.sh --vibe` (or the `vv` alias) runs **only step 11**.
 
@@ -58,6 +58,9 @@ iterm2/, ghostty/         # terminal profiles
 claude/                   # synced to ~/.claude/
   CLAUDE.md, settings.json, statusline.py
   agents/ hooks/ rules/ skills/
+codex/                    # synced to ~/.codex/
+  config.toml, hooks.json
+  hooks/
 kiro/                     # synced to ~/.kiro/
   agents/ hooks/
 
@@ -101,9 +104,9 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 - Toast CLI is the central workspace manager — `c`, `m`, `x`, `g`, `r`, `e`, `d`, `p`, `ssm`, `tu`, `tt` all route through it.
 - Korean keyboard aliases exist (`ㅊ`, `ㅊㅇ`, `ㅅㅅ`, `ㅍㅍ`) — preserve them when refactoring.
 
-## AI tool settings (claude/, kiro/)
+## AI tool settings (claude/, codex/, kiro/)
 
-These directories are the **source**; `~/.claude/` and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `vv` run overwrites changed files (MD5-compared).
+These directories are the **source**; `~/.claude/`, `~/.codex/`, and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `vv` run overwrites changed files (MD5-compared).
 
 When adding a new Claude Code agent/skill/rule:
 
@@ -127,6 +130,7 @@ When adding a new Claude Code agent/skill/rule:
 - Brewfiles: `darwin/Brewfile`, `linux/Brewfile`
 - Arch zprofiles: `darwin/zprofile.{arm64,x86_64}.sh`, `linux/zprofile.{x86_64,aarch64,armv7l}.sh`
 - Claude Code settings: `claude/settings.json`
+- Codex settings: `codex/hooks.json`, `codex/config.toml`
 - Korean ₩→` keymap: `darwin/DefaultkeyBinding.dict`
 
 For architecture diagrams and installation flow sequence, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).

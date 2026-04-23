@@ -35,4 +35,4 @@ This directory contains the technical documentation for the dotfiles project.
 - `linux/zprofile.*.sh` - Linux architecture-specific profiles
 
 ### AI Tools Integration
-Claude Code and Kiro settings are managed in this repository under `claude/` and `kiro/` directories, synced to `~/.claude/` and `~/.kiro/` respectively.
+Claude Code, Codex, and Kiro settings are managed in this repository under `claude/`, `codex/`, and `kiro/` directories, synced to `~/.claude/`, `~/.codex/`, and `~/.kiro/` respectively.

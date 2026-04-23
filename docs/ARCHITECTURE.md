@@ -68,6 +68,10 @@ graph TD
 │   ├── hooks/             # Lifecycle hooks (VibeMon)
 │   ├── rules/             # Always-loaded rules (7)
 │   └── skills/            # User-invocable skills (9)
+├── codex/                 # Codex settings (synced to ~/.codex/)
+│   ├── config.toml        # Feature flags
+│   ├── hooks.json         # Hook wiring
+│   └── hooks/             # Lifecycle hooks (VibeMon)
 ├── ghostty/               # Ghostty terminal configuration
 │   └── config             # Ghostty settings
 ├── iterm2/                # iTerm2 configuration
@@ -117,6 +121,7 @@ graph TD
 
 5. AI Tools Integration
    - Claude Code settings synced from `claude/` to `~/.claude/` (agents, hooks, rules, skills, settings)
+   - Codex settings synced from `codex/` to `~/.codex/` (hooks, config)
    - Kiro settings synced from `kiro/` to `~/.kiro/` (agents, hooks)
    - MD5-based incremental sync (only changed files updated)
    - Standalone sync via `run.sh --vibe` or `vv` alias
@@ -142,7 +147,7 @@ sequenceDiagram
     Script->>System: Step 8: Install ZSH & Oh My ZSH
     Script->>System: Step 9: Apply theme & UI settings
     Script->>System: Step 10: Deploy user config files
-    Script->>System: Step 11: Sync AI tools (Claude Code, Kiro)
+    Script->>System: Step 11: Sync AI tools (Claude Code, Codex, Kiro)
     Script->>User: Complete Installation
 ```
 

@@ -196,10 +196,11 @@ _dotfiles() {
   fi
 }
 
-# AI 도구 설정 동기화 함수 (Claude Code, Kiro)
+# AI 도구 설정 동기화 함수 (Claude Code, Codex, Kiro)
 _sync_vibe() {
   local sync_targets=(
     "claude:${HOME}/.claude"
+    "codex:${HOME}/.codex"
     "kiro:${HOME}/.kiro"
   )
 

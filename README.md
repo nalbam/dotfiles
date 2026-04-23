@@ -39,7 +39,7 @@ cd ~/.dotfiles
 - **11-step installer**: OS 감지부터 AI 도구 동기화까지 단계별 자동 진행
 - **Resilient**: 네트워크 재시도(exponential backoff), 12시간 업데이트 스로틀링, MD5 무결성 체크
 - **Organization-aware Git**: 디렉터리별 `includeIf`로 개인/회사 계정 자동 전환
-- **AI tools sync**: Claude Code와 Kiro 설정을 여러 머신에서 동일하게 유지
+- **AI tools sync**: Claude Code, Codex, Kiro 설정을 여러 머신에서 동일하게 유지
 - **Secret-safe**: 1Password CLI 통합으로 자격 증명을 평문 파일 없이 관리
 
 ## What Gets Installed
@@ -71,6 +71,7 @@ cd ~/.dotfiles
 ├── iterm2/, ghostty/         # Terminal profiles
 │
 ├── claude/                   # Claude Code settings → ~/.claude/
+├── codex/                    # Codex settings → ~/.codex/
 ├── kiro/                     # Kiro settings → ~/.kiro/
 └── docs/                     # Architecture & deeper documentation
 ```
@@ -82,7 +83,7 @@ cd ~/.dotfiles
 | Alias | Description |
 |-------|-------------|
 | `tt` | dotfiles 재설치 |
-| `vv` | AI 도구(Claude Code, Kiro) 설정만 동기화 |
+| `vv` | AI 도구(Claude Code, Codex, Kiro) 설정만 동기화 |
 | `c <workspace>` | toast-cli 워크스페이스 디렉터리 이동 |
 | `av <profile> <cmd>` | aws-vault 프로파일 실행 (e.g. `av n kubectl get pods`) |
 | `nn` / `nb` / `nd` / `nk` | Node.js: clean install / build / dev server / kill ports |
@@ -95,7 +96,7 @@ cd ~/.dotfiles
 
 ## AI Tools Sync
 
-Claude Code와 Kiro의 에이전트·훅·규칙·스킬을 저장소에 버전 관리하고 여러 머신에 배포합니다.
+Claude Code, Codex, Kiro의 에이전트·훅·규칙·스킬을 저장소에 버전 관리하고 여러 머신에 배포합니다.
 
 ```bash
 vv                         # AI 도구 설정만 빠르게 동기화
@@ -103,6 +104,7 @@ vv                         # AI 도구 설정만 빠르게 동기화
 ```
 
 - `claude/` → `~/.claude/`
+- `codex/` → `~/.codex/`
 - `kiro/` → `~/.kiro/`
 
 변경된 파일만 MD5로 비교해 부분 동기화합니다.
