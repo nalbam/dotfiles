@@ -1,157 +1,151 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in any project.
+Claude Code(claude.ai/code)를 위한 전역 지침. 모든 프로젝트에 우선 적용된다. 상세 규칙은 각 섹션 말미의 `rules/*.md` 링크를 참조.
+
+# Priority / 우선순위
+
+규칙 충돌 시 다음 순서로 적용:
+
+1. **Git Safety** — 명시 허가 없이 commit/push 금지
+2. **Plan First** — 구현 전 설계 완성 후 승인
+3. **Language** — 한국어로 응답
+4. **Before Changing Code** — 변경 전 맥락 파악
+5. **Core Principles / 기타 원칙**
 
 # Language / 언어
 
 **Always respond in Korean (한국어로 응답하세요).**
-- 사용자와의 대화는 한국어로 진행
+
+- 사용자와의 대화는 한국어
 - 코드, 명령어, 기술 용어는 영어 유지
 - 커밋 메시지, 코드 주석은 영어 유지
 - 간결하고 명확한 표현 선호
 
+자세히: `rules/language.md`
+
 # Git Safety / Git 안전 규칙
 
 **NEVER commit or push without explicit user permission.**
+
 - 사용자가 명시적으로 요청할 때만 `git commit`, `git push` 실행
-- 코드 변경 후 자동으로 커밋하지 않음
+- 코드 변경 후 자동 커밋하지 않음
+- "커밋해", "commit" 같은 명확한 지시가 있을 때만 수행
+- `--no-verify`, `--no-gpg-sign` 등 훅·서명 우회 금지
 
-# Global Code Guidelines
+자세히: `rules/git-workflow.md`
 
-**Important: Refer to project-specific documentation (e.g., docs/, README.md) when available.**
+# Plan First / 계획 우선
 
-**Important: Before writing new code, search for similar existing code and maintain consistent patterns.**
+**ALWAYS complete the design in plan mode before writing implementation code.**
 
-**Important: Perform only the necessary work. If work is not needed, stop.**
+- 구현 전 반드시 plan 모드로 설계를 완성한 뒤 코드 작성
+- `EnterPlanMode`로 진입 → `ExitPlanMode`로 사용자 승인 요청
+- 사용자가 계획을 명시적으로 승인한 이후에만 구현 시작
 
-## Mindset
+**필수 진입**: 신규 기능, 의미 있는 구조 변경이 2곳 이상, 아키텍처·리팩토링, 모호한 요구사항, 동작 변경.
 
-- Think like a senior engineer.
-- Don't rush to conclusions; evaluate multiple approaches before deciding.
-- Problem definition → small, safe change → review → refactor — repeat the loop.
-- Keep changes small, focused, and incremental.
+**생략 가능**: 오타·한 줄 수정, 순수 탐색, 상세 지시가 있는 단순 작업, 문구 교정.
 
-## Before Changing Code
+자세히: `rules/claude-code.md#plan-mode`
 
-- Read relevant files end to end, including call/reference paths.
-- Locate definitions, references, call sites, related tests, and configs.
-- Do not change code without having read the entire file.
-- Record assumptions clearly.
+# Claude Code Usage / Claude Code 활용
 
-## Core Principles
+- **Subagent**: 독립적 탐색·분석은 Explore/Plan/general-purpose로 위임, 독립 작업은 병렬 spawn
+- **Skill**: 사용자가 `/<name>` 호출 시 Skill 툴 사용, 존재하지 않는 스킬 추측 금지
+- **TaskCreate/TaskUpdate**: 3단계 이상 작업은 추적, 상태는 즉시 갱신
+- **병렬 도구 호출**: 독립 Bash·Read·Grep은 한 메시지에 동시 배치
+- **Context7 MCP**: 라이브러리·프레임워크·SDK 문서는 Context7 우선, 훈련 데이터 맹신 금지
+- **위험 행동 확인**: `rm -rf`, `git push --force`, PR/이슈 작성 등 외부 가시·되돌리기 어려운 작업은 확인 후 실행
 
-- **Solve the right problem**: Avoid unnecessary complexity or scope creep.
-- **Favor standard solutions**: Use well-known libraries and patterns before writing custom code.
-- **Keep code readable**: Use clear naming, logical structure, and avoid deep nesting.
-- **Handle errors explicitly**: Catch specific exceptions, fail fast with meaningful messages.
-- **Design for security**: Validate inputs, apply least privilege, never expose secrets.
-- **Keep dependencies shallow**: Minimize tight coupling, maintain clear boundaries.
-- **Address root causes**: Fix the underlying issue, not symptoms.
+자세히: `rules/claude-code.md`
 
-## Problem Solving & Root Cause Analysis
+# Mindset / 태도
 
-When troubleshooting issues, follow this systematic process:
+- 시니어 엔지니어처럼 사고한다
+- 결론을 서두르지 않고 복수 접근을 평가
+- 문제 정의 → 작고 안전한 변경 → 리뷰 → 리팩토링 루프 반복
+- 불확실하면 추측 대신 질문
+- 필요한 일만 수행. 불필요하면 멈춘다
 
-### Investigation Steps
-1. **Reproduce**: Document exact error messages, stack traces, and environment details
-2. **Investigate**:
-   - Read error messages carefully - they often contain the root cause
-   - Check logs for patterns, warnings, or errors leading up to failure
-   - Trace execution path from entry point to failure point
-   - Verify assumptions with minimal experiments
-3. **Root Cause**:
-   - Ask "Why?" 5 times until reaching the fundamental issue
-   - Distinguish symptoms from causes (e.g., "API returns 500" vs "connection pool exhausted")
-   - Look for systemic issues, not one-off failures
-4. **Fix**: Address root cause, not symptoms; document workarounds if necessary
-5. **Verify**: Test thoroughly, add regression tests, check for similar issues elsewhere
+# Before Changing Code / 변경 전
 
-### Example
-**Symptom**: Intermittent crashes in production
-**Bad**: Add error handling + auto-restart
-**Good**: Profile → identify memory leak (temp files not cleaned) → fix cleanup + add limits → verify with load test
+- 호출·참조 경로를 따라 관련 파일을 읽는다 (대형 파일은 관련 구간만)
+- 정의, 참조, 호출 지점, 관련 테스트·설정 위치 파악
+- 맥락을 읽지 않은 채 코드를 수정하지 않는다
+- 가정을 명시적으로 기록
 
-## File Size Guidelines
+# Core Principles / 핵심 원칙
 
-- Keep source code files under 800 lines (absolute maximum).
-- Typical files should be 200-400 lines.
-- Consider refactoring when files approach 500+ lines.
-- Split large components into smaller, focused modules.
+- **Solve the right problem** — 스코프 크리프 회피
+- **Favor standard solutions** — 커스텀 전에 표준 라이브러리·패턴
+- **Keep code readable** — 명확한 네이밍, 깊은 중첩 회피
+- **Handle errors explicitly** — 구체적 예외, fail fast
+- **Design for security** — 입력 검증, 최소 권한, 시크릿 미노출
+- **Keep dependencies shallow** — 강결합 최소화, 경계 명확
+- **Address root causes** — 증상이 아닌 원인을 수정
 
-## Function Size Guidelines
+자세히: `rules/coding-style.md`, `rules/patterns.md`
 
-- Keep functions under 50 lines.
-- Extract helper functions when logic becomes complex.
-- Single Responsibility Principle: one function, one purpose.
+# Problem Solving / 문제 해결
 
-## Testing Strategy
+**Reproduce → Investigate → Root Cause (5-Why) → Fix → Verify**
 
-- **Unit tests**: Test logic in isolation, fast (<10ms), deterministic
-- **Integration tests**: Test component interactions with realistic scenarios
-- **Coverage**: Aim for 80%+ on core logic, 100% on critical paths
-- **Bug fixes**: Must include regression tests
-- **Dependencies**: Use mocks/stubs for external services
-- **Independence**: Tests should not share state or depend on execution order
-- Keep tests readable - they serve as documentation
+- 에러 메시지·로그에서 원인 단서 확보
+- 증상과 원인을 구분
+- 수정 후 회귀 테스트 추가, 유사 지점 스캔
 
-## Documentation
+자세히: `rules/problem-solving.md`
 
-- Write self-documenting code: clear names, logical structure
-- Add comments only for non-obvious logic (explain "why", not "what")
-- Keep README.md updated with setup instructions, usage examples, and architecture overview
-- Document APIs with request/response examples and error cases
-- Update documentation when changing behavior or adding features
-- Avoid outdated comments - delete rather than leave incorrect information
+# Testing / 테스트
 
-## Version Control
+- Unit 테스트는 격리·빠름(<10ms)·결정적
+- Integration 테스트는 외부 의존 현실성 유지
+- 핵심 로직 80%+, 크리티컬 경로 100% 목표
+- 버그 수정에는 회귀 테스트 필수
+- 테스트 간 상태 공유 금지
 
-- **Commits**:
-  - Small, atomic changes with single purpose
-  - Use imperative mood: "Fix bug" not "Fixed bug"
-  - Format: "verb + what + why if not obvious"
-  - Good: "Add retry logic to handle network timeouts"
-  - Bad: "Update code", "Fix stuff", "WIP"
-- **Branches**: Short-lived feature branches from main
-- **Pull Requests**:
-  - One feature per PR, self-review before submission
-  - Include description, testing steps, and screenshots if UI change
-- **Best Practices**:
-  - Never commit secrets, binaries, or generated files
-  - Avoid force push to shared branches
-  - Rebase local branches, merge to main
+자세히: `rules/testing.md`
 
-## Code Review & Collaboration
+# Security / 보안
 
-- **Before Submitting**:
-  - Review your own diff first
-  - Ensure tests pass and code is linted
-  - Check for debug code, console.logs, TODOs
-- **As Reviewer**:
-  - Focus on logic, edge cases, and maintainability
-  - Ask questions, don't just criticize
-  - Approve only if you understand and verify the changes
-- **Receiving Feedback**:
-  - Respond promptly and professionally
-  - Explain your reasoning, but be open to better approaches
-  - Mark conversations resolved only after addressing them
+- 시크릿을 코드·로그·커밋에 노출 금지 (환경변수 사용)
+- 모든 입력을 검증·정규화·인코딩
+- 최소 권한 원칙
+- 민감 정보를 로그에 남기지 않음
 
-## Security Rules
+자세히: `rules/security.md`
 
-- Never expose secrets in code, logs, or commits.
-- Validate, sanitize, and encode all inputs.
-- Apply the Principle of Least Privilege.
-- Do not log sensitive data.
+# Version Control / 버전 관리
 
-## Anti-Patterns to Avoid
+- Commit은 작고 원자적, imperative mood ("Fix bug")
+- Format: `<type>: <description>` (feat, fix, refactor, docs, test, chore, perf, ci)
+- PR은 1 feature, 자기 리뷰 후 제출, 테스트 계획 포함
+- 공유 브랜치에 force push 금지, 시크릿·바이너리 커밋 금지
 
-### Code Quality
-- Modifying code without reading the full context
-- Ignoring failures, warnings, or edge cases
-- Premature optimization or abstraction
-- Using broad exception handlers
+자세히: `rules/git-workflow.md`
 
-### Problem Solving
-- Quick fixes without understanding the root cause
-- Treating symptoms (try-catch everywhere) instead of fixing causes
-- Stopping at the first plausible explanation
-- Skipping verification after implementing a fix
+# Anti-Patterns / 안티패턴
+
+- 맥락 없이 코드 수정
+- 근본 원인 없이 try-catch 도배
+- 통합 테스트를 mock으로 전부 대체
+- 훅 우회·강제 푸시
+- 독립 도구 호출을 순차 실행
+- 없는 Skill·Agent를 추측해서 호출
+
+자세히: `rules/anti-patterns.md`
+
+# Detailed References / 상세 참조
+
+| 주제 | 파일 |
+|---|---|
+| 언어 | `rules/language.md` |
+| Git & PR 워크플로우 | `rules/git-workflow.md` |
+| 코딩 스타일·파일/함수 크기·에러·문서화 | `rules/coding-style.md` |
+| 공통 패턴 (API 응답, 훅, 저장소) | `rules/patterns.md` |
+| 문제 해결·근본 원인 분석 | `rules/problem-solving.md` |
+| 테스트 요건·워크플로우 | `rules/testing.md` |
+| 보안 체크리스트·시크릿 관리 | `rules/security.md` |
+| Claude Code 고유 기능 (Plan, Subagent, Skill, MCP) | `rules/claude-code.md` |
+| 성능·모델 선택·컨텍스트 관리 | `rules/performance.md` |
+| 안티패턴 전체 목록 | `rules/anti-patterns.md` |
