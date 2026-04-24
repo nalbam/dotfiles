@@ -660,9 +660,9 @@ def build_statusline(
         if progress_bar:
             parts.append(f"🧠 {progress_bar}")
 
-    # Claude Code version (⚙️ icon) - always last
+    # Claude Code version - always last
     if version:
-        parts.append(f"{C_DIM}⚙️ v{version}{C_RESET}")
+        parts.append(f"{C_DIM}v{version}{C_RESET}")
 
     return SEP.join(parts)
 
