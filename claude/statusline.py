@@ -606,6 +606,7 @@ def build_statusline(
     lines_added: int | str,
     lines_removed: int | str,
     token_reset: str = "",
+    version: str = "",
 ) -> str:
     """Build the status line string."""
     SEP = " │ "
@@ -658,6 +659,10 @@ def build_statusline(
         progress_bar = build_progress_bar(context_usage)
         if progress_bar:
             parts.append(f"🧠 {progress_bar}")
+
+    # Claude Code version (⚙️ icon) - always last
+    if version:
+        parts.append(f"{C_DIM}⚙️ v{version}{C_RESET}")
 
     return SEP.join(parts)
 
@@ -755,6 +760,11 @@ def main() -> None:
     remaining_ms, reset_time_str = get_token_reset_info(duration)
     token_reset = format_token_reset(remaining_ms, reset_time_str)
 
+    # Extract Claude Code version
+    version = data.get("version", "") or ""
+    if not isinstance(version, str):
+        version = str(version)
+
     # Save project metadata to cache in background
     # Convert "85%" to 85, "" to 0
     memory_int = int(context_usage.rstrip("%")) if context_usage else 0
@@ -774,6 +784,7 @@ def main() -> None:
             lines_added,
             lines_removed,
             token_reset,
+            version,
         ),
         end="",
     )
