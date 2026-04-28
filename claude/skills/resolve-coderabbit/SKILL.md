@@ -6,9 +6,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 
 # Resolve CodeRabbit Reviews
 
-**IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
+**한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-Fetch CodeRabbit inline review comments from a PR, technically evaluate each one, fix valid issues, and resolve completed threads.
+Fetch CodeRabbit inline review comments from a PR, technically evaluate each one, fix valid issues, and resolve completed threads. 수정 자체는 `rules/coding-style.md#surgical-changes--외과적-변경` 을 따른다.
 
 ## Philosophy
 
@@ -137,19 +137,15 @@ For each unresolved CodeRabbit comment, evaluate against the codebase:
 
 ### Step 5: Apply Fixes
 
-For ACCEPT items, fix in severity order (HIGH → MEDIUM → LOW):
+For ACCEPT items, fix in severity order (HIGH → MEDIUM → LOW).
+
+Package manager 감지 로직은 `validate` 스킬을 *유일한 source* 로 한다. 검증 명령은 `validate` 의 변수 `$PM` 을 그대로 사용한다.
 
 ```
-# Detect package manager first
-if [ -f "pnpm-lock.yaml" ]; then PM="pnpm"
-elif [ -f "yarn.lock" ]; then PM="yarn"
-elif [ -f "bun.lockb" ]; then PM="bun"
-else PM="npm"; fi
-
 FOR each ACCEPT item (by severity):
   1. Read the full target file
   2. Understand surrounding context
-  3. Make minimal, focused fix
+  3. Make minimal, focused fix (rules/coding-style.md#surgical-changes--외과적-변경)
   4. Run typecheck: $PM run typecheck
   5. Run tests: $PM test
   6. If tests fail, fix or rollback

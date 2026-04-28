@@ -6,9 +6,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 
 # Code Audit
 
-**IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
+**한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-프로젝트의 전체 구현 코드를 심층 분석하여 문제점, 근본원인, 개선사항을 도출합니다.
+프로젝트의 전체 구현 코드를 심층 분석하여 문제점·근본원인·개선사항을 도출한다. 평가 기준은 `rules/coding-style.md`, `rules/testing.md`, `rules/security.md` 와 일관해야 한다 — *수치 강제 없음*, 프로젝트 관례 우선.
+
+이 파일의 *Exclude Patterns* 표는 다른 skill (예: `docs-sync`) 이 참조하는 단일 source 다.
 
 ## Philosophy
 
@@ -141,7 +143,7 @@ Report file paths and line numbers.
 Analyze the codebase for quality and maintainability issues:
 1. Dead code — unused functions, variables, imports, files
 2. Code duplication — copy-pasted logic that should be unified
-3. Complexity — functions >50 lines, files >800 lines, deep nesting >4 levels
+3. Complexity — functions/files/중첩이 프로젝트 관례 대비 이상치인 곳 (참고 가이드: 함수 >50줄, 파일 >800줄, 중첩 >4단계 — 절대 기준 아님)
 4. Naming — unclear, misleading, or inconsistent naming
 5. Type safety — use of any, missing types, type assertions
 6. Error handling — empty catch blocks, swallowed errors, generic handlers
@@ -277,13 +279,15 @@ Classify each finding:
 
 | Metric | Value | Target | Status |
 |--------|-------|--------|--------|
-| Security Issues | {n} | 0 | {status} |
-| Test Coverage | {n}% | ≥80% | {status} |
-| Files >800 lines | {n} | 0 | {status} |
-| Functions >50 lines | {n} | 0 | {status} |
+| Security Issues (CRITICAL/HIGH) | {n} | 0 | {status} |
+| Test Coverage | {n}% | 프로젝트 관례 | {status} |
+| Files >800 lines (참고) | {n} | 프로젝트 관례 | {status} |
+| Functions >50 lines (참고) | {n} | 프로젝트 관례 | {status} |
 | Dead code files | {n} | 0 | {status} |
 | Code duplication | {n} spots | minimal | {status} |
 ```
+
+> **수치 기준 안내**: Test Coverage / 함수·파일 크기 등은 *프로젝트 관례*에 맞춰 평가한다. 강제 임계값은 두지 않는다 (`rules/testing.md`, `rules/coding-style.md#file--function-organization`).
 
 ## Audit Dimensions Checklist
 
@@ -305,9 +309,7 @@ Classify each finding:
 ### Code Quality
 - [ ] No dead code
 - [ ] Minimal duplication
-- [ ] Functions <50 lines
-- [ ] Files <800 lines
-- [ ] Nesting depth <4 levels
+- [ ] 함수·파일·중첩 크기가 *프로젝트 관례*에 부합 (참고 가이드: 함수 <50줄, 파일 <800줄, 중첩 <4단계)
 - [ ] Consistent naming
 
 ### Error Handling
@@ -321,7 +323,7 @@ Classify each finding:
 - [ ] Critical paths tested
 - [ ] Edge cases covered
 - [ ] Error scenarios tested
-- [ ] Coverage ≥80%
+- [ ] Coverage가 *프로젝트 관례*에 부합 (강제 임계값 없음 — `rules/testing.md`)
 
 ### Type Safety
 - [ ] No `any` types

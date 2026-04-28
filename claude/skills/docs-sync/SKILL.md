@@ -6,9 +6,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Documentation Sync
 
-**IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
+**한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-Analyze entire codebase and documentation, find gaps, update docs.
+Analyze entire codebase and documentation, find gaps, update docs. 문서 갱신도 `rules/coding-style.md#surgical-changes--외과적-변경` 을 따른다 — 요청 외 인접 문서를 임의로 손보지 않는다.
 
 ## Philosophy
 
@@ -27,21 +27,7 @@ Analyze entire codebase and documentation, find gaps, update docs.
 
 ## Exclude Patterns
 
-**Important: Always skip these directories before scanning the codebase.**
-
-These are auto-generated files, not source code - do not document them.
-
-| Category | Directories |
-|----------|-------------|
-| Dependencies | `node_modules/`, `vendor/`, `bower_components/`, `.pnp/` |
-| Build outputs | `dist/`, `build/`, `out/`, `target/`, `.next/`, `.nuxt/`, `.vercel/` |
-| Cache | `.cache/`, `.tmp/`, `tmp/`, `__pycache__/`, `.turbo/`, `.parcel-cache/` |
-| Virtual envs | `.venv/`, `venv/`, `.env/`, `env/` |
-| VCS | `.git/`, `.svn/`, `.hg/` |
-| IDE | `.idea/`, `.vscode/`, `.vs/` |
-| Test outputs | `coverage/`, `.nyc_output/`, `test-results/` |
-| Generated | `*.min.js`, `*.bundle.js`, lock files (`package-lock.json`, etc.) |
-| OS | `.DS_Store`, `Thumbs.db` |
+스캔 시 dependency / build / cache / VCS / IDE / 테스트 산출물 등은 제외한다. 전체 목록은 `claude/skills/code-audit/SKILL.md` 의 *Exclude Patterns* 표를 *유일한 source* 로 한다.
 
 ## Process
 

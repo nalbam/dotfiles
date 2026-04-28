@@ -6,7 +6,9 @@ allowed-tools: Read, Bash, Grep, Glob
 
 # Create Pull Request
 
-**IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
+**한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
+
+git 안전 규칙은 `rules/git-workflow.md`, 변경 작업 자체는 `rules/coding-style.md#surgical-changes--외과적-변경` 을 따른다. 이 파일은 PR title / body 형식의 *유일한 source* 다 (`pr-summary` 가 이를 참조).
 
 ## Philosophy
 
@@ -109,10 +111,9 @@ EOF
 )"
 ```
 
-### 5. Verify PR
-```bash
-gh pr view --web
-```
+### 5. Verify
+
+`gh pr view --web` 또는 `gh pr view {N}` 으로 결과 확인.
 
 ## PR Title Format
 ```

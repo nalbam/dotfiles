@@ -6,9 +6,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
 
 # Validate
 
-**IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
+**한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
 Run lint, typecheck, and tests. Fix all failures. Repeat until all pass.
+
+Package manager 감지 로직은 이 스킬이 *유일한 source* 다 (다른 스킬은 여기를 참조). 수정은 `rules/coding-style.md#surgical-changes--외과적-변경` 원칙을 따른다 — 실패 원인을 고치되 무관한 코드는 손대지 않는다.
 
 ## Philosophy
 

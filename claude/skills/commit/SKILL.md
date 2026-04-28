@@ -6,7 +6,9 @@ allowed-tools: Read, Bash, Grep, Glob
 
 # Create Commit
 
-**IMPORTANT: 모든 설명과 요약은 한국어로 작성하세요. 단, 코드 예시와 명령어는 원문 그대로 유지합니다.**
+**한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
+
+git 안전 규칙은 `rules/git-workflow.md`, 변경 작업 자체는 `rules/coding-style.md#surgical-changes--외과적-변경` 을 따른다.
 
 ## Philosophy
 
@@ -91,11 +93,9 @@ EOF
 )"
 ```
 
-### 6. Verify Commit
-```bash
-git status
-git log --oneline -3
-```
+### 6. Verify
+
+`git status` 와 `git log --oneline -3` 으로 결과 확인.
 
 ## Commit Message Format
 
