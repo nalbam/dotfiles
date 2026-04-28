@@ -1,33 +1,58 @@
-# Testing Requirements
+# Testing
 
-## Minimum Test Coverage: 80%
+CLAUDE.md `## Testing` 의 *유일한 상세 source*.
 
-Test Types (ALL required):
-1. **Unit Tests** - Individual functions, utilities, components
-2. **Integration Tests** - API endpoints, database operations
+**프로젝트 관례 우선** — 이 파일의 수치·요구는 가이드일 뿐 절대 기준이 아니다. CLAUDE.md 와 일관되게 강제 임계값은 두지 않는다.
 
-## Testing Workflow
+## Goal-Driven Test Strategy / 목표 기반 테스트 전략
 
-Recommended workflow:
-1. Write tests for new functionality
-2. Run tests to verify they fail (if testing new code)
-3. Implement functionality
-4. Run tests to verify they pass
-5. Refactor as needed while keeping tests green
-6. Verify coverage meets 80%+ target
+새 기능·버그 수정은 *테스트로 표현된 성공 기준* 에서 시작한다. 명확한 실패 테스트 → 구현 → 통과 확인 루프가 가장 신뢰할 수 있다.
 
-## Troubleshooting Test Failures
+작업 유형별 시작점:
 
-1. Read error messages carefully
-2. Check test isolation - tests should not share state
-3. Verify mocks are correct
-4. Fix implementation, not tests (unless tests are wrong)
-5. Use debugger to trace execution flow
+- **새 기능** — 동작을 기술하는 *실패하는* 테스트 → 구현 → 통과
+- **버그 수정** — 버그를 *재현하는* 테스트 → 수정 → 통과 + 회귀 잠금
+- **리팩토링** — 변경 전 통과 → 리팩토링 → 변경 후 동일 통과
+- **성능 개선** — 측정 가능한 baseline → 목표 수치 정의 → 측정으로 검증
 
-## Test Writing Guidelines
+자세한 변환 규칙: `rules/problem-solving.md#goal-driven-execution--목표-기반-실행`
 
-- **Fast**: Unit tests should run in <10ms
-- **Isolated**: No shared state between tests
-- **Deterministic**: Same input always produces same output
-- **Readable**: Tests serve as documentation
-- **Focused**: Test one thing per test case
+## Test Quality / 테스트 품질
+
+- **Fast** — 가능한 한 빠르게. 단위 테스트는 가급적 ms 단위. (DB·외부 의존이 필요한 통합 테스트는 예외)
+- **Isolated** — 테스트 간 상태 공유 없음. 순서 의존성 없음.
+- **Deterministic** — 같은 입력은 항상 같은 결과. 시간·랜덤·네트워크에 의존하지 않거나 결정적으로 stub.
+- **Readable** — 테스트는 문서이기도 하다. Given-When-Then 구조 권장.
+- **Focused** — 한 테스트는 한 가지를 검증.
+
+## Coverage / 커버리지
+
+수치는 *프로젝트 관례에 맞춘다*. 강제 임계값 없음.
+
+- 변경 위험이 큰 영역(보안·결제·데이터 마이그레이션 등)은 더 두텁게
+- 새 기능·수정한 라인은 가능하면 100% 커버
+- 단순 getter/setter, 명백한 위임 함수는 강제하지 않음
+
+## Test Types / 테스트 유형
+
+프로젝트 성격에 맞게 선택. 모든 유형을 강제하지 않는다.
+
+- **Unit** — 함수·유틸·컴포넌트 (격리된 로직)
+- **Integration** — API·DB·외부 시스템 경계
+- **E2E** — 사용자 시나리오 전체 흐름
+- **Contract** — 공개 API·이벤트 스키마
+
+라이브러리·CLI 는 Unit + 일부 Integration 으로 충분한 경우가 많다. 웹 서비스는 Integration·E2E 비중이 커진다.
+
+## Failure Triage / 실패 분류
+
+테스트가 실패하면:
+
+1. 에러 메시지 정독 (보통 원인이 직접 담겨 있음)
+2. 격리·mock 정확성 확인
+3. *구현*을 고친다 — *테스트가 명백히 잘못된* 경우만 예외
+4. 재현 어려우면 디버거로 실행 경로 추적
+
+## Anti-Patterns
+
+이 주제 안티패턴은 `rules/anti-patterns.md#testing` 이 source.

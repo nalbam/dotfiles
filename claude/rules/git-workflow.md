@@ -1,99 +1,73 @@
 # Git Workflow
 
+CLAUDE.md `## Git Safety` 의 *유일한 상세 source*. 모든 git 관련 규칙은 이 파일에서 정의된다.
+
 ## CRITICAL: Commit & Push Policy
 
 **NEVER commit or push without explicit user permission.**
 
-- 사용자가 명시적으로 요청할 때만 `git commit` 실행
-- 사용자가 명시적으로 요청할 때만 `git push` 실행
-- 코드 변경 후 자동으로 커밋하지 않음
-- "커밋해", "커밋하세요", "commit" 등 명확한 지시가 있을 때만 수행
+### 명시적 허가로 간주되는 신호
+
+- 자연어: "커밋해", "커밋하세요", "commit", "push"
+- 슬래시 커맨드: `/commit`, `/commit-push`, `/pr-create`
+
+### 금지 행동 (사용자가 명시 요청한 경우만 예외)
+
+- 코드 변경 후 자동 커밋
+- 사용자 허가 없는 `git push`
+- 메인/마스터 브랜치에 force push
+- 시크릿(`.env`, API 키, 토큰)·바이너리·생성 파일 커밋
+- 훅·서명 우회 (`--no-verify`, `--no-gpg-sign`, `--no-signoff`)
+- 작업 트리의 다른 변경을 임의로 되돌리기
+
+## 파괴적·되돌릴 수 없는 작업
+
+다음은 사용자가 *분명히* 요청한 경우에만 실행한다. 작업 전 영향 범위를 짧게 보고하고 확인을 받는다.
+
+- `git reset --hard`, `git checkout -- <path>`, `git restore --`
+- `git push --force`, `git push --force-with-lease`
+- 브랜치 삭제 (`git branch -D`, 원격 브랜치 삭제)
+- 공개된 커밋 amend / rebase
+- `git clean -f`
 
 ## Commits
 
-- Small, atomic changes with single purpose
+- 작고 원자적인 변경, *단일 목적*
 - Imperative mood: "Fix bug" not "Fixed bug"
-- Format: "verb + what + why if not obvious"
-  - Good: "Add retry logic to handle network timeouts"
-  - Bad: "Update code", "Fix stuff", "WIP"
+- 형식: 프로젝트 관례 우선, 없으면 `<type>: <description>`
+- Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
 
-### Commit Message Format
-
-```
-<type>: <description>
-
-<optional body>
-```
-
-Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
+좋은 예: `feat: add retry logic for network timeouts`
+나쁜 예: `update`, `fix stuff`, `WIP`
 
 ## Branches
 
-- Short-lived feature branches from `main`
-- 이름 규칙: `feat/`, `fix/`, `refactor/`, `docs/` 접두사 권장
+- main에서 단명(short-lived) feature 브랜치
+- 접두사 권장: `feat/`, `fix/`, `refactor/`, `docs/`
 - 머지 후 삭제
 
 ## Pull Requests
 
-### 작성 시
+PR 생성은 `/pr-create` 스킬이 처리한다. 수동 작성 시:
 
 - One feature per PR
-- 자기 리뷰 후 제출
-- 설명, 테스트 단계, 스크린샷(UI 변경 시) 포함
-- 전체 커밋 이력 분석 (최신 커밋만 보지 말 것)
-- `git diff [base-branch]...HEAD`로 모든 변경사항 확인
-- 새 브랜치는 `-u` 플래그로 푸시
+- 새 브랜치 첫 푸시는 `-u` 플래그
+- *전체 커밋 이력*을 분석한다 — 최신 커밋만 보지 말 것. `git diff <base>...HEAD` 로 전체 확인.
+- 본문 구성:
+  1. **Summary** — 1~3 bullet, "왜" 중심
+  2. **Test plan** — 체크리스트로 검증 단계
+  3. **Screenshots** — UI 변경 시
 
-### PR 본문 구성
+## Implementation Workflow
 
-1. **Summary**: 1~3 bullet, "왜" 중심
-2. **Test plan**: 체크리스트 형태로 검증 단계 명시
-3. **Screenshots**: UI 변경이 있으면 첨부
+각 단계의 도구·세부 규약은 링크된 파일이 source.
 
-## Feature Implementation Workflow
+1. **Plan First** → `rules/claude-code.md#plan-mode--계획-모드`
+2. **Implementation** → 신규 기능은 테스트 먼저 (`rules/testing.md`)
+3. **Self-review** → `git diff` 확인, 디버그 코드·`console.log`·임시 TODO 제거
+4. **Validate** → `/validate` 스킬 또는 프로젝트의 lint/test 명령
+5. **Commit & Push** → *사용자 명시 요청 후*에만
 
-1. **Plan First** (`rules/claude-code.md#plan-mode` 참조)
-   - planner/Plan 서브에이전트로 계획 수립
-   - 의존성·리스크 식별
-   - 단계로 분해
+## Anti-Patterns
 
-2. **Implementation**
-   - 신규 기능의 테스트부터 작성
-   - 구현 후 테스트로 검증
-   - 테스트 전략 상세: `rules/testing.md`
-
-3. **Code Review**
-   - code-reviewer 서브에이전트로 품질·보안 검토
-   - CRITICAL, HIGH 이슈는 반드시 수정
-   - MEDIUM 이슈는 가능한 한 수정
-
-4. **Commit & Push**
-   - Conventional Commits 형식
-   - 상세한 커밋 메시지
-
-## Code Review & Collaboration
-
-### Before Submitting
-
-- 자기 diff 먼저 리뷰
-- 테스트·린트 통과 확인
-- 디버그 코드, `console.log`, TODO 제거
-
-### As Reviewer
-
-- 로직, 엣지 케이스, 유지보수성에 집중
-- 비판이 아닌 질문 형태로 피드백
-- 이해·검증한 변경만 승인
-
-### Receiving Feedback
-
-- 신속하고 전문적으로 응답
-- 자신의 근거를 설명하되 더 나은 접근에 열려 있을 것
-- 해결한 대화만 "resolved" 마킹
-
-## Best Practices
-
-- Never commit secrets, binaries, or generated files
-- Avoid force push to shared branches
-- Rebase local branches, merge to `main`
-- 훅 우회 금지 (`--no-verify`, `--no-gpg-sign` 등)
+git 관련 안티패턴은 `rules/anti-patterns.md#git--deployment` 가 source.
