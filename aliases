@@ -29,12 +29,9 @@ alias k='kubectl'
 alias h='helm'
 
 # Claude CLI shortcuts
-alias cc='claude'
-alias cca='claude auto-mode'
-alias ccc='claude --continue --dangerously-skip-permissions'
-alias ccd='claude --dangerously-skip-permissions'
-alias ccp='claude --prompt'
-alias ccr='claude remote-control'
+alias cc='claude --permission-mode auto'
+alias ccc='claude --permission-mode auto --continue'
+alias ccp='claude --permission-mode auto --prompt'
 alias ccu='ccusage'
 
 # tmux
