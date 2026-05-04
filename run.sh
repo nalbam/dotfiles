@@ -523,18 +523,26 @@ if command -v brew >/dev/null 2>&1; then
     _ok "Homebrew packages updated"
 
     # Brewfile 기반 패키지 설치
+    BUNDLE_OK=true
     if [ -f ~/.dotfiles/$OS_NAME/Brewfile ]; then
       _download .Brewfile $OS_NAME/Brewfile
       _run "Installing packages from Brewfile..."
-      brew bundle --file=~/.Brewfile
-      brew cleanup
-      _ok "Brewfile packages installed"
+      if brew bundle --file=~/.Brewfile; then
+        brew cleanup
+        _ok "Brewfile packages installed"
+      else
+        brew cleanup
+        _warn "brew bundle failed — some packages did not install"
+        BUNDLE_OK=false
+      fi
     else
       _skip "Brewfile not found for $OS_NAME"
     fi
 
-    # Update timestamp
-    date +%s > "$BREW_TIMESTAMP_FILE"
+    # 모든 단계 성공 시에만 timestamp 갱신 (실패 시 다음 실행에서 재시도)
+    if [ "$BUNDLE_OK" = true ]; then
+      date +%s > "$BREW_TIMESTAMP_FILE"
+    fi
   else
     _skip "Homebrew update (last update was less than 6 hours ago)"
   fi
@@ -557,20 +565,46 @@ if command -v npm >/dev/null; then
   if _should_update "$NPM_TIMESTAMP_FILE"; then
     _info "Installing/updating NPM packages..."
 
-    # npm prefix를 한 번만 계산하여 캐싱
+    # npm prefix 의 쓰기 권한 확인
+    # sudo npm 은 brew 환경에서 lib/node_modules 에 root 소유 파일을 남겨
+    # 이후 brew node 의 post_install 과 npm install 을 영구 EACCES 로 망가뜨린다
+    # (자가 강화 권한 오염 사이클). 권한이 깨졌으면 도망가지 말고 멈춘다.
     NPM_PREFIX=$(npm config get prefix 2>/dev/null || echo "/usr/local")
     NPM_CMD="npm"
-    if [ ! -w "$NPM_PREFIX" ] || [ ! -w "$NPM_PREFIX/lib" ] 2>/dev/null; then
-      NPM_CMD="sudo npm"
+    NPM_OK=true
+    NPM_NODE_MODULES="$NPM_PREFIX/lib/node_modules"
+
+    # 컨테이너 디렉토리 자체의 쓰기 권한
+    if [ -d "$NPM_NODE_MODULES" ] && [ ! -w "$NPM_NODE_MODULES" ]; then
+      _warn "$NPM_NODE_MODULES is not user-writable."
+      NPM_OK=false
     fi
 
-    # npm 자체는 brew 의 node 패키지가 관리하므로 self-update 시도하지 않음
-    _install_npm_package "corepack" "corepack"
-    _install_npm_package "serverless" "serverless"
-    _install_npm_package "ccusage" "ccusage"
+    # 컨테이너는 user 소유여도 그 안의 패키지가 root 소유인 케이스 (과거 sudo npm 의 후유증)
+    if [ "$NPM_OK" = true ] && [ -d "$NPM_NODE_MODULES" ]; then
+      while IFS= read -r pkg_dir; do
+        if [ ! -w "$pkg_dir" ]; then
+          _warn "$pkg_dir is not user-writable (root-owned from past sudo npm)."
+          NPM_OK=false
+          break
+        fi
+      done < <(find "$NPM_NODE_MODULES" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+    fi
 
-    # Update timestamp
-    date +%s > "$NPM_TIMESTAMP_FILE"
+    if [ "$NPM_OK" = false ]; then
+      _warn "Do NOT use sudo npm — it permanently corrupts brew's node install."
+      _warn "Fix with: sudo chown -R \$(whoami):staff $NPM_NODE_MODULES"
+      _warn "Skipping NPM package install/update."
+    fi
+
+    if [ "$NPM_OK" = true ]; then
+      # npm 자체는 brew 의 node 패키지가 관리하므로 self-update 시도하지 않음
+      _install_npm_package "corepack" "corepack"
+      _install_npm_package "serverless" "serverless"
+      _install_npm_package "ccusage" "ccusage"
+
+      date +%s > "$NPM_TIMESTAMP_FILE"
+    fi
   else
     _skip "NPM packages update (last update was less than 6 hours ago)"
   fi
