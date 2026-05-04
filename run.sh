@@ -263,6 +263,12 @@ _install_npm_package() {
   local package_spec="$2"
   local npm_cmd="${NPM_CMD:-npm}"
 
+  # npm 실행 가능 여부 확인 (node 미설치 시 npm 호출이 exit 127 반환)
+  if ! npm --version >/dev/null 2>&1; then
+    _warn "npm is not functional (is node installed?), skipping $package_name"
+    return 1
+  fi
+
   # Check if package is installed
   if npm list -g "$package_spec" >/dev/null 2>&1; then
     local installed_version=$(npm list -g "$package_spec" --depth=0 2>/dev/null | grep "$package_name" | sed 's/.*@\([0-9.]*\).*/\1/')
@@ -271,20 +277,29 @@ _install_npm_package() {
     if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
       if [ "$installed_version" != "$latest_version" ]; then
         _run "Updating $package_name: $installed_version → $latest_version"
-        $npm_cmd update -g "$package_spec" >/dev/null 2>&1
-        _ok "$package_name updated to $latest_version"
+        if $npm_cmd update -g "$package_spec" >/dev/null 2>&1; then
+          _ok "$package_name updated to $latest_version"
+        else
+          _warn "Failed to update $package_name"
+        fi
       else
         _skip "$package_name already up to date ($installed_version)"
       fi
     else
       _run "Installing $package_name..."
-      $npm_cmd install -g "$package_spec" >/dev/null 2>&1
-      _ok "$package_name installed"
+      if $npm_cmd install -g "$package_spec" >/dev/null 2>&1; then
+        _ok "$package_name installed"
+      else
+        _warn "Failed to install $package_name"
+      fi
     fi
   else
     _run "Installing $package_name..."
-    $npm_cmd install -g "$package_spec" >/dev/null 2>&1
-    _ok "$package_name installed"
+    if $npm_cmd install -g "$package_spec" >/dev/null 2>&1; then
+      _ok "$package_name installed"
+    else
+      _warn "Failed to install $package_name"
+    fi
   fi
 }
 
