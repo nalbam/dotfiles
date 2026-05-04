@@ -564,7 +564,7 @@ if command -v npm >/dev/null; then
       NPM_CMD="sudo npm"
     fi
 
-    _install_npm_package "npm" "npm"
+    # npm 자체는 brew 의 node 패키지가 관리하므로 self-update 시도하지 않음
     _install_npm_package "corepack" "corepack"
     _install_npm_package "serverless" "serverless"
     _install_npm_package "ccusage" "ccusage"
