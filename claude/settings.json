@@ -153,11 +153,12 @@
     "command": "python3 ~/.claude/statusline.py"
   },
   "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
+    "codex@openai-codex": true,
     "context7@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true,
-    "codex@openai-codex": true
+    "superpowers@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
