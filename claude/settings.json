@@ -169,5 +169,6 @@
     }
   },
   "effortLevel": "xhigh",
-  "skipAutoPermissionPrompt": true
+  "skipAutoPermissionPrompt": true,
+  "theme": "auto"
 }
