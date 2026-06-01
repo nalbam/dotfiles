@@ -14,6 +14,8 @@
     "deny": [
       "Bash(chmod -R 777 /:*)",
       "Bash(chown -R * /:*)",
+      "Bash(curl * | sh:*)",
+      "Bash(curl * | bash:*)",
       "Bash(dd if=/dev/zero:*)",
       "Bash(fdisk:*)",
       "Bash(gdisk:*)",
@@ -169,6 +171,5 @@
     }
   },
   "effortLevel": "xhigh",
-  "skipAutoPermissionPrompt": true,
   "theme": "auto"
 }

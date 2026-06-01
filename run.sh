@@ -232,6 +232,15 @@ _sync_vibe() {
       # Create parent directory if needed
       mkdir -p "$(dirname "$dst_file")"
 
+      # Codex mutates config.toml with runtime state such as project trust and UI
+      # preferences. Preserve an existing deployed file instead of replacing it
+      # with the repository template on every sync.
+      if [ "$src_subdir" = "codex" ] && [ "$rel_path" = "config.toml" ] && [ -f "$dst_file" ]; then
+        _skip "PRESERVE: $src_subdir/$rel_path (runtime-managed)"
+        count_identical=$((count_identical + 1))
+        continue
+      fi
+
       if [ ! -f "$dst_file" ]; then
         # New file
         cp "$src_file" "$dst_file"
