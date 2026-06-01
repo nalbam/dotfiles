@@ -2,14 +2,14 @@
 # 런타임 상태(hooks.state / projects trust / tui 등)는 Codex가 자동으로 덧쓴다.
 # model은 의도적으로 고정하지 않는다 — 런타임 선택을 sync가 덮어쓰지 않도록 둔다.
 
-[features]
-codex_hooks = true
-
 # 승인 정책: 필요 시에만 사용자에게 승인을 요청한다.
 approval_policy = "on-request"
 
 # 샌드박스: 워크스페이스 내 쓰기 허용, 그 외는 승인 필요.
 sandbox_mode = "workspace-write"
+
+[features]
+codex_hooks = true
 
 [sandbox_workspace_write]
 network_access = true
