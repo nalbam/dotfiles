@@ -2,17 +2,17 @@
 
 export ZSH="$HOME/.oh-my-zsh"
 
-ZSH_THEME="dracula"
+export ZSH_THEME="dracula"
 
-ZSH_DISABLE_COMPFIX="true"
+export ZSH_DISABLE_COMPFIX="true"
 
-plugins=(git kube-ps1)
+export plugins=(git kube-ps1)
 
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
-OS_ARCH="$(uname -m)"
+export OS_ARCH="$(uname -m)"
 
 if [ -f ~/.aliases ]; then
   source ~/.aliases
@@ -34,11 +34,13 @@ if [ -d "${BREWPATH}/opt/gnu-getopt/bin" ]; then
   export PATH="${BREWPATH}/opt/gnu-getopt/bin:$PATH"
 fi
 
+export HOMEBREW_REQUIRE_TAP_TRUST=1
+
 # PS1='$(kube_ps1)'$PS1
-plugins=(
+export plugins=(
   kube-ps1
 )
-PROMPT='$(kube_ps1)'$PROMPT # or RPROMPT='$(kube_ps1)'
+export PROMPT='$(kube_ps1)'$PROMPT # or RPROMPT='$(kube_ps1)'
 
 # kubectl completion
 [[ $commands[kubectl] ]] && source <(kubectl completion zsh)
