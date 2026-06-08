@@ -69,6 +69,7 @@ gh api graphql -f query='
     repository(owner: $owner, name: $repo) {
       pullRequest(number: $pr) {
         reviewThreads(first: 100) {
+          pageInfo { hasNextPage endCursor }
           nodes {
             id
             isResolved
@@ -88,6 +89,8 @@ gh api graphql -f query='
   }
 ' -f owner='{owner}' -f repo='{repo}' -F pr={pr_number}
 ```
+
+**100개 초과 시**: `pageInfo.hasNextPage` 가 true 면 `reviewThreads(first: 100, after: "<endCursor>")` 로 다음 페이지를 모두 조회해 합친다 (대형 PR thread 누락 방지).
 
 Build a mapping: `comment databaseId → thread node ID`.
 
@@ -138,7 +141,7 @@ For each unresolved CodeRabbit comment, evaluate against the codebase:
 
 For ACCEPT items, fix in severity order (HIGH → MEDIUM → LOW).
 
-Package manager 감지 로직은 `validate` 스킬을 *유일한 source* 로 한다. 검증 명령은 `validate` 의 변수 `$PM` 을 그대로 사용한다.
+Package manager 감지 로직은 `validate` 스킬을 *유일한 source* 로 하여 동일 로직을 재실행한다 (스킬 간 셸 변수는 공유되지 않음). 검증 명령은 감지된 `$PM` 으로 실행한다.
 
 ```
 FOR each ACCEPT item (by severity):

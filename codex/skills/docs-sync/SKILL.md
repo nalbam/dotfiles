@@ -26,7 +26,7 @@ Analyze entire codebase and documentation, find gaps, update docs. 문서 갱신
 
 ## Exclude Patterns
 
-스캔 시 dependency / build / cache / VCS / IDE / 테스트 산출물 등은 제외한다 (예: `node_modules`, `.git`, `dist`, `build`, `.next`, `__pycache__`, `venv`, `target`, `vendor`, 커버리지·로그 산출물).
+스캔 시 dependency / build / cache / VCS / IDE / 테스트 산출물 등은 제외한다. 전체 목록은 `codex/skills/code-audit/SKILL.md` 의 *Exclude Patterns* 표를 *유일한 source* 로 한다.
 
 ## Process
 

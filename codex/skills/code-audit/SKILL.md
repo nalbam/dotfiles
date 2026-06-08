@@ -61,7 +61,7 @@ ls -d */ 2>/dev/null
 
 **Read key files:**
 1. `README.md` — project purpose and setup
-2. `AGENTS.md` / `CLAUDE.md` — project conventions (if exists)
+2. `AGENTS.md` — project conventions (if exists)
 3. Package manifest (`package.json`, `pyproject.toml`, `go.mod`, etc.)
 4. Configuration files (`tsconfig.json`, `.eslintrc`, `vite.config.*`, etc.)
 
@@ -74,6 +74,15 @@ ls -d */ 2>/dev/null
 ### Phase 2: Deep Analysis — 병렬 심층 분석
 
 가능하면 Codex multi-agent 도구로 4개의 전문 분석을 병렬 실행합니다. multi-agent 도구가 없으면 같은 기준으로 직접 분석합니다.
+
+Codex에서 multi-agent 도구가 사용 가능한 경우:
+
+```
+1. 코드 감사 목적의 팀/작업 컨텍스트를 만든다
+2. 4개 감사 태스크를 병렬로 실행한다
+3. 각 에이전트의 결과를 수집한다
+4. 사용한 팀/세션 리소스를 정리한다
+```
 
 ---
 

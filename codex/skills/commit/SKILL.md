@@ -18,12 +18,9 @@ git 안전 규칙은 AGENTS.md 의 Git Safety, 변경 작업 자체는 AGENTS.md
 ## Workflow
 
 ### 0. Run Validation First
-Before committing, run `/validate` to ensure all checks pass:
-- Lint
-- Typecheck
-- Tests
+Before committing, run validation (lint·typecheck·test) to ensure checks pass.
 
-**If validation fails, fix all issues before proceeding.**
+**If validation fails, report the failures and STOP — do not commit.** 이 스킬은 *커밋*이 목적이며 코드를 수정하지 않는다 — 수정은 사용자 또는 `/validate` 로 별도 수행한 뒤 다시 커밋한다.
 **If the project has no lint/typecheck/test tooling (e.g., shell scripts, dotfiles), skip this step.**
 
 ### 1. Gather Changes
