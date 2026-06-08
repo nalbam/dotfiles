@@ -1,7 +1,7 @@
 ---
 name: docs-sync
 description: Analyze code and documentation, find gaps, update docs. 문서 업데이트, 코드 문서 동기화, 문서 검토.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+allowed-tools: Read, Edit, Bash, Grep, Glob
 ---
 
 # Documentation Sync
