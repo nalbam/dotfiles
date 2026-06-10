@@ -517,15 +517,21 @@ _ok "Directories created"
 
 # Generate SSH keys
 if [ ! -f ~/.ssh/id_rsa ]; then
-  ssh-keygen -q -f ~/.ssh/id_rsa -N ''
-  _ok "Generated RSA SSH key (~/.ssh/id_rsa)"
+  if ssh-keygen -q -f ~/.ssh/id_rsa -N ''; then
+    _ok "Generated RSA SSH key (~/.ssh/id_rsa)"
+  else
+    _warn "Failed to generate RSA SSH key"
+  fi
 else
   _skip "RSA SSH key already exists"
 fi
 
 if [ ! -f ~/.ssh/id_ed25519 ]; then
-  ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''
-  _ok "Generated ED25519 SSH key (~/.ssh/id_ed25519)"
+  if ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''; then
+    _ok "Generated ED25519 SSH key (~/.ssh/id_ed25519)"
+  else
+    _warn "Failed to generate ED25519 SSH key"
+  fi
 else
   _skip "ED25519 SSH key already exists"
 fi
@@ -872,9 +878,10 @@ if [[ "${SHELL}" != *"zsh"* ]]; then
     # chsh 실행 (권한 필요시 sudo 사용)
     if chsh -s "$ZSH_PATH" 2>/dev/null; then
       _ok "Default shell changed to ZSH"
-    else
-      sudo chsh -s "$ZSH_PATH" "$USER"
+    elif sudo chsh -s "$ZSH_PATH" "$USER"; then
       _ok "Default shell changed to ZSH (with sudo)"
+    else
+      _warn "Failed to change default shell to ZSH"
     fi
   else
     _error "ZSH not found in PATH"
@@ -894,7 +901,7 @@ fi
 # Dracula ZSH 테마 설치
 if [ ! -d ~/.dracula/zsh ]; then
   _run "Installing Dracula theme for ZSH..."
-  if git clone https://github.com/dracula/zsh.git ~/.dracula/zsh 2>/dev/null; then
+  if _retry "Dracula ZSH theme clone" git clone https://github.com/dracula/zsh.git ~/.dracula/zsh; then
     _ok "Dracula ZSH theme installed"
   else
     _warn "Failed to clone Dracula ZSH theme (network issue?)"
@@ -919,7 +926,7 @@ fi
 if [ "${OS_NAME}" == "darwin" ]; then
   if [ ! -d ~/.dracula/iterm ]; then
     _run "Installing Dracula theme for iTerm2..."
-    if git clone https://github.com/dracula/iterm.git ~/.dracula/iterm 2>/dev/null; then
+    if _retry "Dracula iTerm2 theme clone" git clone https://github.com/dracula/iterm.git ~/.dracula/iterm; then
       mkdir -p ~/Library/Application\ Support/iTerm2
       ln -sf ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
       _ok "Dracula iTerm2 theme installed"
