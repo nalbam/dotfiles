@@ -68,3 +68,4 @@
 - 각 스킬의 세부 절차는 `<name>/SKILL.md` 가 단일 source.
 - 공통 규칙은 `../rules/*.md` 참조 (git 안전·언어·외과적 변경 등).
 - 파괴적·외부 가시 작업(push, PR publish, thread resolve)은 스킬이 후보만 제시하고 **사용자가 확인**한다.
+- Codex 미러(`codex/skills/*/SKILL.md`)는 이 디렉토리에서 생성된다 — 스킬 수정 후 `python3 scripts/gen-codex-skills.py` 실행 (직접 편집 금지).

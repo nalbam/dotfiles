@@ -196,24 +196,59 @@ _dotfiles() {
   fi
 }
 
+# 일회성 legacy 정리: manifest 도입(2026-06) 이전 sync 잔존물 제거
+# NOTE: 모든 머신이 한 번 이상 실행된 뒤(2026-12 이후) 이 함수와 호출부를 삭제할 것
+_cleanup_legacy_vibe() {
+  # Codex는 ~/.codex/skills 를 읽지 않음 (~/.agents/skills 스캔) - 디렉토리 전체 제거
+  if [ -d "${HOME}/.codex/skills" ]; then
+    rm -rf "${HOME}/.codex/skills"
+    _warn "Removed legacy ~/.codex/skills (Codex reads ~/.agents/skills)"
+  fi
+
+  # 과거 repo가 배포했다가 삭제한 Claude 스킬 (git 이력에서 추출)
+  local legacy_claude_skills=(
+    aws-operations branch-cleanup context-init context-load deps-audit
+    flag-cleanup git-workflow k8s-troubleshoot release-notes reroll-buddy
+    security-review shell-scripting
+  )
+  local skill
+  for skill in "${legacy_claude_skills[@]}"; do
+    # repo에 다시 추가된 스킬은 보호 (이중 안전장치)
+    if [ -d "${HOME}/.claude/skills/${skill}" ] && [ ! -d "${HOME}/.dotfiles/claude/skills/${skill}" ]; then
+      rm -rf "${HOME}/.claude/skills/${skill}"
+      _warn "Removed legacy skill: ~/.claude/skills/${skill}"
+    fi
+  done
+}
+
 # AI 도구 설정 동기화 함수 (Claude Code, Codex, Kiro)
 _sync_vibe() {
   local sync_targets=(
     "claude:${HOME}/.claude"
     "codex:${HOME}/.codex"
+    "codex/skills:${HOME}/.agents/skills"
     "kiro:${HOME}/.kiro"
   )
 
   local count_new=0
   local count_updated=0
   local count_identical=0
+  local count_pruned=0
+
+  # manifest 저장 위치 (--vibe 단독 실행은 Step 2를 건너뛰므로 직접 생성)
+  mkdir -p ~/.toast
+
+  _cleanup_legacy_vibe
 
   for target_config in "${sync_targets[@]}"; do
     local src_subdir="${target_config%%:*}"
     local dst_dir="${target_config#*:}"
     local src_path="${HOME}/.dotfiles/${src_subdir}"
+    local manifest_file="${HOME}/.toast/vibe_manifest_${src_subdir//\//_}"
+    local manifest_tmp="${manifest_file}.tmp"
 
     # Skip if source directory doesn't exist or is empty
+    # (의도적으로 prune도 건너뜀 - 불완전한 checkout에서 대량 삭제 방지)
     if [ ! -d "$src_path" ] || [ -z "$(ls -A "$src_path" 2>/dev/null)" ]; then
       _skip "$src_subdir/ (empty or not found)"
       continue
@@ -223,11 +258,21 @@ _sync_vibe() {
 
     # Create target directory if needed
     mkdir -p "$dst_dir"
+    : > "$manifest_tmp"
+
+    local find_args=("$src_path" -type f -not -path '*/__pycache__/*' -not -name '*.pyc')
+    # codex/skills 는 ~/.agents/skills 타깃으로 별도 배포 (Codex는 ~/.codex/skills 를 읽지 않음)
+    if [ "$src_subdir" = "codex" ]; then
+      find_args+=(-not -path "$src_path/skills/*")
+    fi
 
     # Find and process all files
     while IFS= read -r -d '' src_file; do
       local rel_path="${src_file#$src_path/}"
       local dst_file="$dst_dir/$rel_path"
+
+      # 이번 sync가 관리하는 파일 목록 기록 (복사 여부와 무관)
+      printf '%s\n' "$rel_path" >> "$manifest_tmp"
 
       # Create parent directory if needed
       mkdir -p "$(dirname "$dst_file")"
@@ -259,10 +304,31 @@ _sync_vibe() {
           count_updated=$((count_updated + 1))
         fi
       fi
-    done < <(find "$src_path" -type f -not -path '*/__pycache__/*' -not -name '*.pyc' -print0 | sort -z)
+    done < <(find "${find_args[@]}" -print0 | sort -z)
+
+    # Prune: 이전 manifest에 있으나 현재 소스에 없는 파일 = repo에서 삭제된 파일
+    # manifest에 없는 파일(사용자 설치 자산)은 절대 건드리지 않음
+    if [ -f "$manifest_file" ]; then
+      while IFS= read -r rel_path; do
+        case "$rel_path" in ""|/*|*..*) continue ;; esac # manifest 손상 방어
+        local stale_file="$dst_dir/$rel_path"
+        if [ -f "$stale_file" ]; then
+          rm -f "$stale_file"
+          _warn "- PRUNE: $src_subdir/$rel_path (removed from repo)"
+          count_pruned=$((count_pruned + 1))
+          # 비게 된 부모 디렉토리만 정리 (rmdir은 빈 디렉토리만 제거하므로 안전)
+          local parent_dir=$(dirname "$stale_file")
+          while [ "$parent_dir" != "$dst_dir" ] && rmdir "$parent_dir" 2>/dev/null; do
+            parent_dir=$(dirname "$parent_dir")
+          done
+        fi
+      done < <(comm -23 <(sort -u "$manifest_file") <(sort -u "$manifest_tmp"))
+    fi
+
+    mv "$manifest_tmp" "$manifest_file"
   done
 
-  _info "Sync summary: $count_new new, $count_updated updated, $count_identical identical"
+  _info "Sync summary: $count_new new, $count_updated updated, $count_identical identical, $count_pruned pruned"
 }
 
 # NPM 패키지 설치 함수 (버전 체크 포함)
@@ -827,7 +893,7 @@ _download .zprofile $OS_NAME/zprofile.$OS_ARCH.sh
 _ok "Shell configuration files applied"
 
 # Step 11: AI 도구 설정 (Claude Code, Kiro)
-_progress "Setting up AI tools (Claude Code, Kiro)..."
+_progress "Setting up AI tools (Claude Code, Codex, Kiro)..."
 _sync_vibe
 
 # Success

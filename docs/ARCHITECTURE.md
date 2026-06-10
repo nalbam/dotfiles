@@ -67,11 +67,13 @@ graph TD
 │   ├── agents/            # Specialized agents (8)
 │   ├── hooks/             # Lifecycle hooks (VibeMon)
 │   ├── rules/             # Always-loaded rules (7)
-│   └── skills/            # User-invocable skills (9)
+│   └── skills/            # User-invocable skills (8)
 ├── codex/                 # Codex settings (synced to ~/.codex/)
 │   ├── config.toml        # Feature flags
 │   ├── hooks.json         # Hook wiring
-│   └── hooks/             # Lifecycle hooks (VibeMon)
+│   ├── hooks/             # Lifecycle hooks (VibeMon)
+│   └── skills/            # Codex skills (synced to ~/.agents/skills/,
+│                          #   generated from claude/skills/)
 ├── ghostty/               # Ghostty terminal configuration
 │   └── config             # Ghostty settings
 ├── iterm2/                # iTerm2 configuration
@@ -84,6 +86,8 @@ graph TD
 │   ├── zprofile.aarch64.sh  # Raspberry Pi 64-bit profile
 │   ├── zprofile.armv7l.sh   # Raspberry Pi 32-bit profile
 │   └── zprofile.x86_64.sh   # WSL/Ubuntu profile
+├── scripts/               # Dev-time tools (not part of install flow)
+│   └── gen-codex-skills.py  # claude/skills → codex/skills mirror generator
 └── ssh/                   # SSH configuration templates
     └── config             # SSH config template
 ```
@@ -121,9 +125,10 @@ graph TD
 
 5. AI Tools Integration
    - Claude Code settings synced from `claude/` to `~/.claude/` (agents, hooks, rules, skills, settings)
-   - Codex settings synced from `codex/` to `~/.codex/` (hooks, config)
+   - Codex settings synced from `codex/` to `~/.codex/` (hooks, config); Codex skills synced from `codex/skills/` to `~/.agents/skills/` (the directory Codex scans)
    - Kiro settings synced from `kiro/` to `~/.kiro/` (agents, hooks)
    - MD5-based incremental sync (only changed files updated)
+   - Manifest-based prune (`~/.toast/vibe_manifest_*`): files removed from the repo are removed from deploy targets; user-installed files are never touched
    - Standalone sync via `run.sh --vibe`
 
 ## Installation Flow

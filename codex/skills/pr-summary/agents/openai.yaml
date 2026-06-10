@@ -1,0 +1,2 @@
+# 부수효과(git/GitHub) 스킬 — 사용자가 명시적으로 호출할 때만 실행 (AGENTS.md 의 Git Safety)
+allow_implicit_invocation: false

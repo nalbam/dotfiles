@@ -185,8 +185,8 @@ Files Modified:
 ### Lint Issues
 - Unused variables: Remove or use them
 - Missing semicolons: Add them (if required by style)
-- Inconsistent quotes: Standardize
-- Import order: Sort alphabetically
+- Inconsistent quotes: Standardize *only if a lint rule enforces it* — 그 외엔 기존 스타일 유지 (Surgical Changes)
+- Import order: Sort *only if a lint rule enforces it* — 그 외엔 기존 순서 유지 (Surgical Changes)
 
 ### Type Issues
 - Missing types: Add explicit type annotations

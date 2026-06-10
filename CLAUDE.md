@@ -31,7 +31,7 @@ Everything is POSIX shell — **no bashisms, no build step, no package graph**. 
 8. ZSH + Oh My ZSH install
 9. Theme/UI (Dracula, iTerm2 profile)
 10. Deploy user config files (`~/.zshrc`, `~/.aliases`, etc.)
-11. AI tools sync (`claude/` → `~/.claude/`, `codex/` → `~/.codex/`, `kiro/` → `~/.kiro/`)
+11. AI tools sync (`claude/` → `~/.claude/`, `codex/` → `~/.codex/`, `codex/skills/` → `~/.agents/skills/`, `kiro/` → `~/.kiro/`)
 
 `run.sh --vibe` runs **only step 11**.
 
@@ -61,8 +61,12 @@ claude/                   # synced to ~/.claude/
 codex/                    # synced to ~/.codex/
   config.toml, hooks.json
   hooks/
+  skills/                 # synced to ~/.agents/skills/ (Codex scan path);
+                          # generated from claude/skills/ — do not edit directly
 kiro/                     # synced to ~/.kiro/
   agents/ hooks/
+scripts/                  # dev-time tools (not part of install flow)
+  gen-codex-skills.py     # claude/skills → codex/skills mirror generator
 
 docs/ARCHITECTURE.md      # diagrams + deeper notes
 ```
@@ -107,13 +111,16 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 
 ## AI tool settings (claude/, codex/, kiro/)
 
-These directories are the **source**; `~/.claude/`, `~/.codex/`, and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `run.sh --vibe` overwrites changed files (MD5-compared).
+These directories are the **source**; `~/.claude/`, `~/.codex/`, `~/.agents/skills/` (Codex skills), and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `run.sh --vibe` overwrites changed files (MD5-compared) and **prunes files removed from the repo** (tracked per-target in `~/.toast/vibe_manifest_*`; files the sync never deployed, e.g. user-installed skills, are untouched).
+
+**`codex/skills/*/SKILL.md` is generated — do not edit directly.** `claude/skills/` is the single source; regenerate with `python3 scripts/gen-codex-skills.py` (verify with `--check`). Codex-only files like `agents/openai.yaml` are hand-maintained and preserved by the generator.
 
 When adding a new Claude Code agent/skill/rule:
 
 1. Create the file under `claude/agents/` · `claude/skills/<name>/` · `claude/rules/`.
 2. If it needs permissions or hooks, edit `claude/settings.json`.
-3. Run `run.sh --vibe` to deploy. No installer re-run needed.
+3. For skills, run `python3 scripts/gen-codex-skills.py` to refresh the Codex mirror.
+4. Run `run.sh --vibe` to deploy. No installer re-run needed.
 
 ## Working rules for agents
 
@@ -132,6 +139,7 @@ When adding a new Claude Code agent/skill/rule:
 - Arch zprofiles: `darwin/zprofile.{arm64,x86_64}.sh`, `linux/zprofile.{x86_64,aarch64,armv7l}.sh`
 - Claude Code settings: `claude/settings.json`
 - Codex settings: `codex/hooks.json`, `codex/config.toml`
+- Codex skills mirror generator: `scripts/gen-codex-skills.py`
 - Korean ₩→` keymap: `darwin/DefaultkeyBinding.dict`
 
 For architecture diagrams and installation flow sequence, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).

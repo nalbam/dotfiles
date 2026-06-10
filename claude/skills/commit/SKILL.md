@@ -2,6 +2,7 @@
 name: commit
 description: Create git commit with conventional format. 커밋 생성, 변경사항 분석, 커밋 메시지 작성.
 allowed-tools: Read, Bash, Grep, Glob
+disable-model-invocation: true
 ---
 
 # Create Commit

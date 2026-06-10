@@ -1,7 +1,9 @@
 ---
 name: resolve-coderabbit
 description: Fetch, evaluate, fix, and resolve CodeRabbit review comments on a PR. CodeRabbit 리뷰 코멘트를 가져와 평가, 수정, 해결.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob, Agent
+allowed-tools: Read, Write, Edit, Bash, Grep, Glob
+disable-model-invocation: true
+argument-hint: [pr-number]
 ---
 
 # Resolve CodeRabbit Reviews
@@ -30,13 +32,12 @@ Fetch CodeRabbit inline review comments from a PR, technically evaluate each one
 
 ### Step 1: Identify PR
 
-Determine the PR number from argument or current branch:
+PR 번호 인자: `$ARGUMENTS`
+
+- 위 값이 비어 있지 않으면 그 번호를 `{pr_number}` 로 사용한다
+- 비어 있으면 현재 브랜치에서 추론한다:
 
 ```bash
-# If argument provided, use it directly
-PR_NUMBER={argument}
-
-# Otherwise, infer from current branch
 gh pr view --json number -q '.number'
 ```
 
@@ -142,15 +143,15 @@ For each unresolved CodeRabbit comment, evaluate against the codebase:
 
 For ACCEPT items, fix in severity order (HIGH → MEDIUM → LOW).
 
-Package manager 감지 로직은 `validate` 스킬을 *유일한 source* 로 하여 동일 로직을 재실행한다 (스킬 간 셸 변수는 공유되지 않음). 검증 명령은 감지된 `$PM` 으로 실행한다.
+프로젝트 타입·package manager 감지 로직은 `validate` 스킬을 *유일한 source* 로 하여 동일 로직을 재실행한다 (스킬 간 셸 변수는 공유되지 않음). 검증 명령은 감지된 프로젝트 타입에 맞춘다 — Node: `$PM run typecheck` / `$PM test`, Python: `mypy` / `pytest`, Go: `go build ./...` / `go test ./...`, Rust: `cargo check` / `cargo test`.
 
 ```
 FOR each ACCEPT item (by severity):
   1. Read the full target file
   2. Understand surrounding context
   3. Make minimal, focused fix (rules/coding-style.md#surgical-changes--외과적-변경)
-  4. Run typecheck: $PM run typecheck
-  5. Run tests: $PM test
+  4. Run typecheck (project-type detected command)
+  5. Run tests (project-type detected command)
   6. If tests fail, fix or rollback
 ```
 

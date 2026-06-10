@@ -2,6 +2,8 @@
 name: pr-summary
 description: Analyze all PR changes and update PR description with accurate summary. PR 변경사항 분석 후 정확한 요약으로 PR 설명 업데이트.
 allowed-tools: Read, Bash, Grep, Glob
+disable-model-invocation: true
+argument-hint: [pr-number]
 ---
 
 # PR Summary Update
@@ -26,11 +28,12 @@ allowed-tools: Read, Bash, Grep, Glob
 
 ### Step 1: Identify PR
 
-```bash
-# 인자가 있으면 사용
-PR_NUMBER={argument}
+PR 번호 인자: `$ARGUMENTS`
 
-# 없으면 현재 브랜치에서 추론
+- 위 값이 비어 있지 않으면 그 번호를 `{PR_NUMBER}` 로 사용한다
+- 비어 있으면 현재 브랜치에서 추론한다:
+
+```bash
 gh pr view --json number -q '.number'
 ```
 
@@ -102,7 +105,7 @@ EXISTING_BODY=$(gh pr view {PR_NUMBER} --json body -q '.body')
 
 ### Step 5: Craft & Update
 
-PR body / title 형식은 `pr-create` 스킬과 동일하다 (Summary / Changes / Breaking Changes / Test Plan + `<type>(<scope>): <subject>` title). 형식 정의·예시는 `pr-create` 를 참조한다.
+PR body / title 형식은 `pr-create` 스킬과 동일하다 (Summary / Changes / Breaking Changes / Test Plan + `<type>(<scope>): <subject>` title). 형식 정의·예시·근거는 `pr-create` 가 source 다 — 아래 템플릿은 그 사본이므로, 형식을 바꿀 때는 두 파일을 함께 갱신한다.
 
 ```bash
 gh pr edit {PR_NUMBER} --body "$(cat <<'EOF'

@@ -2,6 +2,7 @@
 name: commit-push
 description: Create git commit and push to remote. 커밋 생성 후 리모트에 푸시.
 allowed-tools: Read, Bash, Grep, Glob
+disable-model-invocation: true
 ---
 
 # Commit and Push

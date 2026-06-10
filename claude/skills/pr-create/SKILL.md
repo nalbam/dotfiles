@@ -2,6 +2,7 @@
 name: pr-create
 description: Create pull request with proper format. PR 생성, 변경사항 분석, PR 메시지 작성.
 allowed-tools: Read, Bash, Grep, Glob
+disable-model-invocation: true
 ---
 
 # Create Pull Request

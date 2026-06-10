@@ -27,7 +27,7 @@ Analyze entire codebase and documentation, find gaps, update docs. 문서 갱신
 
 ## Exclude Patterns
 
-스캔 시 dependency / build / cache / VCS / IDE / 테스트 산출물 등은 제외한다. 전체 목록은 `claude/skills/code-audit/SKILL.md` 의 *Exclude Patterns* 표를 *유일한 source* 로 한다.
+스캔 시 dependency / build / cache / VCS / IDE / 테스트 산출물 등은 제외한다. 전체 목록은 `code-audit` 스킬 (`~/.claude/skills/code-audit/SKILL.md`) 의 *Exclude Patterns* 표를 *유일한 source* 로 한다.
 
 ## Process
 
