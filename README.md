@@ -37,7 +37,7 @@ cd ~/.dotfiles
 
 - **Cross-platform**: 한 저장소로 macOS / Linux / Windows 지원
 - **11-step installer**: OS 감지부터 AI 도구 동기화까지 단계별 자동 진행
-- **Resilient**: 네트워크 재시도(exponential backoff), 12시간 업데이트 스로틀링, MD5 무결성 체크
+- **Resilient**: 네트워크 재시도(exponential backoff), 6시간 업데이트 스로틀링, MD5 무결성 체크
 - **Organization-aware Git**: 디렉터리별 `includeIf`로 개인/회사 계정 자동 전환
 - **AI tools sync**: Claude Code, Codex, Kiro 설정을 여러 머신에서 동일하게 유지
 - **Secret-safe**: 1Password CLI 통합으로 자격 증명을 평문 파일 없이 관리

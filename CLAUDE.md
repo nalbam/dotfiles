@@ -6,7 +6,7 @@ Guidance for Claude Code (and other AI agents) working in this repository. For a
 
 Cross-platform dotfiles installer. A single shell script (`run.sh`) detects the OS/architecture and provisions a consistent dev environment: SSH keys, Git config, package managers, shell, terminals, and AI tool settings.
 
-Everything is POSIX shell — **no bashisms, no build step, no package graph**. Changes land by editing scripts/config files and re-running `run.sh` (or `run.sh --vibe` for AI settings only).
+The installer (`run.sh`) is plain bash; files sourced by interactive shells (`aliases`, `zshrc`/`bashrc`, `zprofile.*`) stay POSIX-compatible so both bash and zsh can source them. **No build step, no package graph**. Changes land by editing scripts/config files and re-running `run.sh` (or `run.sh --vibe` for AI settings only).
 
 ## Entry points
 
@@ -92,7 +92,7 @@ When editing `gitconfig*`, check all three files stay consistent. A wrong email 
 ## Resilience contracts (keep these when editing run.sh)
 
 - Network calls: exponential backoff, max 3 retries (5s → 10s → 20s).
-- Update throttling: APT / Homebrew / NPM / PIP / Claude update once per 12 h; timestamps in `~/.toast/last_update_*`.
+- Update throttling: APT / Homebrew / NPM / PIP / Claude update once per 6 h; timestamps in `~/.toast/last_update_*`. Brewfile changes bypass the throttle (`brew bundle` runs whenever the Brewfile differs from the last successfully bundled copy at `~/.Brewfile`).
 - File ops: MD5 check before overwrite; sensitive files (`~/.ssh/*`, `~/.aws/*`, `*.backup`) get `chmod 600`.
 - PIP fallback chain: `pip install` → `--user` → `--break-system-packages --user` → `sudo` (for PEP 668 systems).
 - Backup-before-overwrite on user config files.
@@ -129,7 +129,7 @@ When adding a new Claude Code agent/skill/rule:
 - **Read the whole file before editing** (`run.sh` is ~600 lines but tightly sequenced).
 - **Check both `darwin/` and `linux/` paths** when touching platform logic — one branch is easy to miss.
 - **Prefer editing `aliases` or `Brewfile` over adding logic to `run.sh`.** The installer should stay declarative.
-- **POSIX-compliant** shell only. No `[[ ]]`, no arrays in portable paths, no bash-only expansions in files sourced by both bash and zsh.
+- **POSIX-compatible in files sourced by both bash and zsh** (`aliases`, `zshrc`, `bashrc`, `zprofile.*`): no `[[ ]]`, no arrays, no bash-only expansions there. `run.sh` itself is bash and may use bash features.
 
 ## Quick reference paths
 

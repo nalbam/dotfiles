@@ -25,6 +25,9 @@ fi
 TOTAL_STEPS=11
 CURRENT_STEP=0
 
+# 경고 카운터 (최종 요약에 사용)
+WARN_COUNT=0
+
 # 타이머 설정
 UPDATE_INTERVAL=21600  # 6시간 (초 단위)
 
@@ -75,7 +78,9 @@ _skip() {
 }
 
 # 경고 메시지 출력 함수 (노랑)
+# 주의: 서브셸($(...)·파이프)에서 호출하면 카운트가 유실됨 — 루프는 `< <(...)` 패턴 유지
 _warn() {
+  WARN_COUNT=$((WARN_COUNT + 1))
   _echo "  ⚠ $@" 3
 }
 
@@ -96,6 +101,9 @@ _success() {
   _echo "╔════════════════════════════════════════════════════════════════╗" 2
   _echo "║                    INSTALLATION COMPLETED!                     ║" 2
   _echo "╚════════════════════════════════════════════════════════════════╝" 2
+  if [ "${WARN_COUNT}" -gt 0 ]; then
+    _echo "\n  ⚠ Completed with ${WARN_COUNT} warning(s) — review the ⚠ lines above." 3
+  fi
   _echo
   exit 0
 }
@@ -110,7 +118,7 @@ _retry() {
     if "$@" 2>/dev/null; then return 0; fi
     retry_count=$((retry_count + 1))
     if [ $retry_count -eq $max_retries ]; then return 1; fi
-    _warn "$description failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
+    _info "$description failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
     sleep $wait_time
     wait_time=$((wait_time * 2))
   done
@@ -173,6 +181,13 @@ _download() {
 # Dotfiles 저장소 관리 함수
 _dotfiles() {
   if ! command -v git >/dev/null 2>&1; then
+    _skip "git not found — skipping repository sync"
+    return
+  fi
+
+  # macOS: CLT 미설치 상태의 git 스텁은 실행만 해도 GUI 팝업을 띄우므로 실행 전 차단
+  if [ "${OS_NAME}" == "darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
+    _skip "Xcode CLT not installed — skipping repository sync (complete CLT install, then re-run)"
     return
   fi
 
@@ -202,7 +217,7 @@ _cleanup_legacy_vibe() {
   # Codex는 ~/.codex/skills 를 읽지 않음 (~/.agents/skills 스캔) - 디렉토리 전체 제거
   if [ -d "${HOME}/.codex/skills" ]; then
     rm -rf "${HOME}/.codex/skills"
-    _warn "Removed legacy ~/.codex/skills (Codex reads ~/.agents/skills)"
+    _info "Removed legacy ~/.codex/skills (Codex reads ~/.agents/skills)"
   fi
 
   # 과거 repo가 배포했다가 삭제한 Claude 스킬 (git 이력에서 추출)
@@ -216,13 +231,19 @@ _cleanup_legacy_vibe() {
     # repo에 다시 추가된 스킬은 보호 (이중 안전장치)
     if [ -d "${HOME}/.claude/skills/${skill}" ] && [ ! -d "${HOME}/.dotfiles/claude/skills/${skill}" ]; then
       rm -rf "${HOME}/.claude/skills/${skill}"
-      _warn "Removed legacy skill: ~/.claude/skills/${skill}"
+      _info "Removed legacy skill: ~/.claude/skills/${skill}"
     fi
   done
 }
 
 # AI 도구 설정 동기화 함수 (Claude Code, Codex, Kiro)
 _sync_vibe() {
+  # ~/.dotfiles 부재 시 전체 skip (_cleanup_legacy_vibe 의 재추가-스킬 보호조건도 repo 존재를 전제)
+  if [ ! -d ~/.dotfiles ]; then
+    _skip "~/.dotfiles not found — skipping AI tools sync"
+    return
+  fi
+
   local sync_targets=(
     "claude:${HOME}/.claude"
     "codex:${HOME}/.codex"
@@ -314,7 +335,7 @@ _sync_vibe() {
         local stale_file="$dst_dir/$rel_path"
         if [ -f "$stale_file" ]; then
           rm -f "$stale_file"
-          _warn "- PRUNE: $src_subdir/$rel_path (removed from repo)"
+          _info "- PRUNE: $src_subdir/$rel_path (removed from repo)"
           count_pruned=$((count_pruned + 1))
           # 비게 된 부모 디렉토리만 정리 (rmdir은 빈 디렉토리만 제거하므로 안전)
           local parent_dir=$(dirname "$stale_file")
@@ -466,6 +487,9 @@ if [ "$VIBE_ONLY" = true ]; then
   _info "Running AI tools sync only..."
   if [ -d ~/.dotfiles ]; then
     _sync_vibe
+    if [ "${WARN_COUNT}" -gt 0 ]; then
+      _echo "\n  ⚠ Sync completed with ${WARN_COUNT} warning(s) — review the ⚠ lines above." 3
+    fi
     _echo "\n  ✓ AI tools sync complete\n" 2
     exit 0
   else
@@ -517,7 +541,7 @@ _progress "Setting up basic configuration files..."
 if [ ! -f ~/.ssh/config ]; then
   _download .ssh/config ssh/config
   _ok "Downloaded SSH config template"
-  _warn "To use 1Password: op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config"
+  _info "To use 1Password: op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config"
 else
   _skip "SSH config already exists"
 fi
@@ -526,9 +550,9 @@ fi
 if [ ! -f ~/.aws/config ]; then
   _download .aws/config aws/config
   _ok "Downloaded AWS config template"
-  _warn "To use 1Password for AWS:"
-  _warn "  op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config"
-  _warn "  op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials"
+  _info "To use 1Password for AWS:"
+  _info "  op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config"
+  _info "  op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials"
 else
   _skip "AWS config already exists"
 fi
@@ -548,12 +572,13 @@ if [ "${OS_NAME}" == "linux" ]; then
 
   if _should_update "$APT_TIMESTAMP_FILE"; then
     _run "Updating APT packages..."
-    sudo apt update
-    sudo apt upgrade -y
-    _ok "APT packages updated"
-
-    # Update timestamp
-    date +%s > "$APT_TIMESTAMP_FILE"
+    # 성공 시에만 timestamp 갱신 (실패 시 다음 실행에서 재시도)
+    if sudo apt update && sudo apt upgrade -y; then
+      _ok "APT packages updated"
+      date +%s > "$APT_TIMESTAMP_FILE"
+    else
+      _warn "APT update failed — will retry on next run"
+    fi
   else
     _skip "APT update (last update was less than 6 hours ago)"
   fi
@@ -572,14 +597,19 @@ fi
 if ! command -v brew >/dev/null 2>&1; then
   _run "Installing Homebrew..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  if [ -d /opt/homebrew/bin ]; then
+  if [ -x /opt/homebrew/bin/brew ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
-  elif [ -d /home/linuxbrew/.linuxbrew ]; then
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
     eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  else
-    eval "$(brew shellenv)"
+  elif [ -x /usr/local/bin/brew ]; then
+    eval "$(/usr/local/bin/brew shellenv)"
   fi
-  _ok "Homebrew installed"
+  # 사후 검증: 설치 실패를 성공으로 보고하지 않는다
+  if command -v brew >/dev/null 2>&1; then
+    _ok "Homebrew installed"
+  else
+    _warn "Homebrew install failed — continuing without brew"
+  fi
 else
   _skip "Homebrew already installed"
 fi
@@ -590,36 +620,54 @@ _progress "Installing development packages..."
 # Homebrew 패키지 업데이트 (brew가 설치된 경우에만)
 if command -v brew >/dev/null 2>&1; then
   BREW_TIMESTAMP_FILE=~/.toast/last_update_brew
+  BREWFILE_SRC=~/.dotfiles/$OS_NAME/Brewfile
 
-  if _should_update "$BREW_TIMESTAMP_FILE"; then
-    _run "Updating Homebrew packages..."
-    brew update
-    brew upgrade
-    _ok "Homebrew packages updated"
-
-    # Brewfile 기반 패키지 설치
-    BUNDLE_OK=true
-    if [ -f ~/.dotfiles/$OS_NAME/Brewfile ]; then
-      _download .Brewfile $OS_NAME/Brewfile
-      _run "Installing packages from Brewfile..."
-      if brew bundle --file=~/.Brewfile; then
-        brew cleanup
-        _ok "Brewfile packages installed"
-      else
-        brew cleanup
-        _warn "brew bundle failed — some packages did not install"
-        BUNDLE_OK=false
-      fi
-    else
-      _skip "Brewfile not found for $OS_NAME"
+  # Brewfile 변경 감지: ~/.Brewfile 은 "마지막으로 bundle 성공한 내용" 마커
+  BREWFILE_CHANGED=false
+  if [ -f "$BREWFILE_SRC" ]; then
+    if [ ! -f ~/.Brewfile ] || [ "$(_md5 "$BREWFILE_SRC")" != "$(_md5 ~/.Brewfile)" ]; then
+      BREWFILE_CHANGED=true
     fi
+  fi
 
-    # 모든 단계 성공 시에만 timestamp 갱신 (실패 시 다음 실행에서 재시도)
-    if [ "$BUNDLE_OK" = true ]; then
-      date +%s > "$BREW_TIMESTAMP_FILE"
+  BREW_DUE=false
+  if _should_update "$BREW_TIMESTAMP_FILE"; then BREW_DUE=true; fi
+
+  BREW_OK=true
+  if [ "$BREW_DUE" = true ]; then
+    _run "Updating Homebrew packages..."
+    if brew update && brew upgrade; then
+      _ok "Homebrew packages updated"
+    else
+      _warn "brew update/upgrade failed"
+      BREW_OK=false
     fi
   else
     _skip "Homebrew update (last update was less than 6 hours ago)"
+  fi
+
+  # Brewfile 설치: 스로틀 만료 또는 Brewfile 변경 시 (변경은 스로틀과 무관하게 즉시 반영)
+  if [ -f "$BREWFILE_SRC" ]; then
+    if [ "$BREW_DUE" = true ] || [ "$BREWFILE_CHANGED" = true ]; then
+      _run "Installing packages from Brewfile..."
+      if brew bundle --file="$BREWFILE_SRC"; then
+        brew cleanup
+        _ok "Brewfile packages installed"
+        # 성공 후에만 마커 동기화 → 실패 시 다음 실행에서 CHANGED 로 재시도
+        _download .Brewfile $OS_NAME/Brewfile
+      else
+        brew cleanup
+        _warn "brew bundle failed — some packages did not install"
+        BREW_OK=false
+      fi
+    fi
+  else
+    _skip "Brewfile not found for $OS_NAME"
+  fi
+
+  # 모든 단계 성공 시에만 timestamp 갱신 (실패 시 다음 실행에서 재시도)
+  if [ "$BREW_DUE" = true ] && [ "$BREW_OK" = true ]; then
+    date +%s > "$BREW_TIMESTAMP_FILE"
   fi
 
   # macOS getopt 설정
@@ -667,9 +715,9 @@ if command -v npm >/dev/null; then
     fi
 
     if [ "$NPM_OK" = false ]; then
-      _warn "Do NOT use sudo npm — it permanently corrupts brew's node install."
-      _warn "Fix with: sudo chown -R \$(whoami):staff $NPM_NODE_MODULES"
-      _warn "Skipping NPM package install/update."
+      _info "Do NOT use sudo npm — it permanently corrupts brew's node install."
+      _info "Fix with: sudo chown -R \$(whoami):staff $NPM_NODE_MODULES"
+      _info "Skipping NPM package install/update."
     fi
 
     if [ "$NPM_OK" = true ]; then
@@ -743,19 +791,27 @@ _progress "Configuring OS-specific settings..."
 
 # macOS 설정
 if [ "${OS_NAME}" == "darwin" ]; then
-  if ! command -v xcode-select >/dev/null 2>&1; then
+  # CLT 설치 여부는 xcode-select -p 로 확인 (xcode-select 바이너리는 macOS 기본 탑재)
+  if ! xcode-select -p >/dev/null 2>&1; then
     _run "Installing Xcode Command Line Tools..."
-    sudo xcodebuild -license
     xcode-select --install
-    _ok "Xcode Command Line Tools installed"
-
-    if [ "${OS_ARCH}" == "arm64" ]; then
-      _run "Installing Rosetta 2 for x86_64 compatibility..."
-      sudo softwareupdate --install-rosetta --agree-to-license
-      _ok "Rosetta 2 installed"
-    fi
+    _warn "Xcode CLT installer launched — complete the dialog, then re-run this script"
   else
     _skip "Xcode Command Line Tools already installed"
+  fi
+
+  # Rosetta 2 는 CLT 와 독립적으로 확인 (arm64 전용, oahd 데몬으로 설치 감지)
+  if [ "${OS_ARCH}" == "arm64" ]; then
+    if ! pgrep -q oahd; then
+      _run "Installing Rosetta 2 for x86_64 compatibility..."
+      if sudo softwareupdate --install-rosetta --agree-to-license; then
+        _ok "Rosetta 2 installed"
+      else
+        _warn "Rosetta 2 install failed"
+      fi
+    else
+      _skip "Rosetta 2 already installed"
+    fi
   fi
 
   # ₩ -> ` 키 바인딩 설정
@@ -774,7 +830,7 @@ if [ "${OS_NAME}" == "darwin" ]; then
     _backup ~/.macos
     _ok "macOS system preferences applied"
   else
-    if [ "$(_md5 ~/.dotfiles/macos)" != "$(_md5 ~/.macos.backup)" ]; then
+    if [ -f ~/.dotfiles/macos ] && [ "$(_md5 ~/.dotfiles/macos)" != "$(_md5 ~/.macos.backup)" ]; then
       _run "Updating macOS system preferences..."
       /bin/bash ~/.macos
       _backup ~/.macos
@@ -791,8 +847,13 @@ _progress "Installing ZSH and Oh My ZSH..."
 # Oh My ZSH 설치
 if [ ! -d ~/.oh-my-zsh ]; then
   _run "Installing Oh My ZSH..."
-  RUNZSH=no CHSH=no /bin/bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" >/dev/null 2>&1
-  _ok "Oh My ZSH installed"
+  RUNZSH=no CHSH=no /bin/bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" >/dev/null 2>&1 || true
+  # 사후 검증: 설치 실패를 성공으로 보고하지 않는다
+  if [ -d ~/.oh-my-zsh ]; then
+    _ok "Oh My ZSH installed"
+  else
+    _warn "Oh My ZSH install failed (network issue?)"
+  fi
 else
   _skip "Oh My ZSH already installed"
 fi
