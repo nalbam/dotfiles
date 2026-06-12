@@ -618,21 +618,17 @@ def build_progress_bar(percent_str: str | int | float, width: int = 10) -> str:
     filled = percent * width // 100
     empty = width - filled
 
-    # Build the bar - filled segments change color by ratio, empty in dim
-    filled_parts: list[str] = []
-    for i in range(filled):
-        segment_pct = (i + 1) * 100 // width
-        if segment_pct > 90:
-            color = C_RED
-        elif segment_pct > 70:
-            color = C_ORANGE
-        elif segment_pct > 50:
-            color = C_YELLOW
-        else:
-            color = C_GREEN
-        filled_parts.append(f"{color}━")
+    # Build the bar - filled segments use one color by total ratio, empty in dim
+    if percent > 90:
+        color = C_RED
+    elif percent > 70:
+        color = C_ORANGE
+    elif percent > 50:
+        color = C_YELLOW
+    else:
+        color = C_GREEN
 
-    filled_bar = "".join(filled_parts)
+    filled_bar = f"{color}{'━' * filled}" if filled else ""
     empty_bar = "╌" * empty
 
     bar = f"{filled_bar}{C_RESET}" if filled_bar else ""
