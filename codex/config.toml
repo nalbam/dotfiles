@@ -1,5 +1,5 @@
 # BEGIN dotfiles managed codex config
-# Codex 전역 설정. ~/.codex/config.toml 의 이 블록만 동기화된다.
+# Codex 전역 설정. ~/.codex/config.toml 로 동기화된다.
 # 런타임 상태(hooks.state / projects trust / tui 등)는 Codex가 자동으로 덧쓴다.
 # model은 의도적으로 고정하지 않는다 — 런타임 선택을 sync가 덮어쓰지 않도록 둔다.
 
