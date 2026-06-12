@@ -9,9 +9,12 @@ from __future__ import annotations
 import fcntl
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +48,19 @@ def load_config() -> None:
         "vibemon_url": ("VIBEMON_URL", str),
         "vibemon_token": ("VIBEMON_TOKEN", str),
         "token_reset_hours": ("VIBEMON_TOKEN_RESET_HOURS", str),
+        "usage_enabled": ("VIBEMON_USAGE_ENABLED", lambda v: "1" if v else "0"),
+        "usage_refresh_seconds": ("VIBEMON_USAGE_REFRESH", str),
+        "show_project": ("VIBEMON_SHOW_PROJECT", lambda v: "1" if v else "0"),
+        "show_git": ("VIBEMON_SHOW_GIT", lambda v: "1" if v else "0"),
+        "show_model": ("VIBEMON_SHOW_MODEL", lambda v: "1" if v else "0"),
+        "show_tokens": ("VIBEMON_SHOW_TOKENS", lambda v: "1" if v else "0"),
+        "show_cost": ("VIBEMON_SHOW_COST", lambda v: "1" if v else "0"),
+        "show_duration": ("VIBEMON_SHOW_DURATION", lambda v: "1" if v else "0"),
+        "show_lines": ("VIBEMON_SHOW_LINES", lambda v: "1" if v else "0"),
+        "show_memory": ("VIBEMON_SHOW_MEMORY", lambda v: "1" if v else "0"),
+        "show_usage": ("VIBEMON_SHOW_USAGE", lambda v: "1" if v else "0"),
+        "show_usage_reset": ("VIBEMON_SHOW_USAGE_RESET", lambda v: "1" if v else "0"),
+        "show_version": ("VIBEMON_SHOW_VERSION", lambda v: "1" if v else "0"),
     }
 
     for config_key, (env_key, converter) in key_mapping.items():
@@ -61,6 +77,34 @@ VIBE_MONITOR_MAX_PROJECTS = 10
 # Token reset window: 5h for Pro/Max, 0 to disable (Enterprise)
 TOKEN_RESET_HOURS = int(os.environ.get("VIBEMON_TOKEN_RESET_HOURS", "5") or "5")
 TOKEN_RESET_MS = TOKEN_RESET_HOURS * 3600 * 1000
+
+# Plan usage (`claude -p "/usage"`): poll in the background at most this often,
+# since the call is slow and not free. Set usage_enabled=false to disable.
+USAGE_ENABLED = os.environ.get("VIBEMON_USAGE_ENABLED", "1") != "0"
+USAGE_REFRESH_SECONDS = int(os.environ.get("VIBEMON_USAGE_REFRESH", "600") or "600")
+
+
+def _show_flag(env_key: str, default: bool) -> bool:
+    """Resolve a statusline segment toggle from env (backed by config show_*)."""
+    val = os.environ.get(env_key)
+    if val is None:
+        return default
+    return val != "0"
+
+
+# Statusline segment toggles (config keys: show_*). Defaults match the curated
+# layout — every segment on except the work-duration timer.
+SHOW_PROJECT = _show_flag("VIBEMON_SHOW_PROJECT", True)
+SHOW_GIT = _show_flag("VIBEMON_SHOW_GIT", True)
+SHOW_MODEL = _show_flag("VIBEMON_SHOW_MODEL", True)
+SHOW_TOKENS = _show_flag("VIBEMON_SHOW_TOKENS", True)
+SHOW_COST = _show_flag("VIBEMON_SHOW_COST", True)
+SHOW_DURATION = _show_flag("VIBEMON_SHOW_DURATION", False)
+SHOW_LINES = _show_flag("VIBEMON_SHOW_LINES", True)
+SHOW_MEMORY = _show_flag("VIBEMON_SHOW_MEMORY", True)
+SHOW_USAGE = _show_flag("VIBEMON_SHOW_USAGE", True)
+SHOW_USAGE_RESET = _show_flag("VIBEMON_SHOW_USAGE_RESET", True)
+SHOW_VERSION = _show_flag("VIBEMON_SHOW_VERSION", True)
 
 # Lock file timeout constants
 LOCK_TIMEOUT_SECONDS = 5
@@ -281,7 +325,7 @@ def get_context_usage(data: dict[str, Any]) -> str:
 def get_cache_path() -> str:
     """Get the cache file path."""
     cache_path = os.environ.get(
-        "VIBEMON_CACHE_PATH", "~/.vibemon/cache/statusline.json"
+        "VIBEMON_CACHE_PATH", "~/.vibemon/cache/projects.json"
     )
     return os.path.expanduser(cache_path)
 
@@ -590,6 +634,264 @@ def build_progress_bar(percent_str: str | int | float, width: int = 10) -> str:
 
 
 # ============================================================================
+# Plan Usage Functions (claude -p "/usage")
+# ============================================================================
+
+
+def get_usage_cache_path() -> str:
+    """Get the plan-usage cache file path (next to the statusline cache)."""
+    cache_dir = os.path.dirname(get_cache_path())
+    return os.path.join(cache_dir, "usage.json")
+
+
+def load_usage_cache() -> dict[str, Any] | None:
+    """Load cached plan usage, or None if missing/unreadable."""
+    try:
+        with open(get_usage_cache_path()) as f:
+            data = json.load(f)
+        return data if isinstance(data, dict) else None
+    except (FileNotFoundError, json.JSONDecodeError, IOError):
+        return None
+
+
+def parse_usage_output(text: str) -> dict[str, Any]:
+    """Parse `claude -p "/usage"` output into a usage dict.
+
+    Matches lines by keyword so format tweaks degrade gracefully:
+
+        Current session: 36% used · resets Jun 12 at 3:20pm (Asia/Seoul)
+        Current week (all models): 37% used · resets ...
+        Current week (Sonnet only): 0% used
+
+    Returns {} if nothing parseable is found.
+    """
+    result: dict[str, Any] = {}
+    if not text:
+        return result
+
+    def _pct(line: str) -> int | None:
+        m = re.search(r"(\d+)%\s+used", line)
+        return int(m.group(1)) if m else None
+
+    def _resets(line: str) -> str:
+        m = re.search(r"resets\s+(.+?)\s*$", line)
+        return m.group(1).strip() if m else ""
+
+    for raw in text.splitlines():
+        line = raw.strip()
+        low = line.lower()
+        if "current session:" in low:
+            pct = _pct(line)
+            if pct is not None:
+                entry: dict[str, Any] = {"pct": pct}
+                resets = _resets(line)
+                if resets:
+                    entry["resets"] = resets
+                result["session"] = entry
+        elif "current week (all models):" in low:
+            pct = _pct(line)
+            if pct is not None:
+                entry = {"pct": pct}
+                resets = _resets(line)
+                if resets:
+                    entry["resets"] = resets
+                result["week_all"] = entry
+        elif "current week (sonnet only):" in low:
+            pct = _pct(line)
+            if pct is not None:
+                result["week_sonnet"] = {"pct": pct}
+
+    return result
+
+
+def save_usage_cache(usage: dict[str, Any]) -> None:
+    """Atomically write the usage cache (stamps a fresh `ts`)."""
+    cache_path = get_usage_cache_path()
+    try:
+        os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+        payload = dict(usage)
+        payload["ts"] = int(time.time())
+        tmpfile = f"{cache_path}.tmp.{os.getpid()}"
+        with open(tmpfile, "w") as f:
+            json.dump(payload, f)
+        os.replace(tmpfile, cache_path)
+    except (IOError, OSError):
+        pass
+
+
+def refresh_usage() -> None:
+    """Fetch `claude -p "/usage"` and refresh the cache (runs in a child proc).
+
+    A non-blocking lock ensures only one refresh runs at a time; concurrent
+    callers exit immediately instead of spawning duplicate `claude` processes.
+    """
+    lockfile = f"{get_usage_cache_path()}.lock"
+    lock_fd = None
+    try:
+        os.makedirs(os.path.dirname(lockfile), exist_ok=True)
+        lock_fd = os.open(lockfile, os.O_CREAT | os.O_WRONLY, 0o644)
+        try:
+            fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except (IOError, OSError):
+            return  # Another refresh is in flight
+
+        try:
+            result = subprocess.run(
+                ["claude", "-p", "/usage"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+        except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
+            return
+
+        usage = parse_usage_output(result.stdout)
+        if usage:
+            save_usage_cache(usage)
+    finally:
+        if lock_fd is not None:
+            try:
+                fcntl.flock(lock_fd, fcntl.LOCK_UN)
+                os.close(lock_fd)
+            except OSError:
+                pass
+
+
+def maybe_refresh_usage_background(cache: dict[str, Any] | None) -> None:
+    """Spawn a background refresh when the usage cache is missing or stale."""
+    if not USAGE_ENABLED:
+        return
+    if shutil.which("claude") is None:
+        return
+
+    ts = cache.get("ts", 0) if isinstance(cache, dict) else 0
+    try:
+        is_stale = (time.time() - float(ts)) > USAGE_REFRESH_SECONDS
+    except (ValueError, TypeError):
+        is_stale = True
+    if not is_stale:
+        return
+
+    # Fork so the slow `claude -p` call never blocks the status line.
+    if not hasattr(os, "fork"):
+        return  # No safe non-blocking path; skip rather than stall rendering
+    try:
+        pid = os.fork()
+        if pid == 0:
+            try:
+                refresh_usage()
+            except Exception:
+                pass
+            os._exit(0)
+    except OSError:
+        pass
+
+
+def build_usage_segment(cache: dict[str, Any] | None) -> str:
+    """Render the plan-usage segment: 📊 S <bar> W <bar>."""
+    if not isinstance(cache, dict):
+        return ""
+
+    seg: list[str] = []
+    for label, key in (("S", "session"), ("W", "week_all")):
+        entry = cache.get(key)
+        if isinstance(entry, dict) and entry.get("pct") is not None:
+            bar = build_progress_bar(entry["pct"], width=6)
+            if bar:
+                seg.append(f"{label} {bar}")
+
+    if not seg:
+        return ""
+    return f"{C_CYAN}📊{C_RESET} " + " ".join(seg)
+
+
+_MONTHS = {
+    "jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+    "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+}
+
+
+def parse_reset_time(resets: str) -> float | None:
+    """Parse a `/usage` reset string into a local epoch timestamp.
+
+    Handles forms like "Jun 12 at 3:20pm (Asia/Seoul)" and "Jun 13 at 2am ...".
+    The trailing timezone label is ignored: `/usage` already renders the clock
+    in the user's local zone, so a naive local datetime is correct. The year is
+    inferred (rolled forward across a year boundary). Returns None if
+    unparseable.
+    """
+    if not resets:
+        return None
+
+    m = re.search(
+        r"([A-Za-z]{3})[a-z]*\s+(\d{1,2})\s+at\s+(\d{1,2})(?::(\d{2}))?\s*([AaPp][Mm])",
+        resets,
+    )
+    if not m:
+        return None
+
+    month = _MONTHS.get(m.group(1).lower())
+    if not month:
+        return None
+
+    day = int(m.group(2))
+    hour = int(m.group(3))
+    minute = int(m.group(4) or 0)
+    meridiem = m.group(5).lower()
+    if meridiem == "pm" and hour != 12:
+        hour += 12
+    elif meridiem == "am" and hour == 12:
+        hour = 0
+
+    now = datetime.now()
+    for year in (now.year, now.year + 1):
+        try:
+            dt = datetime(year, month, day, hour, minute)
+        except ValueError:
+            return None
+        # Use this year's date unless it's well in the past (year rollover).
+        if (dt - now).total_seconds() >= -86400:
+            return dt.timestamp()
+    return None
+
+
+def format_usage_reset(cache: dict[str, Any] | None) -> str:
+    """Render time remaining until the session usage window resets (⏳).
+
+    Color by urgency: red < 30m, orange < 1h, dim otherwise.
+    """
+    if not isinstance(cache, dict):
+        return ""
+    session = cache.get("session")
+    if not isinstance(session, dict):
+        return ""
+
+    target = parse_reset_time(session.get("resets", ""))
+    if target is None:
+        return ""
+
+    remaining = int(target - time.time())
+    # Reset windows are at most days away; a far-future value means the date
+    # was misparsed (e.g. an unexpected year rollover) — don't show it.
+    if remaining <= 0 or remaining > 30 * 86400:
+        return ""
+
+    total_minutes = remaining // 60
+    hours = total_minutes // 60
+    minutes = total_minutes % 60
+    display = f"{hours}h{minutes}m" if hours > 0 else f"{minutes}m"
+
+    if remaining <= 1800:
+        color = C_RED
+    elif remaining <= 3600:
+        color = C_ORANGE
+    else:
+        color = C_DIM
+
+    return f"{color}⏳ {display}{C_RESET}"
+
+
+# ============================================================================
 # Statusline Output
 # ============================================================================
 
@@ -605,18 +907,26 @@ def build_statusline(
     duration: int | str,
     lines_added: int | str,
     lines_removed: int | str,
-    token_reset: str = "",
+    usage_segment: str = "",
+    usage_reset: str = "",
     version: str = "",
 ) -> str:
-    """Build the status line string."""
+    """Build the status line string.
+
+    Each segment is gated by a SHOW_* toggle (config keys: show_*), so users
+    can curate which fields appear. Default layout:
+    📂 project │ 🌿 branch │ 🤖 model │ 📥📤 tokens │ 💰 cost │ +/- lines │
+    🧠 memory │ 📊 usage │ ⏳ reset │ version  (work-duration ⏱️ off by default)
+    """
     SEP = " │ "
     parts: list[str] = []
 
     # Directory (📂 icon)
-    parts.append(f"{C_BLUE}📂 {dir_name}{C_RESET}")
+    if SHOW_PROJECT:
+        parts.append(f"{C_BLUE}📂 {dir_name}{C_RESET}")
 
     # Git info (emoji based on branch type)
-    if git_info:
+    if SHOW_GIT and git_info:
         # Extract branch and status from " git:(branch *)" format
         branch_info = git_info.replace(" git:(", "").rstrip(")")
         # Get branch name without status indicator for emoji lookup
@@ -625,43 +935,49 @@ def build_statusline(
         parts.append(f"{C_GREEN}{emoji} {branch_info}{C_RESET}")
 
     # Model (🤖 icon) - remove "Claude " prefix
-    short_model = model.removeprefix("Claude ")
-    parts.append(f"{C_MAGENTA}🤖 {short_model}{C_RESET}")
+    if SHOW_MODEL:
+        short_model = model.removeprefix("Claude ")
+        parts.append(f"{C_MAGENTA}🤖 {short_model}{C_RESET}")
 
     # Token usage (📥 in / 📤 out)
-    if input_tokens and str(input_tokens) != "0":
+    if SHOW_TOKENS and input_tokens and str(input_tokens) != "0":
         in_fmt = format_number(input_tokens)
         out_fmt = format_number(output_tokens)
         parts.append(f"{C_CYAN}📥 {in_fmt} 📤 {out_fmt}{C_RESET}")
 
     # Cost (💰 icon)
-    if cost and str(cost) != "0" and cost != "null":
+    if SHOW_COST and cost and str(cost) != "0" and cost != "null":
         cost_fmt = format_cost(cost)
         parts.append(f"{C_YELLOW}💰 {cost_fmt}{C_RESET}")
 
-    # Duration (⏱️ icon) + Token reset (⏳ icon)
-    if duration and str(duration) != "0" and duration != "null":
+    # Duration (⏱️ icon)
+    if SHOW_DURATION and duration and str(duration) != "0" and duration != "null":
         duration_fmt = format_duration(duration)
-        duration_part = f"{C_DIM}⏱️ {duration_fmt}{C_RESET}"
-        if token_reset:
-            duration_part += f" {token_reset}"
-        parts.append(duration_part)
+        parts.append(f"{C_DIM}⏱️ {duration_fmt}{C_RESET}")
 
     # Lines changed (+/-)
-    if lines_added and str(lines_added) != "0":
+    if SHOW_LINES and lines_added and str(lines_added) != "0":
         lines_part = f"{C_GREEN}+{lines_added}{C_RESET}"
         if lines_removed and str(lines_removed) != "0":
             lines_part += f" {C_RED}-{lines_removed}{C_RESET}"
         parts.append(lines_part)
 
     # Context usage with progress bar (🧠 icon)
-    if context_usage:
+    if SHOW_MEMORY and context_usage:
         progress_bar = build_progress_bar(context_usage)
         if progress_bar:
             parts.append(f"🧠 {progress_bar}")
 
+    # Plan usage with progress bars (📊 icon)
+    if SHOW_USAGE and usage_segment:
+        parts.append(usage_segment)
+
+    # Session usage reset countdown (⏳ icon)
+    if SHOW_USAGE_RESET and usage_reset:
+        parts.append(usage_reset)
+
     # Claude Code version - always last
-    if version:
+    if SHOW_VERSION and version:
         parts.append(f"{C_DIM}v{version}{C_RESET}")
 
     return SEP.join(parts)
@@ -756,9 +1072,17 @@ def main() -> None:
     else:
         cost = duration = lines_added = lines_removed = 0
 
-    # Calculate token reset time (local clock)
-    remaining_ms, reset_time_str = get_token_reset_info(duration)
-    token_reset = format_token_reset(remaining_ms, reset_time_str)
+    # Plan usage (cached; refreshed in background when stale)
+    usage_cache = load_usage_cache()
+    maybe_refresh_usage_background(usage_cache)
+    usage_segment = build_usage_segment(usage_cache)
+
+    # Session reset countdown: prefer the real /usage reset time; fall back to
+    # the duration-based 5h-window heuristic when usage data isn't available.
+    usage_reset = format_usage_reset(usage_cache)
+    if not usage_reset:
+        remaining_ms, reset_time_str = get_token_reset_info(duration)
+        usage_reset = format_token_reset(remaining_ms, reset_time_str)
 
     # Extract Claude Code version
     version = data.get("version", "") or ""
@@ -783,7 +1107,8 @@ def main() -> None:
             duration,
             lines_added,
             lines_removed,
-            token_reset,
+            usage_segment,
+            usage_reset,
             version,
         ),
         end="",
