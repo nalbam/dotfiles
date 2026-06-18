@@ -362,6 +362,70 @@ _sync_codex_config() {
   return 1
 }
 
+_sync_codex_rules() {
+  local src_file="$1"
+  local dst_file="$2"
+  local begin_marker="# BEGIN dotfiles managed codex rules"
+  local end_marker="# END dotfiles managed codex rules"
+  local tmp_file="${dst_file}.tmp.$$"
+  local managed_file="${dst_file}.managed.$$"
+  local old_file="${dst_file}.old.$$"
+  CODEX_CONFIG_DIFF_OLD=""
+
+  if ! awk -v begin="$begin_marker" -v end="$end_marker" '
+    $0 == begin { in_block = 1 }
+    in_block { print }
+    $0 == end { found = 1; in_block = 0 }
+    END { exit found ? 0 : 1 }
+  ' "$src_file" > "$managed_file"; then
+    rm -f "$managed_file"
+    _warn "Codex rules template is missing managed markers; preserving $dst_file to avoid wiping runtime rules"
+    return 0
+  fi
+
+  if [ ! -f "$dst_file" ]; then
+    cp "$src_file" "$dst_file"
+    chmod 600 "$dst_file"
+    rm -f "$managed_file"
+    return 2
+  fi
+
+  local dst_mode
+  dst_mode=$(stat -f "%Lp" "$dst_file" 2>/dev/null || stat -c "%a" "$dst_file" 2>/dev/null)
+
+  if grep -Fxq "$begin_marker" "$dst_file" && grep -Fxq "$end_marker" "$dst_file"; then
+    awk -v begin="$begin_marker" -v end="$end_marker" -v managed="$managed_file" '
+      function print_managed(line) {
+        while ((getline line < managed) > 0) print line
+        close(managed)
+      }
+      $0 == begin { print_managed(); in_block = 1; next }
+      in_block && $0 == end { in_block = 0; next }
+      !in_block { print }
+    ' "$dst_file" > "$tmp_file"
+  else
+    cat "$managed_file" > "$tmp_file"
+    printf '\n' >> "$tmp_file"
+    cat "$dst_file" >> "$tmp_file"
+  fi
+
+  rm -f "$managed_file"
+
+  if [ -n "$dst_mode" ]; then
+    chmod "$dst_mode" "$tmp_file"
+  fi
+
+  if [ "$(_md5 "$tmp_file")" = "$(_md5 "$dst_file")" ]; then
+    rm -f "$tmp_file"
+    return 0
+  fi
+
+  cp "$dst_file" "$old_file"
+  CODEX_CONFIG_DIFF_OLD="$old_file"
+  mv "$tmp_file" "$dst_file"
+  return 1
+}
+
 # AI 도구 설정 동기화 함수 (Claude Code, Codex, Kiro)
 _sync_vibe() {
   # ~/.dotfiles 부재 시 전체 skip (_cleanup_legacy_vibe 의 재추가-스킬 보호조건도 repo 존재를 전제)
@@ -445,6 +509,32 @@ _sync_vibe() {
           2)
             _ok "+ NEW: $src_subdir/$rel_path -> $(_display_path "$dst_file")"
             _info "Created managed Codex config template; future syncs update only the marked block"
+            count_new=$((count_new + 1))
+            ;;
+        esac
+        continue
+      fi
+
+      # Codex also mutates rules/default.rules when the user accepts command
+      # prefixes. Sync only the dotfiles-managed block and preserve local rules.
+      if [ "$src_subdir" = "codex" ] && [ "$rel_path" = "rules/default.rules" ]; then
+        _sync_codex_rules "$src_file" "$dst_file"
+        case "$?" in
+          0)
+            count_identical=$((count_identical + 1))
+            ;;
+          1)
+            _ok "UPDATE: $src_subdir/$rel_path -> $(_display_path "$dst_file") (managed block only)"
+            if [ -n "$CODEX_CONFIG_DIFF_OLD" ] && [ -f "$CODEX_CONFIG_DIFF_OLD" ]; then
+              _show_changed_lines "$CODEX_CONFIG_DIFF_OLD" "$dst_file"
+              rm -f "$CODEX_CONFIG_DIFF_OLD"
+            fi
+            _info "Changed only # BEGIN/END dotfiles managed codex rules; preserved local rules outside it"
+            count_updated=$((count_updated + 1))
+            ;;
+          2)
+            _ok "+ NEW: $src_subdir/$rel_path -> $(_display_path "$dst_file")"
+            _info "Created managed Codex rules template; future syncs update only the marked block"
             count_new=$((count_new + 1))
             ;;
         esac
