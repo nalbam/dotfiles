@@ -273,8 +273,8 @@ def get_usage_metadata() -> dict[str, Any]:
     statusline.py caches `claude -p "/usage"` output next to the project cache
     (~/.vibemon/cache/usage.json). Returns {usage5h, usageWeek} for the 5-hour
     session window and the weekly (all-models) window. Keys are omitted when the
-    cache is missing or a value is unavailable, so consumers keep their last
-    value instead of being reset to 0.
+    cache is missing or a value is unavailable, so the API can remove stale
+    values instead of overwriting them with 0.
     """
     config = get_config()
     usage_path = os.path.join(os.path.dirname(config.cache_path), "usage.json")
