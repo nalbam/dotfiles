@@ -267,6 +267,34 @@ def get_project_metadata(project: str) -> dict[str, Any]:
         return {}
 
 
+def get_usage_metadata() -> dict[str, Any]:
+    """Get plan-usage percentages from statusline's usage cache.
+
+    statusline.py caches `claude -p "/usage"` output next to the project cache
+    (~/.vibemon/cache/usage.json). Returns {usage5h, usageWeek} for the 5-hour
+    session window and the weekly (all-models) window. Keys are omitted when the
+    cache is missing or a value is unavailable, so consumers keep their last
+    value instead of being reset to 0.
+    """
+    config = get_config()
+    usage_path = os.path.join(os.path.dirname(config.cache_path), "usage.json")
+
+    try:
+        with open(usage_path) as f:
+            data = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError, IOError):
+        return {}
+
+    result: dict[str, Any] = {}
+    session = data.get("session")
+    if isinstance(session, dict) and isinstance(session.get("pct"), int):
+        result["usage5h"] = session["pct"]
+    week = data.get("week_all")
+    if isinstance(week, dict) and isinstance(week.get("pct"), int):
+        result["usageWeek"] = week["pct"]
+    return result
+
+
 def get_terminal_id() -> str:
     """Get terminal ID from environment."""
     iterm_session = os.environ.get("ITERM_SESSION_ID")
@@ -283,6 +311,7 @@ def get_terminal_id() -> str:
 def build_payload(state: str, tool: str, project: str) -> dict[str, Any]:
     """Build payload dict for sending to monitor."""
     metadata = get_project_metadata(project)
+    usage = get_usage_metadata()
 
     return {
         "state": state,
@@ -292,6 +321,7 @@ def build_payload(state: str, tool: str, project: str) -> dict[str, Any]:
         "memory": metadata.get("memory", 0),
         "character": CHARACTER,
         "terminalId": get_terminal_id(),
+        **usage,
     }
 
 
@@ -473,16 +503,20 @@ def send_vibemon_api(url: str, token: str, payload: dict[str, Any]) -> bool:
     try:
         api_url = f"{url.rstrip('/')}/status"
         # VibeMon API doesn't need terminalId
-        api_payload = json.dumps(
-            {
-                "state": payload.get("state", ""),
-                "project": payload.get("project", ""),
-                "tool": payload.get("tool", ""),
-                "model": payload.get("model", ""),
-                "memory": payload.get("memory", 0),
-                "character": payload.get("character", CHARACTER),
-            }
-        )
+        api_body: dict[str, Any] = {
+            "state": payload.get("state", ""),
+            "project": payload.get("project", ""),
+            "tool": payload.get("tool", ""),
+            "model": payload.get("model", ""),
+            "memory": payload.get("memory", 0),
+            "character": payload.get("character", CHARACTER),
+        }
+        # Plan-usage fields are optional; include only when available so the API
+        # REMOVEs stale values instead of overwriting them with 0.
+        for key in ("usage5h", "usageWeek"):
+            if key in payload:
+                api_body[key] = payload[key]
+        api_payload = json.dumps(api_body)
 
         req = Request(
             api_url,
