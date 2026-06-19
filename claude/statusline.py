@@ -61,6 +61,7 @@ def load_config() -> None:
         "show_usage": ("VIBEMON_SHOW_USAGE", lambda v: "1" if v else "0"),
         "show_usage_reset": ("VIBEMON_SHOW_USAGE_RESET", lambda v: "1" if v else "0"),
         "show_version": ("VIBEMON_SHOW_VERSION", lambda v: "1" if v else "0"),
+        "show_statusline": ("VIBEMON_SHOW_STATUSLINE", lambda v: "1" if v else "0"),
     }
 
     for config_key, (env_key, converter) in key_mapping.items():
@@ -105,6 +106,10 @@ SHOW_MEMORY = _show_flag("VIBEMON_SHOW_MEMORY", True)
 SHOW_USAGE = _show_flag("VIBEMON_SHOW_USAGE", True)
 SHOW_USAGE_RESET = _show_flag("VIBEMON_SHOW_USAGE_RESET", True)
 SHOW_VERSION = _show_flag("VIBEMON_SHOW_VERSION", True)
+
+# Master display toggle: gates only the statusline output. Data collection
+# (cache save, plan-usage refresh) still runs when this is off.
+SHOW_STATUSLINE = _show_flag("VIBEMON_SHOW_STATUSLINE", True)
 
 # Lock file timeout constants
 LOCK_TIMEOUT_SECONDS = 5
@@ -1104,6 +1109,10 @@ def main() -> None:
     # Convert "85%" to 85, "" to 0
     memory_int = int(context_usage.rstrip("%")) if context_usage else 0
     save_cache_background(dir_name, model_display, memory_int)
+
+    # Display toggle: data was collected above; only the rendered line is gated.
+    if not SHOW_STATUSLINE:
+        return
 
     # Output statusline
     print(
