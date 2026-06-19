@@ -726,6 +726,19 @@ def save_usage_cache(usage: dict[str, Any]) -> None:
     try:
         os.makedirs(os.path.dirname(cache_path), exist_ok=True)
         payload = dict(usage)
+        # When the weekly window has usage but the 5-hour session reads 0
+        # (typical right after a session reset), floor the session to 1% so its
+        # bar stays visible alongside the weekly bar instead of being hidden.
+        session = payload.get("session")
+        week = payload.get("week_all")
+        if (
+            isinstance(week, dict)
+            and isinstance(week.get("pct"), int)
+            and week["pct"] >= 1
+            and isinstance(session, dict)
+            and session.get("pct") == 0
+        ):
+            payload["session"] = {**session, "pct": 1}
         payload["ts"] = int(time.time())
         tmpfile = f"{cache_path}.tmp.{os.getpid()}"
         with open(tmpfile, "w") as f:
