@@ -166,7 +166,7 @@
     "humanize-korean@im-not-ai": true,
     "karrot-self-review@karrot-hr": true,
     "slack@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": true
+    "superpowers@claude-plugins-official": false
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
