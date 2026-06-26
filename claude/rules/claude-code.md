@@ -2,7 +2,7 @@
 
 Claude Code 고유 기능의 *유일한 상세 source*. CLAUDE.md `## Claude Code Usage` 는 이 파일의 한 줄 요약이다.
 
-전제: `settings.json`에서 활성화된 기능(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`, `context7` 플러그인 등)과 `claude/agents/`, `claude/skills/`에 배치된 자산.
+전제: `settings.json`에서 활성화된 기능(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`, `ENABLE_TOOL_SEARCH`, `context7` 플러그인 등)과 `claude/agents/`, `claude/skills/`에 배치된 자산.
 
 ## Plan Mode / 계획 모드
 
@@ -58,6 +58,16 @@ Claude Code 고유 기능의 *유일한 상세 source*. CLAUDE.md `## Claude Cod
 - 메인에서 서브에이전트와 같은 탐색을 중복하지 않는다
 - 프롬프트에 맥락·산출물 형식·분량을 명시
 - **추측해서 존재하지 않는 에이전트를 호출하지 않는다**
+
+## 오케스트레이션 / Orchestration
+
+단일 subagent를 넘어서는 제어가 필요할 때. 위 전제의 기능들이 활성화돼 있다.
+
+- **병렬 fan-out**: 독립 작업 여러 개는 한 메시지에 여러 subagent로 동시 spawn. 결과만 모으면 되는 탐색·분석에 적합.
+- **Agent teams** (`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`): 이름 붙인 에이전트를 띄워 `SendMessage` 로 컨텍스트를 유지한 채 이어서 위임. 새 spawn 은 빈 컨텍스트로 시작한다.
+- **Workflow**: 루프·조건·fan-out 을 *결정적으로* 제어해야 하는 다단계 작업용. 토큰 비용이 크므로 **사용자가 명시 요청(opt-in)했을 때만** 사용한다.
+- **ToolSearch / deferred tools** (`ENABLE_TOOL_SEARCH`): 일부 도구(MCP 등)는 이름만 노출되고 스키마는 지연 로드된다. 호출 전 `ToolSearch` 로 스키마를 먼저 로드 — 필요한 도구는 *한 번의 호출에 묶어서* 로드한다.
+- **Background tasks**: 장기 실행(빌드·CI 대기 등)은 background 로 띄우고 완료 알림을 기다린다. 짧은 간격 폴링 금지.
 
 ## Skills / 스킬
 
@@ -124,6 +134,25 @@ git 관련 규약은 `rules/git-workflow.md` 가 source.
 - 컨텍스트 마지막 ~20% 에서는 대규모 리팩토링·다중 파일 구현 회피
 - 단일 파일 수정·독립 유틸·문서 갱신은 컨텍스트 부담 적음
 - 대형 탐색은 subagent 로 위임해 메인 컨텍스트를 보호
+
+## Model Selection / 모델 선택
+
+기본은 *환경에서 활성화된 최상위 모델*을 신뢰한다. 명시적으로 다른 모델이 필요한 경우만 전환한다. 구체 모델 ID·세대 번호는 환경에 따라 달라지므로 **시스템 프롬프트의 모델 정보를 우선**한다.
+
+| 등급 | 사용 시점 |
+|------|----------|
+| **Opus (최상위)** | 복잡 아키텍처 결정, 다단계 추론, 어려운 디버깅, 에이전트 워크플로우, 분석·연구 |
+| **Sonnet (코딩 특화)** | 빠른 코드 생성, 단순 수정, 워크플로우 오케스트레이션 |
+| **Haiku (경량)** | 짧은 유틸·문서 갱신·간단한 질의·대량 정형 작업 |
+
+## Build / Validation 실패
+
+빌드·테스트 실패는 `/validate` 스킬 또는 `builder` 서브에이전트로 처리한다.
+
+1. 에러 메시지 정독 (보통 원인이 직접 담겨 있음)
+2. 점진 수정 (한 번에 여러 변경 묶지 말 것)
+3. 단계마다 검증 (`rules/problem-solving.md#goal-driven-execution--목표-기반-실행`)
+4. 동일 문제가 다른 곳에도 있는지 스캔
 
 ## Anti-Patterns
 
