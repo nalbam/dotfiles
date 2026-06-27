@@ -248,48 +248,67 @@ alias slsd="m && sls deploy"
 alias amp="amplify"
 
 # Node.js / JavaScript / TypeScript
-nn() {
-  if [ -f "pnpm-lock.yaml" ]; then
-    echo "Found pnpm-lock.yaml, cleaning and reinstalling with pnpm..."
-    rm -rf node_modules pnpm-lock.yaml .next && pnpm install
-  elif [ -f "package-lock.json" ]; then
-    echo "Found package-lock.json, cleaning and reinstalling with npm..."
-    rm -rf node_modules package-lock.json dist && npm install
-  else
-    echo "No lock file found, installing with npm..."
-    npm install
+# Detect package manager: package.json "packageManager" field, else lock file
+np() {
+  local pm=""
+  if [ -f "package.json" ]; then
+    pm=$(node -p "(require('./package.json').packageManager || '').split('@')[0]" 2>/dev/null)
   fi
+  case "$pm" in
+    pnpm | npm | yarn) echo "$pm" ;;
+    *)
+      if [ -f "pnpm-lock.yaml" ]; then
+        echo "pnpm"
+      elif [ -f "yarn.lock" ]; then
+        echo "yarn"
+      else
+        echo "npm"
+      fi
+      ;;
+  esac
+}
+nn() {
+  case "$(np)" in
+    pnpm)
+      echo "Cleaning and reinstalling with pnpm..."
+      rm -rf node_modules pnpm-lock.yaml .next && pnpm install
+      ;;
+    yarn)
+      echo "Cleaning and reinstalling with yarn..."
+      rm -rf node_modules yarn.lock dist && yarn install
+      ;;
+    *)
+      echo "Cleaning and reinstalling with npm..."
+      rm -rf node_modules package-lock.json dist && npm install
+      ;;
+  esac
 }
 nb() {
-  if [ -f "pnpm-lock.yaml" ]; then
-    pnpm build
-  elif [ -f "package-lock.json" ]; then
-    npm run build
-  else
-    npm run build
-  fi
+  case "$(np)" in
+    pnpm) pnpm build ;;
+    yarn) yarn build ;;
+    *) npm run build ;;
+  esac
 }
 nk() {
-  local pids=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:3[0-9]{3}(\s|$)' | awk '{print $2}' | sort -u)
+  local port="${1:-3000}"
+  local pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null | sort -u)
   if [ -n "$pids" ]; then
-    echo "Killing dev servers on port 3000-3999..."
+    echo "Killing dev server on port $port..."
     echo "$pids" | while read pid; do
-      local info=$(lsof -i -P -n | grep LISTEN | grep "^[^ ]*[ ]*$pid" | head -1)
-      local port=$(echo "$info" | awk '{print $(NF-1)}' | awk -F: '{print $NF}')
-      local cmd=$(echo "$info" | awk '{print $1}')
+      local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
       kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
     done
   fi
 }
 nd() {
-  nk
-  if [ -f "pnpm-lock.yaml" ]; then
-    pnpm dev
-  elif [ -f "package-lock.json" ]; then
-    npm run dev
-  else
-    npm run dev
-  fi
+  local port="${1:-3000}"
+  nk "$port"
+  case "$(np)" in
+    pnpm) PORT="$port" pnpm dev ;;
+    yarn) PORT="$port" yarn dev ;;
+    *) PORT="$port" npm run dev ;;
+  esac
 }
 
 # Python
@@ -310,8 +329,8 @@ alias dff='colordiff'
 # Local development servers
 ss() {
   # Server start - serve any directory with Python http.server
-  local dir="${1:-docs}"
-  local port="${2:-8000}"
+  local port="${1:-8000}"
+  local dir="${2:-docs}"
 
   # Kill existing process on the port if any
   lsof -ti:$port > /dev/null 2>&1 && lsof -ti:$port | xargs -r kill
