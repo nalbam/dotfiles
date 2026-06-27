@@ -134,7 +134,7 @@ When adding a new Claude Code agent/skill/rule:
 ## Quick reference paths
 
 - Installer: `run.sh`
-- Main helper functions: `aliases:41-381` — `tm()` (tmux, L41-137), `av()` (aws-vault, L145-209), terraform aliases (L224-245), node helpers `nn`/`nb`/`nk`/`nd` (L254-296), local dev servers `ss`/`sl`/`sk` (L314-381)
+- Main helper functions: `aliases:38-410` — `tm()` (tmux, L38-140), `av()` (aws-vault, L142-206), terraform aliases (L221-242), node helpers `np`/`nn`/`nb` (npm·pnpm·yarn 자동 판별, L252-291), local dev servers `ss`/`sl`/`sk` (node dev 또는 python http.server 자동, 포트는 `~/.toast/servers`에 추적, L312-407)
 - Brewfiles: `darwin/Brewfile`, `linux/Brewfile`
 - Arch zprofiles: `darwin/zprofile.{arm64,x86_64}.sh`, `linux/zprofile.{x86_64,aarch64,armv7l}.sh`
 - Claude Code settings: `claude/settings.json`

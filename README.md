@@ -86,8 +86,8 @@ cd ~/.dotfiles
 | `tt` | dotfiles 재설치 |
 | `c <workspace>` | toast-cli 워크스페이스 디렉터리 이동 |
 | `av <profile> <cmd>` | aws-vault 프로파일 실행 (e.g. `av n kubectl get pods`) |
-| `nn` / `nb` / `nd` / `nk` | Node.js: clean install / build / dev server / kill ports |
-| `ss` / `sl` / `sk` | 로컬 HTTP 서버: start / list / kill |
+| `nn` / `nb` | Node.js: clean install / build (npm·pnpm·yarn 자동 판별) |
+| `ss` / `sl` / `sk` | 로컬 dev 서버 (node dev 또는 python http.server 자동): start / list / kill |
 | `tf*` | Terraform: plan/apply/destroy/state |
 | `tm*` | tmux: new / attach / list / kill |
 | `cc`, `ccc`, `ccu` | Claude Code: 실행 / continue / ccusage |

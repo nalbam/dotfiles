@@ -290,26 +290,6 @@ nb() {
     *) npm run build ;;
   esac
 }
-nk() {
-  local port="${1:-3000}"
-  local pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null | sort -u)
-  if [ -n "$pids" ]; then
-    echo "Killing dev server on port $port..."
-    echo "$pids" | while read pid; do
-      local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
-      kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
-    done
-  fi
-}
-nd() {
-  local port="${1:-3000}"
-  nk "$port"
-  case "$(np)" in
-    pnpm) PORT="$port" pnpm dev ;;
-    yarn) PORT="$port" yarn dev ;;
-    *) PORT="$port" npm run dev ;;
-  esac
-}
 
 # Python
 alias py='python'
@@ -327,68 +307,98 @@ alias pipl='pip list'
 alias dff='colordiff'
 
 # Local development servers
+# Registry of servers started by ss(): one "port<TAB>type<TAB>path" per line
+DEV_SERVERS="$HOME/.toast/servers"
+_port_kill() {
+  # Kill whatever listens on a port; 0 if killed, 1 if nothing found
+  local port="$1"
+  local pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null | sort -u)
+  [ -z "$pids" ] && return 1
+  echo "$pids" | while read pid; do
+    local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+    kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
+  done
+  return 0
+}
+_server_del() {
+  [ -f "$DEV_SERVERS" ] || return 0
+  awk -F'\t' -v p="$1" '$1 != p' "$DEV_SERVERS" > "$DEV_SERVERS.tmp" 2>/dev/null
+  mv "$DEV_SERVERS.tmp" "$DEV_SERVERS"
+}
+_server_add() {
+  mkdir -p "$(dirname "$DEV_SERVERS")"
+  _server_del "$1"
+  printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$DEV_SERVERS"
+}
 ss() {
-  # Server start - serve any directory with Python http.server
-  local port="${1:-8000}"
-  local dir="${2:-docs}"
-
-  # Kill existing process on the port if any
-  lsof -ti:$port > /dev/null 2>&1 && lsof -ti:$port | xargs -r kill
-
-  # Resolve absolute path
-  local abs_dir=$(cd "$dir" 2>/dev/null && pwd)
-  if [ -z "$abs_dir" ]; then
-    echo "Directory '$dir' not found"
-    return 1
+  # Server start - node dev (package.json) or python http.server
+  if [ -f "package.json" ]; then
+    local port="${1:-3000}"
+    _port_kill "$port" > /dev/null 2>&1
+    _server_add "$port" "node" "$(pwd)"
+    echo "Starting node dev server on port $port..."
+    case "$(np)" in
+      pnpm) PORT="$port" pnpm dev ;;
+      yarn) PORT="$port" yarn dev ;;
+      *) PORT="$port" npm run dev ;;
+    esac
+    _server_del "$port"
+  else
+    local port="${1:-8000}"
+    local dir="${2:-docs}"
+    local abs_dir=$(cd "$dir" 2>/dev/null && pwd)
+    if [ -z "$abs_dir" ]; then
+      echo "Directory '$dir' not found"
+      return 1
+    fi
+    _port_kill "$port" > /dev/null 2>&1
+    python3 -m http.server "$port" --directory "$abs_dir" > /dev/null 2>&1 & disown
+    _server_add "$port" "python" "$abs_dir"
+    echo "Serving $abs_dir at http://localhost:$port"
   fi
-
-  python3 -m http.server $port --directory "$abs_dir" > /dev/null 2>&1 & disown
-  echo "Serving $abs_dir at http://localhost:$port"
 }
 sl() {
-  # Server list - show all local dev servers
-  local servers=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:(300[0-9]|400[0-9]|500[0-9]|800[0-9]|808[0-9]|900[0-9])(\s|$)')
-  if [ -n "$servers" ]; then
-    echo "Local servers:"
-    echo "$servers" | while read line; do
-      local cmd=$(echo "$line" | awk '{print $1}')
-      local pid=$(echo "$line" | awk '{print $2}')
-      local port=$(echo "$line" | awk '{print $(NF-1)}' | awk -F: '{print $NF}')
-      echo "  $cmd (PID $pid) on port $port"
-    done
-  else
-    echo "No local servers found"
-  fi
+  # Server list - show servers started by ss(), pruning dead ones
+  [ -f "$DEV_SERVERS" ] || { echo "No servers running"; return 0; }
+  local tmp="$DEV_SERVERS.tmp"
+  : > "$tmp"
+  local found=""
+  while IFS="$(printf '\t')" read -r port type dir; do
+    [ -z "$port" ] && continue
+    local pid=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null | head -1)
+    if [ -n "$pid" ]; then
+      local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+      [ -z "$found" ] && echo "Local servers:"
+      echo "  [$type] $cmd (PID $pid) on port $port  $dir"
+      printf '%s\t%s\t%s\n' "$port" "$type" "$dir" >> "$tmp"
+      found="1"
+    fi
+  done < "$DEV_SERVERS"
+  mv "$tmp" "$DEV_SERVERS"
+  [ -z "$found" ] && echo "No servers running"
 }
 sk() {
-  # Server kill - kill specific port or all local dev servers
+  # Server kill - kill a tracked port, or all servers started by ss()
   if [ -z "$1" ]; then
-    echo "Usage: sk <port|a|all>"
-    echo "  sk <port>  - Kill server on specific port"
-    echo "  sk a|all   - Kill all local dev servers"
+    echo "Usage: sk <port|all>"
+    echo "  sk <port>  - Kill server on a specific port"
+    echo "  sk a|all   - Kill all servers started by ss()"
     return 1
   fi
-
   case "$1" in
     a|all)
-      # Kill all local dev servers
-      local pids=$(lsof -i -P -n | grep LISTEN | grep -E '[ *]:(300[0-9]|400[0-9]|500[0-9]|800[0-9]|808[0-9]|900[0-9])(\s|$)' | awk '{print $2}' | sort -u)
-      if [ -n "$pids" ]; then
-        echo "Killing local servers..."
-        echo "$pids" | while read pid; do
-          local info=$(lsof -i -P -n | grep LISTEN | grep "^[^ ]*[ ]*$pid" | head -1)
-          local port=$(echo "$info" | awk '{print $(NF-1)}' | awk -F: '{print $NF}')
-          local cmd=$(echo "$info" | awk '{print $1}')
-          kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
-        done
-      else
-        echo "No local servers found"
-      fi
+      [ -f "$DEV_SERVERS" ] || { echo "No servers running"; return 0; }
+      local any=""
+      while IFS="$(printf '\t')" read -r port type dir; do
+        [ -z "$port" ] && continue
+        _port_kill "$port" && any="1"
+      done < "$DEV_SERVERS"
+      : > "$DEV_SERVERS"
+      [ -z "$any" ] && echo "No servers running"
       ;;
     *)
-      # Kill specific port
-      if lsof -ti:$1 > /dev/null 2>&1; then
-        lsof -ti:$1 | xargs -r kill && echo "Killed process on port $1"
+      if _port_kill "$1"; then
+        _server_del "$1"
       else
         echo "No process found on port $1"
       fi
