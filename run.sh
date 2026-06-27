@@ -290,7 +290,7 @@ _sync_codex_config() {
   fi
 
   local dst_mode
-  dst_mode=$(stat -f "%Lp" "$dst_file" 2>/dev/null || stat -c "%a" "$dst_file" 2>/dev/null)
+  dst_mode=$(stat -c "%a" "$dst_file" 2>/dev/null || stat -f "%Lp" "$dst_file" 2>/dev/null)
 
   if grep -Fxq "$begin_marker" "$dst_file" && grep -Fxq "$end_marker" "$dst_file"; then
     awk -v begin="$begin_marker" -v end="$end_marker" -v managed="$managed_file" '
@@ -317,7 +317,7 @@ _sync_codex_config() {
       END { exit NR >= template_len ? 0 : 1 }
     ' "$dst_file"; then
       rm -f "$tmp_file" "$managed_file" "$unmanaged_file" "$stripped_file"
-      _warn "Codex config has no managed block and does not match the previous dotfiles template; preserving $dst_file to avoid wiping runtime settings"
+      _info "Codex config has no managed block and does not match the previous dotfiles template; preserving $dst_file to avoid wiping runtime settings"
       return 0
     fi
 
@@ -391,7 +391,7 @@ _sync_codex_rules() {
   fi
 
   local dst_mode
-  dst_mode=$(stat -f "%Lp" "$dst_file" 2>/dev/null || stat -c "%a" "$dst_file" 2>/dev/null)
+  dst_mode=$(stat -c "%a" "$dst_file" 2>/dev/null || stat -f "%Lp" "$dst_file" 2>/dev/null)
 
   if grep -Fxq "$begin_marker" "$dst_file" && grep -Fxq "$end_marker" "$dst_file"; then
     awk -v begin="$begin_marker" -v end="$end_marker" -v managed="$managed_file" '
