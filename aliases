@@ -406,6 +406,8 @@ sk() {
   esac
 }
 
+alias nd='ss'
+
 # Date in UTC ISO 8601 format
 alias dt='date -u +"%Y-%m-%dT%H:%M:%SZ"'
 
