@@ -4,6 +4,7 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "ENABLE_TOOL_SEARCH": "1"
   },
+  "model": "claude-fable-5[1m]",
   "permissions": {
     "allow": [
       "Bash(*)",
@@ -48,6 +49,12 @@
             "type": "command",
             "command": "python3 ~/.claude/hooks/vibemon.py",
             "timeout": 10,
+            "async": true
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/memory-sync.sh start",
+            "timeout": 30,
             "async": true
           }
         ]
@@ -133,6 +140,11 @@
             "command": "python3 ~/.claude/hooks/vibemon.py",
             "timeout": 10,
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/memory-sync.sh end",
+            "timeout": 30
           }
         ]
       }

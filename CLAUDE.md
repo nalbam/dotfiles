@@ -113,6 +113,8 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 
 These directories are the **source**; `~/.claude/`, `~/.codex/`, `~/.agents/skills/` (Codex skills), and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `run.sh --vibe` overwrites changed files (MD5-compared) and **prunes files removed from the repo** (tracked per-target in `~/.toast/vibe_manifest_*`; files the sync never deployed, e.g. user-installed skills, are untouched).
 
+**Auto-memory sync**: `claude/hooks/memory-sync.sh` (registered as SessionStart/SessionEnd hooks in `claude/settings.json`) syncs Claude Code auto-memory (`~/.claude/projects/<slug>/memory/`) across machines via the private `nalbam/claude-memory` repo. The repo is cloned at `~/.claude-memory`, keyed by HOME-relative project path, and each project's `memory` dir is a symlink into it — the slug embeds the machine-specific home prefix (`/Users` vs `/home`), which the symlink layer absorbs. Transcripts (`*.jsonl`) are never synced.
+
 **`codex/skills/*/SKILL.md` is generated — do not edit directly.** `claude/skills/` is the single source; regenerate with `python3 scripts/gen-codex-skills.py` (verify with `--check`). Codex-only files like `agents/openai.yaml` are hand-maintained and preserved by the generator.
 
 When adding a new Claude Code agent/skill/rule:
