@@ -262,6 +262,10 @@ def get_git_info(directory: str) -> str:
             # Detached HEAD state
             return ""
 
+        # Truncate long branch names to 10 chars
+        if len(branch) > 10:
+            branch = branch[:10] + "..."
+
         # Check if there are any changes (lines after the header)
         has_changes = len(lines) > 1
 
