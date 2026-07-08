@@ -58,6 +58,11 @@ REPLACEMENTS = [
         "`rules/coding-style.md#surgical-changes--외과적-변경`",
         "AGENTS.md 의 Surgical Changes",
     ),
+    # docs-sync: current-state-only documentation rule
+    (
+        "(`rules/coding-style.md#documentation`)",
+        "(AGENTS.md 의 Anti-Patterns — 현재 상태만 기록)",
+    ),
     # git safety
     ("`rules/git-workflow.md`", "AGENTS.md 의 Git Safety"),
     # anti-patterns
