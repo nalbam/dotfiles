@@ -426,14 +426,15 @@ _sync_codex_rules() {
   return 1
 }
 
-# Claude Code의 settings.json은 플러그인 설치·훅 등록 등으로 로컬에서 계속 mutate된다.
-# 통째로 덮어쓰면 로컬에서 생긴 키가 매 sync마다 유실되므로, dst에 없는 키만 src에서 채워 넣는다.
-_sync_claude_settings() {
+# Claude Code의 settings.json, Kiro의 agents/default.json 등은 앱이 훅 등록·설정 변경으로
+# 로컬에서 계속 mutate하는 JSON이다. 통째로 덮어쓰면 로컬에서 생긴 키가 매 sync마다 유실되므로,
+# dst에 없는 키만 src에서 채워 넣는다.
+_sync_json_fill_missing() {
   local src_file="$1"
   local dst_file="$2"
   local tmp_file="${dst_file}.tmp.$$"
   local old_file="${dst_file}.old.$$"
-  CLAUDE_SETTINGS_DIFF_OLD=""
+  JSON_FILL_DIFF_OLD=""
 
   if [ ! -f "$dst_file" ]; then
     cp "$src_file" "$dst_file"
@@ -441,7 +442,7 @@ _sync_claude_settings() {
   fi
 
   if ! command -v jq >/dev/null 2>&1; then
-    _warn "jq not found — skipping settings.json merge (leaving $dst_file untouched)"
+    _warn "jq not found — skipping $dst_file merge (leaving it untouched)"
     return 0
   fi
 
@@ -472,7 +473,7 @@ _sync_claude_settings() {
   fi
 
   cp "$dst_file" "$old_file"
-  CLAUDE_SETTINGS_DIFF_OLD="$old_file"
+  JSON_FILL_DIFF_OLD="$old_file"
   mv "$tmp_file" "$dst_file"
   return 1
 }
@@ -592,19 +593,28 @@ _sync_vibe() {
         continue
       fi
 
-      # Claude Code settings.json도 로컬 상태(설치된 플러그인·훅)를 담고 있으므로
-      # 통째로 덮어쓰지 않고 dst에 없는 키만 채워 넣는다.
+      # Claude Code settings.json, Kiro agents/default.json, Codex hooks.json은 앱이 로컬에서
+      # 계속 mutate하는 설정 파일이므로 통째로 덮어쓰지 않고 dst에 없는 키만 채워 넣는다.
+      local is_fill_missing_json=false
       if [ "$src_subdir" = "claude" ] && [ "$rel_path" = "settings.json" ]; then
-        _sync_claude_settings "$src_file" "$dst_file"
+        is_fill_missing_json=true
+      elif [ "$src_subdir" = "kiro" ] && [ "$rel_path" = "agents/default.json" ]; then
+        is_fill_missing_json=true
+      elif [ "$src_subdir" = "codex" ] && [ "$rel_path" = "hooks.json" ]; then
+        is_fill_missing_json=true
+      fi
+
+      if [ "$is_fill_missing_json" = true ]; then
+        _sync_json_fill_missing "$src_file" "$dst_file"
         case "$?" in
           0)
             count_identical=$((count_identical + 1))
             ;;
           1)
             _ok "UPDATE: $src_subdir/$rel_path -> $(_display_path "$dst_file") (missing keys only)"
-            if [ -n "$CLAUDE_SETTINGS_DIFF_OLD" ] && [ -f "$CLAUDE_SETTINGS_DIFF_OLD" ]; then
-              _show_changed_lines "$CLAUDE_SETTINGS_DIFF_OLD" "$dst_file"
-              rm -f "$CLAUDE_SETTINGS_DIFF_OLD"
+            if [ -n "$JSON_FILL_DIFF_OLD" ] && [ -f "$JSON_FILL_DIFF_OLD" ]; then
+              _show_changed_lines "$JSON_FILL_DIFF_OLD" "$dst_file"
+              rm -f "$JSON_FILL_DIFF_OLD"
             fi
             _info "Added missing keys only; preserved existing local settings"
             count_updated=$((count_updated + 1))
