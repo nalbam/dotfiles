@@ -74,10 +74,6 @@
       "Bash(systemctl stop:*)"
     ]
   },
-  "statusLine": {
-    "command": "python3 ~/.claude/statusline.py",
-    "type": "command"
-  },
   "theme": "auto",
   "tui": "fullscreen"
 }
