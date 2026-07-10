@@ -27,14 +27,14 @@
   "extraKnownMarketplaces": {
     "im-not-ai": {
       "source": {
-        "repo": "epoko77-ai\/im-not-ai",
+        "repo": "epoko77-ai/im-not-ai",
         "source": "github"
       }
     },
     "karrot-hr": {
       "source": {
         "source": "git",
-        "url": "git@github.com:karrot-emu\/karrot-self-review.git"
+        "url": "git@github.com:karrot-emu/karrot-self-review.git"
       }
     }
   },
@@ -48,11 +48,11 @@
     ],
     "defaultMode": "acceptEdits",
     "deny": [
-      "Bash(chmod -R 777 \/:*)",
-      "Bash(chown -R * \/:*)",
+      "Bash(chmod -R 777 /:*)",
+      "Bash(chown -R * /:*)",
       "Bash(curl * | sh:*)",
       "Bash(curl * | bash:*)",
-      "Bash(dd if=\/dev\/zero:*)",
+      "Bash(dd if=/dev/zero:*)",
       "Bash(fdisk:*)",
       "Bash(gdisk:*)",
       "Bash(halt:*)",
@@ -62,10 +62,10 @@
       "Bash(parted:*)",
       "Bash(poweroff:*)",
       "Bash(reboot:*)",
-      "Bash(rm -rf $HOME\/*)",
-      "Bash(rm -rf \/)",
-      "Bash(rm -rf \/*)",
-      "Bash(rm -rf ~\/*)",
+      "Bash(rm -rf $HOME/*)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~/*)",
       "Bash(shutdown:*)",
       "Bash(sudo rm -rf:*)",
       "Bash(systemctl disable:*)",
@@ -76,7 +76,7 @@
     ]
   },
   "statusLine": {
-    "command": "python3 ~\/.claude\/statusline.py",
+    "command": "python3 ~/.claude/statusline.py",
     "type": "command"
   },
   "theme": "auto",
