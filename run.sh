@@ -426,6 +426,57 @@ _sync_codex_rules() {
   return 1
 }
 
+# Claude Code의 settings.json은 플러그인 설치·훅 등록 등으로 로컬에서 계속 mutate된다.
+# 통째로 덮어쓰면 로컬에서 생긴 키가 매 sync마다 유실되므로, dst에 없는 키만 src에서 채워 넣는다.
+_sync_claude_settings() {
+  local src_file="$1"
+  local dst_file="$2"
+  local tmp_file="${dst_file}.tmp.$$"
+  local old_file="${dst_file}.old.$$"
+  CLAUDE_SETTINGS_DIFF_OLD=""
+
+  if [ ! -f "$dst_file" ]; then
+    cp "$src_file" "$dst_file"
+    return 2
+  fi
+
+  if ! command -v jq >/dev/null 2>&1; then
+    _warn "jq not found — skipping settings.json merge (leaving $dst_file untouched)"
+    return 0
+  fi
+
+  local dst_mode
+  dst_mode=$(stat -c "%a" "$dst_file" 2>/dev/null || stat -f "%Lp" "$dst_file" 2>/dev/null)
+
+  if ! jq -n --slurpfile dst "$dst_file" --slurpfile src "$src_file" '
+    def fill(a; b):
+      if (a|type) == "object" and (b|type) == "object" then
+        reduce (b | keys_unsorted[]) as $k (a;
+          if (a | has($k)) then .[$k] = fill(a[$k]; b[$k])
+          else .[$k] = b[$k] end)
+      else a end;
+    fill($dst[0]; $src[0])
+  ' > "$tmp_file" 2>/dev/null; then
+    rm -f "$tmp_file"
+    _warn "Failed to merge $dst_file (invalid JSON?) — leaving it untouched"
+    return 0
+  fi
+
+  if [ -n "$dst_mode" ]; then
+    chmod "$dst_mode" "$tmp_file"
+  fi
+
+  if [ "$(jq -S -c . "$tmp_file" 2>/dev/null)" = "$(jq -S -c . "$dst_file" 2>/dev/null)" ]; then
+    rm -f "$tmp_file"
+    return 0
+  fi
+
+  cp "$dst_file" "$old_file"
+  CLAUDE_SETTINGS_DIFF_OLD="$old_file"
+  mv "$tmp_file" "$dst_file"
+  return 1
+}
+
 # AI 도구 설정 동기화 함수 (Claude Code, Codex, Kiro)
 _sync_vibe() {
   # ~/.dotfiles 부재 시 전체 skip (_cleanup_legacy_vibe 의 재추가-스킬 보호조건도 repo 존재를 전제)
@@ -535,6 +586,31 @@ _sync_vibe() {
           2)
             _ok "+ NEW: $src_subdir/$rel_path -> $(_display_path "$dst_file")"
             _info "Created managed Codex rules template; future syncs update only the marked block"
+            count_new=$((count_new + 1))
+            ;;
+        esac
+        continue
+      fi
+
+      # Claude Code settings.json도 로컬 상태(설치된 플러그인·훅)를 담고 있으므로
+      # 통째로 덮어쓰지 않고 dst에 없는 키만 채워 넣는다.
+      if [ "$src_subdir" = "claude" ] && [ "$rel_path" = "settings.json" ]; then
+        _sync_claude_settings "$src_file" "$dst_file"
+        case "$?" in
+          0)
+            count_identical=$((count_identical + 1))
+            ;;
+          1)
+            _ok "UPDATE: $src_subdir/$rel_path -> $(_display_path "$dst_file") (missing keys only)"
+            if [ -n "$CLAUDE_SETTINGS_DIFF_OLD" ] && [ -f "$CLAUDE_SETTINGS_DIFF_OLD" ]; then
+              _show_changed_lines "$CLAUDE_SETTINGS_DIFF_OLD" "$dst_file"
+              rm -f "$CLAUDE_SETTINGS_DIFF_OLD"
+            fi
+            _info "Added missing keys only; preserved existing local settings"
+            count_updated=$((count_updated + 1))
+            ;;
+          2)
+            _ok "+ NEW: $src_subdir/$rel_path -> $(_display_path "$dst_file")"
             count_new=$((count_new + 1))
             ;;
         esac
