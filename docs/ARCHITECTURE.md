@@ -63,15 +63,15 @@ graph TD
 ├── claude/                # Claude Code settings (synced to ~/.claude/)
 │   ├── CLAUDE.md          # Global Claude Code instructions
 │   ├── settings.json      # Permissions, hooks, plugins
-│   ├── statusline.py      # Custom status line
 │   ├── agents/            # Specialized agents (8)
-│   ├── hooks/             # Lifecycle hooks (VibeMon)
-│   ├── rules/             # Always-loaded rules (7)
-│   └── skills/            # User-invocable skills (8)
+│   ├── hooks/             # memory-sync.sh (cross-machine auto-memory sync)
+│   ├── rules/             # Always-loaded rules (8)
+│   └── skills/            # User-invocable skills (9)
 ├── codex/                 # Codex settings (synced to ~/.codex/)
+│   ├── AGENTS.md          # Global Codex instructions
 │   ├── config.toml        # Feature flags
 │   ├── hooks.json         # Hook wiring
-│   ├── hooks/             # Lifecycle hooks (VibeMon)
+│   ├── rules/             # Codex-managed command approval rules
 │   └── skills/            # Codex skills (synced to ~/.agents/skills/,
 │                          #   generated from claude/skills/)
 ├── ghostty/               # Ghostty terminal configuration
@@ -79,8 +79,7 @@ graph TD
 ├── iterm2/                # iTerm2 configuration
 │   └── profiles.json      # Dracula theme profile
 ├── kiro/                  # Kiro settings (synced to ~/.kiro/)
-│   ├── agents/            # Agent definitions
-│   └── hooks/             # Lifecycle hooks (VibeMon)
+│   └── agents/            # Agent definitions
 ├── linux/                 # Linux specific configurations
 │   ├── Brewfile           # Linux Homebrew package list
 │   ├── zprofile.aarch64.sh  # Raspberry Pi 64-bit profile
@@ -111,7 +110,7 @@ graph TD
    - winget for Windows
    - NPM for Node.js packages (npm, corepack, serverless, ccusage)
    - PIP for Python packages (toast-cli) with intelligent fallback (normal → --user → --break-system-packages → sudo)
-   - Update throttling with timestamp tracking (12-hour interval minimum between updates)
+   - Update throttling with timestamp tracking (6-hour interval minimum between updates)
 
 4. Shell Environment
    - ZSH as default shell
@@ -125,8 +124,8 @@ graph TD
 
 5. AI Tools Integration
    - Claude Code settings synced from `claude/` to `~/.claude/` (agents, hooks, rules, skills, settings)
-   - Codex settings synced from `codex/` to `~/.codex/` (hooks, config); Codex skills synced from `codex/skills/` to `~/.agents/skills/` (the directory Codex scans)
-   - Kiro settings synced from `kiro/` to `~/.kiro/` (agents, hooks)
+   - Codex settings synced from `codex/` to `~/.codex/` (AGENTS.md, config.toml, hooks.json, rules); Codex skills synced from `codex/skills/` to `~/.agents/skills/` (the directory Codex scans)
+   - Kiro settings synced from `kiro/` to `~/.kiro/` (agents)
    - MD5-based incremental sync (only changed files updated)
    - Manifest-based prune (`~/.toast/vibe_manifest_*`): files removed from the repo are removed from deploy targets; user-installed files are never touched
    - Standalone sync via `run.sh --vibe`
@@ -193,7 +192,7 @@ sequenceDiagram
 ## Performance Optimization
 
 1. Package Management
-   - Update throttling with 12-hour minimum interval
+   - Update throttling with 6-hour minimum interval
    - Timestamp tracking for APT and Homebrew
    - Version-aware package installation (skip if already latest)
    - Optimized download retry with exponential backoff

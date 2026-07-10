@@ -56,15 +56,15 @@ ssh/, aws/                # config templates
 iterm2/, ghostty/         # terminal profiles
 
 claude/                   # synced to ~/.claude/
-  CLAUDE.md, settings.json, statusline.py
+  CLAUDE.md, settings.json
   agents/ hooks/ rules/ skills/
 codex/                    # synced to ~/.codex/
-  config.toml, hooks.json
-  hooks/
+  AGENTS.md, config.toml, hooks.json
+  rules/
   skills/                 # synced to ~/.agents/skills/ (Codex scan path);
                           # generated from claude/skills/ — do not edit directly
 kiro/                     # synced to ~/.kiro/
-  agents/ hooks/
+  agents/
 scripts/                  # dev-time tools (not part of install flow)
   gen-codex-skills.py     # claude/skills → codex/skills mirror generator
 
@@ -106,7 +106,7 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 - Put them in `aliases` (not `zshrc`), grouped by tool.
 - Keep functions small; prefer POSIX-compatible syntax so `bashrc` can source them too.
 - Toast CLI is the central workspace manager — `c`, `x`, `d`, `e`, `g`, `r`, `p`, `ssm` route through `toast`. Separately: `m` runs `aws sts get-caller-identity`, `tu` updates toast-cli itself, `tt` re-runs the dotfiles installer.
-- Claude CLI shortcuts live at `aliases:31-38` (`cc`, `cca`, `ccc`, `ccd`, `ccp`, `ccr`, `ccu`).
+- Claude CLI shortcuts live at `aliases:32-36` (`cc`, `ccc`, `ccp`, `ccu`).
 - Korean keyboard aliases exist (`ㅊ`→`c`, `ㅊㅇ`→`cd`, `ㅅㅅ`→`tt`, `ㅊㅊ`→`cc`) — preserve them when refactoring.
 
 ## AI tool settings (claude/, codex/, kiro/)
