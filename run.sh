@@ -259,93 +259,62 @@ _cleanup_legacy_vibe() {
   done
 }
 
-_sync_codex_config() {
+# Codex config.toml은 project trust·hooks.state·tui 등 대부분을 codex 런타임이 직접 채워
+# 넣는 상태 파일이라, dotfiles가 관리하는 [table] 헤더·key만 없을 때 채워 넣는다. 없는
+# 테이블은 통째로 추가하고, 있는 테이블은 그 안에 없는 key만 삽입 — 기존 값은 절대 덮어쓰지
+# 않는다. 단순 "[table]\nkey = value" 형태만 지원 (중첩 테이블·배열·멀티라인 값·테이블 밖
+# 최상위 key는 다루지 않음).
+_sync_toml_fill_missing() {
   local src_file="$1"
   local dst_file="$2"
-  local begin_marker="# BEGIN dotfiles managed codex config"
-  local end_marker="# END dotfiles managed codex config"
   local tmp_file="${dst_file}.tmp.$$"
-  local managed_file="${dst_file}.managed.$$"
-  local unmanaged_file="${dst_file}.unmanaged.$$"
-  local stripped_file="${dst_file}.stripped.$$"
   local old_file="${dst_file}.old.$$"
-  CODEX_CONFIG_DIFF_OLD=""
-
-  if ! awk -v begin="$begin_marker" -v end="$end_marker" '
-    $0 == begin { in_block = 1 }
-    in_block { print }
-    $0 == end { found = 1; in_block = 0 }
-    END { exit found ? 0 : 1 }
-  ' "$src_file" > "$managed_file"; then
-    rm -f "$managed_file" "$unmanaged_file" "$stripped_file"
-    _warn "Codex config template is missing managed markers; preserving $dst_file to avoid wiping runtime settings"
-    return 0
-  fi
+  local parsed_src="${dst_file}.parsed.$$"
+  local swap_file="${dst_file}.swap.$$"
+  TOML_FILL_DIFF_OLD=""
 
   if [ ! -f "$dst_file" ]; then
     cp "$src_file" "$dst_file"
-    chmod 600 "$dst_file"
-    rm -f "$managed_file" "$unmanaged_file" "$stripped_file"
     return 2
   fi
+
+  # src를 "table<TAB>key<TAB>전체라인"으로 평탄화 ([table] 밖의 key는 무시)
+  awk '
+    /^\[[^]]*\]$/ { table = $0; next }
+    table != "" && /^[^#[:space:]][^=]*=/ {
+      key = $0
+      sub(/[ \t]*=.*/, "", key)
+      print table "\t" key "\t" $0
+    }
+  ' "$src_file" > "$parsed_src"
 
   local dst_mode
   dst_mode=$(stat -c "%a" "$dst_file" 2>/dev/null || stat -f "%Lp" "$dst_file" 2>/dev/null)
 
-  if grep -Fxq "$begin_marker" "$dst_file" && grep -Fxq "$end_marker" "$dst_file"; then
-    awk -v begin="$begin_marker" -v end="$end_marker" -v managed="$managed_file" '
-      function print_managed(line) {
-        while ((getline line < managed) > 0) print line
-        close(managed)
-      }
-      $0 == begin { print_managed(); in_block = 1; next }
-      in_block && $0 == end { in_block = 0; next }
-      !in_block { print }
-    ' "$dst_file" > "$tmp_file"
-  else
-    awk -v begin="$begin_marker" -v end="$end_marker" '
-      $0 != begin && $0 != end { print }
-    ' "$managed_file" > "$unmanaged_file"
+  cp "$dst_file" "$tmp_file"
 
-    if ! awk -v unmanaged="$unmanaged_file" '
-      BEGIN {
-        while ((getline line < unmanaged) > 0) template[++template_len] = line
-        close(unmanaged)
-      }
-      NR <= template_len && $0 != template[NR] { exit 1 }
-      NR == template_len { exit 0 }
-      END { exit NR >= template_len ? 0 : 1 }
-    ' "$dst_file"; then
-      rm -f "$tmp_file" "$managed_file" "$unmanaged_file" "$stripped_file"
-      _info "Codex config has no managed block and does not match the previous dotfiles template; preserving $dst_file to avoid wiping runtime settings"
-      return 0
+  local table key line
+  while IFS=$'\t' read -r table key line; do
+    if ! grep -Fxq "$table" "$tmp_file"; then
+      printf '\n%s\n' "$table" >> "$tmp_file"
     fi
 
-    awk -v unmanaged="$unmanaged_file" '
-      BEGIN {
-        while ((getline line < unmanaged) > 0) template[++template_len] = line
-        close(unmanaged)
-        stripping = 1
-      }
-      stripping && NR <= template_len && $0 == template[NR] { next }
-      stripping && NR <= template_len && $0 != template[NR] {
-        for (i = 1; i < NR; i++) print template[i]
-        stripping = 0
-      }
-      stripping && NR == template_len + 1 && $0 == "" { next }
-      { stripping = 0; print }
-      END {
-        if (NR < template_len) {
-          for (i = 1; i <= NR; i++) print template[i]
-        }
-      }
-    ' "$dst_file" > "$stripped_file"
-    cat "$managed_file" > "$tmp_file"
-    printf '\n' >> "$tmp_file"
-    cat "$stripped_file" >> "$tmp_file"
-  fi
+    if ! awk -v table="$table" -v key="$key" '
+      function linekey(s,   k) { k = s; sub(/[ \t]*=.*/, "", k); return k }
+      $0 == table { intable = 1; next }
+      intable && /^\[/ { intable = 0 }
+      intable && $0 ~ /=/ && linekey($0) == key { found = 1 }
+      END { exit found ? 0 : 1 }
+    ' "$tmp_file"; then
+      awk -v table="$table" -v newline="$line" '
+        { print }
+        $0 == table && !done { print newline; done = 1 }
+      ' "$tmp_file" > "$swap_file"
+      mv "$swap_file" "$tmp_file"
+    fi
+  done < "$parsed_src"
 
-  rm -f "$managed_file" "$unmanaged_file" "$stripped_file"
+  rm -f "$parsed_src"
 
   if [ -n "$dst_mode" ]; then
     chmod "$dst_mode" "$tmp_file"
@@ -357,7 +326,7 @@ _sync_codex_config() {
   fi
 
   cp "$dst_file" "$old_file"
-  CODEX_CONFIG_DIFF_OLD="$old_file"
+  TOML_FILL_DIFF_OLD="$old_file"
   mv "$tmp_file" "$dst_file"
   return 1
 }
@@ -540,27 +509,25 @@ _sync_vibe() {
       # Create parent directory if needed
       mkdir -p "$(dirname "$dst_file")"
 
-      # Codex mutates config.toml with runtime state such as project trust and UI
-      # preferences. Sync only the dotfiles-managed block and preserve runtime
-      # sections outside that block.
+      # Codex config.toml은 project trust·hooks.state·tui 등 대부분을 codex 런타임이 직접
+      # 채우므로, dotfiles가 관리하는 [table]/key만 없을 때 채워 넣는다.
       if [ "$src_subdir" = "codex" ] && [ "$rel_path" = "config.toml" ]; then
-        _sync_codex_config "$src_file" "$dst_file"
+        _sync_toml_fill_missing "$src_file" "$dst_file"
         case "$?" in
           0)
             count_identical=$((count_identical + 1))
             ;;
           1)
-            _ok "UPDATE: $src_subdir/$rel_path -> $(_display_path "$dst_file") (managed block only)"
-            if [ -n "$CODEX_CONFIG_DIFF_OLD" ] && [ -f "$CODEX_CONFIG_DIFF_OLD" ]; then
-              _show_changed_lines "$CODEX_CONFIG_DIFF_OLD" "$dst_file"
-              rm -f "$CODEX_CONFIG_DIFF_OLD"
+            _ok "UPDATE: $src_subdir/$rel_path -> $(_display_path "$dst_file") (missing keys only)"
+            if [ -n "$TOML_FILL_DIFF_OLD" ] && [ -f "$TOML_FILL_DIFF_OLD" ]; then
+              _show_changed_lines "$TOML_FILL_DIFF_OLD" "$dst_file"
+              rm -f "$TOML_FILL_DIFF_OLD"
             fi
-            _info "Changed only # BEGIN/END dotfiles managed codex config; preserved runtime sections outside it"
+            _info "Added missing tables/keys only; preserved existing runtime settings"
             count_updated=$((count_updated + 1))
             ;;
           2)
             _ok "+ NEW: $src_subdir/$rel_path -> $(_display_path "$dst_file")"
-            _info "Created managed Codex config template; future syncs update only the marked block"
             count_new=$((count_new + 1))
             ;;
         esac
