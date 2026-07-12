@@ -855,6 +855,7 @@ fi
 _download .gitconfig gitconfig
 _download .gitconfig-bruce gitconfig-bruce
 _download .gitconfig-nalbam gitconfig-nalbam
+_download .gitconfig-yujh404 gitconfig-yujh404
 _ok "Git configuration files downloaded"
 
 # Step 5: OS별 패키지 관리자 설정
