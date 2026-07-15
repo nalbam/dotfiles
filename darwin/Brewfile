@@ -52,7 +52,7 @@ if ENV['USER'] == "nalbam"
 end
 
 cask "1password-cli"
-cask "affinity" # "gimp"
+# cask "affinity" # "gimp"
 cask "aws-vault-binary"
 cask "font-d2coding"
 # cask "font-d2coding-nerd-font"
