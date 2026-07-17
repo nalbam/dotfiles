@@ -12,7 +12,7 @@
     "frontend-design@claude-plugins-official": true,
     "github@claude-plugins-official": true,
     "humanize-korean@im-not-ai": true,
-    "karrot-self-review@karrot-hr": true,
+    "karrot-self-review@karrot-hr": false,
     "linear@claude-plugins-official": true,
     "notion@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
