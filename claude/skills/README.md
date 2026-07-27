@@ -12,6 +12,7 @@
 
 | 단계 | Skill | 작업 수행 (Agent) |
 |------|-------|-------------------|
+| **0. 부트스트랩** | `/nextjs-init` | `architect` |
 | **1. 목표** | — | `planner`, `architect` |
 | **2. 스펙** | — | `architect`, `doc-writer` |
 | **3. 구현** | `/commit`, `/commit-push` | `builder`, `refactorer`, `debugger` |
@@ -24,6 +25,11 @@
 > `/docs-read` 는 특정 단계 전용이 아니라 **작업 시작 전 공통 온보딩**이다. 낯선 저장소에서 코드를 건드리기 전에 문서로 프로젝트를 파악한다 (읽기 전용 — 수정은 `/docs-sync`).
 
 ## 단계별 상세
+
+### 0. 부트스트랩
+새 프로젝트를 정해진 스택으로 생성하는 단계. 기존 프로젝트에는 쓰지 않는다.
+
+- `/nextjs-init` — Next.js 16 프로젝트 생성 (App Router · TS strict · Tailwind v4 · Better Auth + Google OAuth on DynamoDB · Clean Architecture · Docker/ECR)
 
 ### 1. 목표
 계획 수립 단계. 전용 스킬은 없고 `planner`·`architect` agent 가 요구 분석·접근 설계를 담당한다.
@@ -56,6 +62,7 @@
 
 | 하고 싶은 일 | 스킬 |
 |-------------|------|
+| 새 Next.js 프로젝트 생성 | `/nextjs-init` |
 | 문서 읽고 프로젝트 파악 | `/docs-read` |
 | 변경 커밋 | `/commit` |
 | 커밋 후 푸시 | `/commit-push` |

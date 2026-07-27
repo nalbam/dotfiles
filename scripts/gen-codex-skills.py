@@ -63,8 +63,9 @@ REPLACEMENTS = [
         "(`skills/coding-style/SKILL.md#documentation`)",
         "(AGENTS.md 의 Anti-Patterns — 현재 상태만 기록)",
     ),
-    # git safety
+    # git safety / security
     ("`rules/git-workflow.md`", "AGENTS.md 의 Git Safety"),
+    ("`rules/security.md`", "AGENTS.md 의 Security"),
     # anti-patterns
     ("`skills/anti-patterns/SKILL.md#git--deployment`", "AGENTS.md 의 Anti-Patterns"),
     # generic instruction-file rename (after the specific rules above)

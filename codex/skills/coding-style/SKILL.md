@@ -7,7 +7,7 @@ description: 코딩 스타일 상세 — surgical changes 금지/필수 목록�
 
 AGENTS.md `## Core Principles` 와 `## Surgical Changes` 의 *유일한 상세 source*.
 
-각 원칙의 한 줄 요약은 AGENTS.md, *근거·예시·체크리스트*는 이곳. 보안 상세는 `rules/security.md`, 근본 원인 분석은 `skills/problem-solving/SKILL.md` 가 source.
+각 원칙의 한 줄 요약은 AGENTS.md, *근거·예시·체크리스트*는 이곳. 보안 상세는 AGENTS.md 의 Security, 근본 원인 분석은 `skills/problem-solving/SKILL.md` 가 source.
 
 ## Core Principles (상세)
 
@@ -15,7 +15,7 @@ AGENTS.md `## Core Principles` 와 `## Surgical Changes` 의 *유일한 상세 s
 - **Handle errors explicitly** — 구체 예외 타입을 잡고, broad catch 지양. 실패 시 의미 있는 메시지와 함께 fast-fail.
 - **Address root causes** — 증상이 아닌 근본 원인 수정 (`skills/problem-solving/SKILL.md`).
 - **Keep code readable** — 명확한 네이밍, 논리적 구조, 깊은 중첩(>4단계) 회피, 작은 함수.
-- **Design for security** — 입력 검증·최소 권한·시크릿 보호 (`rules/security.md`).
+- **Design for security** — 입력 검증·최소 권한·시크릿 보호 (AGENTS.md 의 Security).
 
 ## Surgical Changes / 외과적 변경
 
