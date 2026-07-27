@@ -10,7 +10,7 @@ argument-hint: [pr-number]
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-Fetch CodeRabbit inline review comments from a PR, technically evaluate each one, fix valid issues, and resolve completed threads. 수정 자체는 `rules/coding-style.md#surgical-changes--외과적-변경` 을 따른다.
+Fetch CodeRabbit inline review comments from a PR, technically evaluate each one, fix valid issues, and resolve completed threads. 수정 자체는 `skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 을 따른다.
 
 ## Philosophy
 
@@ -149,7 +149,7 @@ For ACCEPT items, fix in severity order (HIGH → MEDIUM → LOW).
 FOR each ACCEPT item (by severity):
   1. Read the full target file
   2. Understand surrounding context
-  3. Make minimal, focused fix (rules/coding-style.md#surgical-changes--외과적-변경)
+  3. Make minimal, focused fix (skills/coding-style/SKILL.md#surgical-changes--외과적-변경)
   4. Run typecheck (project-type detected command)
   5. Run tests (project-type detected command)
   6. If tests fail, fix or rollback

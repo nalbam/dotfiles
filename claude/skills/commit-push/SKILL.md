@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-`commit` 스킬의 절차를 그대로 수행한 뒤 push 한다. **이 파일은 push 고유 절차만 담는다** — commit 단계의 세부는 `commit` 스킬을 *유일한 source*로 한다. 변경 작업 자체는 `rules/coding-style.md#surgical-changes--외과적-변경`을 따른다.
+`commit` 스킬의 절차를 그대로 수행한 뒤 push 한다. **이 파일은 push 고유 절차만 담는다** — commit 단계의 세부는 `commit` 스킬을 *유일한 source*로 한다. 변경 작업 자체는 `skills/coding-style/SKILL.md#surgical-changes--외과적-변경`을 따른다.
 
 ## Philosophy
 
@@ -74,4 +74,4 @@ git 안전 규칙 전체는 `rules/git-workflow.md` 가 source.
 - Do NOT skip pre-commit hooks (`--no-verify`) — `rules/git-workflow.md`
 - Do NOT amend commits already pushed to shared branches
 
-commit 단계의 안티패턴은 `commit` 스킬과 `rules/anti-patterns.md#git--deployment` 참조.
+commit 단계의 안티패턴은 `commit` 스킬과 `skills/anti-patterns/SKILL.md#git--deployment` 참조.

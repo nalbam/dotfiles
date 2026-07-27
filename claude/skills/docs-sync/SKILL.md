@@ -8,7 +8,7 @@ allowed-tools: Read, Edit, Bash, Grep, Glob, Agent
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-코드와 문서를 대조해 틀린 문서를 찾아 고친다. 문서 수정도 `rules/coding-style.md#surgical-changes--외과적-변경` 을 따른다 — 요청 외 인접 문서를 임의로 손보지 않는다.
+코드와 문서를 대조해 틀린 문서를 찾아 고친다. 문서 수정도 `skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 을 따른다 — 요청 외 인접 문서를 임의로 손보지 않는다.
 
 ## Philosophy
 
@@ -16,7 +16,7 @@ allowed-tools: Read, Edit, Bash, Grep, Glob, Agent
 - **빠진 것보다 틀린 것이 먼저다** — 정확성 교정이 항상 최우선
 - **양은 목표가 아니다** — 정확하게, 장황하지 않게, 꼭 필요한 내용만. 의미 없는 내용은 삭제가 개선이다
 - **삭제는 한 번 더 생각한다** — 코드 부재를 입증하고, 의도적으로 남긴 것이 아닌지 자문한 뒤 지운다
-- **현재 상태만 기록한다** — 변경 이력·시행착오는 git 의 몫 (`rules/coding-style.md#documentation`)
+- **현재 상태만 기록한다** — 변경 이력·시행착오는 git 의 몫 (`skills/coding-style/SKILL.md#documentation`)
 
 ## Scope
 

@@ -10,7 +10,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 Run lint, typecheck, and tests. Fix failures at their root cause, re-running after each fix until all pass. **수정 불가능한 실패** — 외부 의존(네트워크·미설치 도구·환경) 또는 반복 시도 후에도 변하지 않는 실패 — 는 무시하지 말고 *멈추고* 원인과 잔여 리스크를 사용자에게 보고한다.
 
-Package manager 감지 로직은 이 스킬이 *유일한 source* 다 (다른 스킬은 여기를 참조). 수정은 `rules/coding-style.md#surgical-changes--외과적-변경` 원칙을 따른다 — 실패 원인을 고치되 무관한 코드는 손대지 않는다.
+Package manager 감지 로직은 이 스킬이 *유일한 source* 다 (다른 스킬은 여기를 참조). 수정은 `skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 원칙을 따른다 — 실패 원인을 고치되 무관한 코드는 손대지 않는다.
 
 ## Philosophy
 

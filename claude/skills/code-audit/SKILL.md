@@ -8,7 +8,7 @@ allowed-tools: Read, Bash, Grep, Glob, Agent
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-프로젝트의 전체 구현 코드를 심층 분석하여 문제점·근본원인·개선사항을 도출한다. 평가 기준은 `rules/coding-style.md`, `rules/testing.md`, `rules/security.md` 와 일관해야 한다 — *수치 강제 없음*, 프로젝트 관례 우선.
+프로젝트의 전체 구현 코드를 심층 분석하여 문제점·근본원인·개선사항을 도출한다. 평가 기준은 `skills/coding-style/SKILL.md`, `skills/testing-rules/SKILL.md`, `rules/security.md` 와 일관해야 한다 — *수치 강제 없음*, 프로젝트 관례 우선.
 
 이 파일의 *Exclude Patterns* 표는 다른 skill (예: `docs-sync`) 이 참조하는 단일 source 다.
 
@@ -287,7 +287,7 @@ Classify each finding:
 | Code duplication | {n} spots | minimal | {status} |
 ```
 
-> **수치 기준 안내**: Test Coverage / 함수·파일 크기 등은 *프로젝트 관례*에 맞춰 평가한다. 강제 임계값은 두지 않는다 (`rules/testing.md`, `rules/coding-style.md#file--function-organization`).
+> **수치 기준 안내**: Test Coverage / 함수·파일 크기 등은 *프로젝트 관례*에 맞춰 평가한다. 강제 임계값은 두지 않는다 (`skills/testing-rules/SKILL.md`, `skills/coding-style/SKILL.md#file--function-organization`).
 
 ## Audit Dimensions Checklist
 
@@ -323,7 +323,7 @@ Classify each finding:
 - [ ] Critical paths tested
 - [ ] Edge cases covered
 - [ ] Error scenarios tested
-- [ ] Coverage가 *프로젝트 관례*에 부합 (강제 임계값 없음 — `rules/testing.md`)
+- [ ] Coverage가 *프로젝트 관례*에 부합 (강제 임계값 없음 — `skills/testing-rules/SKILL.md`)
 
 ### Type Safety
 - [ ] No `any` types

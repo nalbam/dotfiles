@@ -62,12 +62,12 @@ PR 생성은 `/pr-create` 스킬이 처리한다. 수동 작성 시:
 
 각 단계의 도구·세부 규약은 링크된 파일이 source.
 
-1. **Plan First** → `rules/claude-code.md#plan-mode--계획-모드`
-2. **Implementation** → 신규 기능은 테스트 먼저 (`rules/testing.md`)
+1. **Plan First** → `skills/claude-code-usage/SKILL.md#plan-mode--계획-모드`
+2. **Implementation** → 신규 기능은 테스트 먼저 (`skills/testing-rules/SKILL.md`)
 3. **Self-review** → `git diff` 확인, 디버그 코드·`console.log`·임시 TODO 제거
 4. **Validate** → `/validate` 스킬 또는 프로젝트의 lint/test 명령
 5. **Commit & Push** → *사용자 명시 요청 후*에만
 
 ## Anti-Patterns
 
-git 관련 안티패턴은 `rules/anti-patterns.md#git--deployment` 가 source.
+git 관련 안티패턴은 `skills/anti-patterns/SKILL.md#git--deployment` 가 source.

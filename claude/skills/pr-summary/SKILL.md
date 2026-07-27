@@ -10,7 +10,7 @@ argument-hint: [pr-number]
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-기존 PR 의 description 을 *실제 변경사항*에 맞게 갱신한다. PR body / title 형식은 `pr-create` 스킬을 *유일한 source* 로 한다 — 이 파일은 *분석·갱신 절차*만 담는다. 변경 작업 자체는 `rules/coding-style.md#surgical-changes--외과적-변경` 을 따른다.
+기존 PR 의 description 을 *실제 변경사항*에 맞게 갱신한다. PR body / title 형식은 `pr-create` 스킬을 *유일한 source* 로 한다 — 이 파일은 *분석·갱신 절차*만 담는다. 변경 작업 자체는 `skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 을 따른다.
 
 ## Philosophy
 

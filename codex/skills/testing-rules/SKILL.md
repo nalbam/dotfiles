@@ -1,8 +1,13 @@
+---
+name: testing-rules
+description: 테스트 전략 상세 — 목표 기반 테스트 시작점, 품질 기준, 커버리지·유형 선택, 실패 분류. Detailed testing strategy and failure triage.
+---
+
 # Testing
 
-CLAUDE.md `## Testing` 의 *유일한 상세 source*.
+AGENTS.md `## Testing` 의 *유일한 상세 source*.
 
-**프로젝트 관례 우선** — 이 파일의 수치·요구는 가이드일 뿐 절대 기준이 아니다. CLAUDE.md 와 일관되게 강제 임계값은 두지 않는다.
+**프로젝트 관례 우선** — 이 파일의 수치·요구는 가이드일 뿐 절대 기준이 아니다. AGENTS.md 와 일관되게 강제 임계값은 두지 않는다.
 
 ## Goal-Driven Test Strategy / 목표 기반 테스트 전략
 
@@ -15,7 +20,7 @@ CLAUDE.md `## Testing` 의 *유일한 상세 source*.
 - **리팩토링** — 변경 전 통과 → 리팩토링 → 변경 후 동일 통과
 - **성능 개선** — 측정 가능한 baseline → 목표 수치 정의 → 측정으로 검증
 
-자세한 변환 규칙: `rules/problem-solving.md#goal-driven-execution--목표-기반-실행`
+자세한 변환 규칙: `skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`
 
 ## Test Quality / 테스트 품질
 
@@ -55,4 +60,4 @@ CLAUDE.md `## Testing` 의 *유일한 상세 source*.
 
 ## Anti-Patterns
 
-이 주제 안티패턴은 `rules/anti-patterns.md#testing` 이 source.
+이 주제 안티패턴은 `skills/anti-patterns/SKILL.md#testing` 이 source.

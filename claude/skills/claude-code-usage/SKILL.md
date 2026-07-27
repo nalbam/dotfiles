@@ -1,3 +1,8 @@
+---
+name: claude-code-usage
+description: Claude Code 도구 사용 규약 상세 — plan mode 진입 기준, 서브에이전트·오케스트레이션, Task 추적, 병렬 호출, Context7, 위험 행동 확인, 컨텍스트 관리. Detailed Claude Code feature-usage conventions.
+---
+
 # Claude Code Usage
 
 Claude Code 고유 기능의 *유일한 상세 source*. CLAUDE.md `## Claude Code Usage` 는 이 파일의 한 줄 요약이다.
@@ -151,9 +156,9 @@ git 관련 규약은 `rules/git-workflow.md` 가 source.
 
 1. 에러 메시지 정독 (보통 원인이 직접 담겨 있음)
 2. 점진 수정 (한 번에 여러 변경 묶지 말 것)
-3. 단계마다 검증 (`rules/problem-solving.md#goal-driven-execution--목표-기반-실행`)
+3. 단계마다 검증 (`skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`)
 4. 동일 문제가 다른 곳에도 있는지 스캔
 
 ## Anti-Patterns
 
-이 주제 안티패턴은 `rules/anti-patterns.md#claude-code-고유` 가 source.
+이 주제 안티패턴은 `skills/anti-patterns/SKILL.md#claude-code-고유` 가 source.

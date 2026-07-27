@@ -1,14 +1,19 @@
+---
+name: coding-style
+description: 코딩 스타일 상세 — surgical changes 금지/필수 목록과 검증 체크리스트, 불변성, 에러 처리, 파일·함수 크기, 문서화 규칙. Detailed coding style and surgical-change checklist.
+---
+
 # Coding Style
 
 CLAUDE.md `## Core Principles` 와 `## Surgical Changes` 의 *유일한 상세 source*.
 
-각 원칙의 한 줄 요약은 CLAUDE.md, *근거·예시·체크리스트*는 이곳. 보안 상세는 `rules/security.md`, 근본 원인 분석은 `rules/problem-solving.md` 가 source.
+각 원칙의 한 줄 요약은 CLAUDE.md, *근거·예시·체크리스트*는 이곳. 보안 상세는 `rules/security.md`, 근본 원인 분석은 `skills/problem-solving/SKILL.md` 가 source.
 
 ## Core Principles (상세)
 
 - **Solve the right problem** — 복잡도·스코프 크리프 회피. 요청 문제부터 정확히 해결, 부수 개선은 별도 PR 로 분리.
 - **Handle errors explicitly** — 구체 예외 타입을 잡고, broad catch 지양. 실패 시 의미 있는 메시지와 함께 fast-fail.
-- **Address root causes** — 증상이 아닌 근본 원인 수정 (`rules/problem-solving.md`).
+- **Address root causes** — 증상이 아닌 근본 원인 수정 (`skills/problem-solving/SKILL.md`).
 - **Keep code readable** — 명확한 네이밍, 논리적 구조, 깊은 중첩(>4단계) 회피, 작은 함수.
 - **Design for security** — 입력 검증·최소 권한·시크릿 보호 (`rules/security.md`).
 
@@ -149,4 +154,4 @@ const validated = schema.parse(input)
 
 ## Anti-Patterns
 
-이 주제 안티패턴은 `rules/anti-patterns.md#code-quality`, `rules/anti-patterns.md#surgical--외과적-변경-위반` 이 source.
+이 주제 안티패턴은 `skills/anti-patterns/SKILL.md#code-quality`, `skills/anti-patterns/SKILL.md#surgical--외과적-변경-위반` 이 source.

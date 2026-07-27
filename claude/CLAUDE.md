@@ -2,7 +2,12 @@
 
 Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 없는 작업의 기본값.
 
-**구조 원칙**: 이 파일(hub)이 *작동 규칙의 source*다 — 여기 적힌 규칙만으로 판단할 수 있어야 한다. `rules/*.md`(spoke)는 hub가 담기 어려운 *깊은 예시·근거·체크리스트*와, hub를 보지 못하는 서브에이전트·스킬이 공유 참조하는 규칙을 *단 한 곳*에서 정의한다. 링크(`자세히:`)는 더 깊은 예시·체크리스트가 필요할 때 펼쳐 보는 용도다.
+**구조 원칙**: 이 파일(hub)이 *작동 규칙의 source*다 — 여기 적힌 규칙만으로 판단할 수 있어야 한다. spoke 는 hub가 담기 어려운 *깊은 예시·근거·체크리스트*를 *단 한 곳*에서 정의하며, 두 종류로 나뉜다.
+
+- **항상 로드** — `rules/git-workflow.md`, `rules/security.md`, `rules/language.md`. 안전 규칙과 언어 규칙이라 지연 로딩하지 않는다.
+- **필요할 때 로드** — `claude-code-usage`, `coding-style`, `problem-solving`, `testing-rules`, `anti-patterns` 스킬. 목록의 한 줄 설명만 상주하고 본문은 호출 시 로드된다.
+
+링크(`자세히:`)는 더 깊은 예시·체크리스트가 필요할 때 펼쳐 보는 용도다. 스킬 spoke 는 Skill 도구로 호출하며, hub를 보지 못하는 서브에이전트도 같은 경로를 참조한다.
 
 ## Instruction Hierarchy / 지침 우선순위
 
@@ -20,12 +25,12 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 소스 위계(위)와 다른 축 — *행동 규칙*의 중요도다. 가장 자주 충돌하는 상위 7개이며 전수 목록이 아니다(나머지는 본문 섹션 참조).
 
 1. **Git Safety** — 명시 허가 없이 commit/push 금지 → `rules/git-workflow.md`
-2. **Plan First** — 의미 있는 구현 전 설계 합의 → `rules/claude-code.md#plan-mode--계획-모드`
+2. **Plan First** — 의미 있는 구현 전 설계 합의 → `skills/claude-code-usage/SKILL.md#plan-mode--계획-모드`
 3. **Language** — 사용자 응답은 한국어 → `rules/language.md`
 4. **Project Conventions** — 저장소 관례 우선
 5. **Before Changing Code** — 변경 전 맥락 파악·가정 명시
-6. **Surgical Changes** — 요청 라인만 수정 → `rules/coding-style.md#surgical-changes--외과적-변경`
-7. **Goal-Driven Execution** — 검증 가능한 종료 조건 → `rules/problem-solving.md#goal-driven-execution--목표-기반-실행`
+6. **Surgical Changes** — 요청 라인만 수정 → `skills/coding-style/SKILL.md#surgical-changes--외과적-변경`
+7. **Goal-Driven Execution** — 검증 가능한 종료 조건 → `skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`
 
 ## Language / 언어
 
@@ -62,7 +67,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - 오타·한 줄 수정·순수 탐색·문구 교정·상세 지시가 있는 단순 작업은 생략 가능.
 - 사용자가 즉시 구현을 명확히 요청했고 변경 위험이 낮으면 필요한 맥락 확인 후 바로 처리.
 
-자세히: `rules/claude-code.md#plan-mode--계획-모드`
+자세히: `skills/claude-code-usage/SKILL.md#plan-mode--계획-모드`
 
 ## Project Conventions / 프로젝트 관례
 
@@ -82,7 +87,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - **더 단순한 접근이 보이면 즉시 제시**, 사용자 안이 과복잡하면 근거와 함께 푸시백.
 - **혼란 시 멈춘다** — 무엇이 불명확한지 이름 붙여 질문. "막히면 그때 묻겠다"는 금지.
 
-자세히: `rules/problem-solving.md#think-before-coding--코딩-전-사고`
+자세히: `skills/problem-solving/SKILL.md#think-before-coding--코딩-전-사고`
 
 ## Surgical Changes / 외과적 변경
 
@@ -96,7 +101,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - 무관한 dead code 는 *언급만* 하고 별도 작업으로 분리.
 - 한 PR/커밋에 두 가지 이상 목적을 섞지 않는다.
 
-자세히: `rules/coding-style.md#surgical-changes--외과적-변경`
+자세히: `skills/coding-style/SKILL.md#surgical-changes--외과적-변경`
 
 ## Goal-Driven Execution / 목표 기반 실행
 
@@ -110,7 +115,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 
 다단계 작업은 단계마다 검증 방법을 명시한다 — `1. [단계] → 검증: [방법]`. 검증이 정해지지 않은 단계는 계획에 넣지 않는다.
 
-자세히: `rules/problem-solving.md#goal-driven-execution--목표-기반-실행`
+자세히: `skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`
 
 ## Core Principles / 핵심 원칙
 
@@ -121,7 +126,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - **Design for security** — 입력 검증·최소 권한·시크릿 보호 (`rules/security.md`).
 - **Favor immutability** — 새 객체를 만들고 mutate 하지 않는다.
 
-자세히: `rules/coding-style.md`
+자세히: `skills/coding-style/SKILL.md`
 
 ## Problem Solving / 문제 해결
 
@@ -133,7 +138,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - 수정 후 회귀 테스트 추가, 같은 원인이 다른 코드 경로에 있는지 스캔.
 - 워크어라운드는 *임시* 임을 명시 + 후속 작업 등록.
 
-자세히: `rules/problem-solving.md`
+자세히: `skills/problem-solving/SKILL.md`
 
 ## Testing / 테스트
 
@@ -143,7 +148,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - 테스트 간 상태 공유를 피한다.
 - 검증을 못 했다면 이유와 잔여 리스크를 명시한다.
 
-자세히: `rules/testing.md`
+자세히: `skills/testing-rules/SKILL.md`
 
 ## Security / 보안
 
@@ -157,7 +162,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 
 ## Claude Code Usage / Claude Code 활용
 
-도구 사용 규약은 `rules/claude-code.md` 가 *유일한 source*. 핵심 행동 규칙:
+도구 사용 규약은 `skills/claude-code-usage/SKILL.md` 가 *유일한 source*. 핵심 행동 규칙:
 
 - **Plan Mode**: 의미 있는 구현 전 진입.
 - **Subagent**: 독립 탐색·분석·검증에 사용. 추측해서 존재하지 않는 에이전트 호출 금지.
@@ -168,7 +173,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - **위험 행동 확인**: `rm -rf`, `git push --force`, PR/이슈 작성 등 외부 가시·되돌리기 어려운 작업은 사용자 확인 후 실행.
 - **Context Window**: 마지막 ~20% 에서 대규모 리팩토링 회피, 대형 탐색은 subagent 위임.
 
-자세히: `rules/claude-code.md`
+자세히: `skills/claude-code-usage/SKILL.md`
 
 ## Anti-Patterns / 안티패턴
 
@@ -184,4 +189,4 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - 검증 없이 작업 완료로 간주
 - 문서·주석에 변경 이력·시행착오를 누적 (현재 상태만 기록)
 
-자세히 + Working If 자가 점검 척도: `rules/anti-patterns.md`
+자세히 + Working If 자가 점검 척도: `skills/anti-patterns/SKILL.md`

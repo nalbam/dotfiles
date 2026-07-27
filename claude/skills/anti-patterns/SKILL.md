@@ -1,3 +1,8 @@
+---
+name: anti-patterns
+description: 자주 빠지는 함정 전체 카탈로그와 'Working If' 자가 점검 척도. PR·커밋 전 자가 리뷰에 사용. Full anti-pattern catalog and self-check scale.
+---
+
 # Anti-Patterns
 
 자주 빠지는 함정의 *유일한 source*. 다른 rules 의 "Anti-Patterns" 절은 이 파일의 해당 앵커로 참조한다.
@@ -115,4 +120,4 @@
 - "일단 해보고 안 되면 다시" — 종료 조건 없이 시작
 - 200줄 작성 후 "더 단순하게 다시 짤 수 있었음"을 깨달음
 
-이 신호들이 PR/커밋에서 보이면 → `rules/coding-style.md#surgical-changes--외과적-변경`, `rules/problem-solving.md#think-before-coding--코딩-전-사고` 를 다시 적용한다.
+이 신호들이 PR/커밋에서 보이면 → `skills/coding-style/SKILL.md#surgical-changes--외과적-변경`, `skills/problem-solving/SKILL.md#think-before-coding--코딩-전-사고` 를 다시 적용한다.

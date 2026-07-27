@@ -7,7 +7,7 @@ CLAUDE.md `## Security` 의 *유일한 상세 source*.
 ## Mandatory Checks (보안 영향 있는 변경 시)
 
 - [ ] 하드코딩된 시크릿(API 키·패스워드·토큰) 없음
-- [ ] 외부 입력 검증 (`rules/coding-style.md#input-validation`)
+- [ ] 외부 입력 검증 (`skills/coding-style/SKILL.md#input-validation`)
 - [ ] SQL injection 방지 — parameterized queries / ORM
 - [ ] XSS 방지 — 출력 시 sanitize, dangerous innerHTML 회피
 - [ ] CSRF 방지 — 변형(mutation) 작업에 토큰
@@ -53,4 +53,4 @@ if (!apiKey) {
 
 ## Anti-Patterns
 
-이 주제 안티패턴은 `rules/anti-patterns.md` 의 Code Quality / Git & Deployment 섹션 참조.
+이 주제 안티패턴은 `skills/anti-patterns/SKILL.md` 의 Code Quality / Git & Deployment 섹션 참조.

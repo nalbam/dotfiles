@@ -1,6 +1,11 @@
+---
+name: problem-solving
+description: 문제 해결 상세 — think before coding, goal-driven execution 변환 규칙, 근본 원인 조사 5단계. Root-cause analysis and goal-driven execution rules.
+---
+
 # Problem Solving & Root Cause Analysis
 
-CLAUDE.md `## Before Changing Code`, `## Problem Solving`, `## Goal-Driven Execution` 의 *유일한 상세 source*.
+AGENTS.md `## Before Changing Code`, `## Problem Solving`, `## Goal-Driven Execution` 의 *유일한 상세 source*.
 
 증상을 덮지 말고 근본 원인을 찾는다. 명령형 지시는 검증 가능한 종료 조건으로 변환한 뒤 시작한다.
 
@@ -96,4 +101,4 @@ LLM 이 가장 자주 빠지는 함정은 *조용히 하나의 해석을 골라 
 
 ## Anti-Patterns
 
-이 주제 안티패턴은 `rules/anti-patterns.md#problem-solving`, `rules/anti-patterns.md#think-before-coding`, `rules/anti-patterns.md#goal-driven-execution` 이 source.
+이 주제 안티패턴은 `skills/anti-patterns/SKILL.md#problem-solving`, `skills/anti-patterns/SKILL.md#think-before-coding`, `skills/anti-patterns/SKILL.md#goal-driven-execution` 이 source.

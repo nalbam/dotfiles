@@ -29,44 +29,44 @@ REPLACEMENTS = [
     ("(`rules/language.md`)", "(AGENTS.md 의 Language)"),
     # code-audit: combined rules reference
     (
-        "`rules/coding-style.md`, `rules/testing.md`, `rules/security.md` 와 일관해야 한다",
+        "`skills/coding-style/SKILL.md`, `skills/testing-rules/SKILL.md`, `rules/security.md` 와 일관해야 한다",
         "AGENTS.md 의 Coding / Testing / Security 원칙과 일관해야 한다",
     ),
     (
-        "(`rules/testing.md`, `rules/coding-style.md#file--function-organization`)",
+        "(`skills/testing-rules/SKILL.md`, `skills/coding-style/SKILL.md#file--function-organization`)",
         "(AGENTS.md 의 Testing / Coding 원칙)",
     ),
-    ("— `rules/testing.md`)", "— AGENTS.md 의 Testing 원칙)"),
+    ("— `skills/testing-rules/SKILL.md`)", "— AGENTS.md 의 Testing 원칙)"),
     # surgical changes (particle variants)
     (
-        "`rules/coding-style.md#surgical-changes--외과적-변경` 원칙",
+        "`skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 원칙",
         "AGENTS.md 의 Surgical Changes 원칙",
     ),
     (
-        "`rules/coding-style.md#surgical-changes--외과적-변경` 을",
+        "`skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 을",
         "AGENTS.md 의 Surgical Changes 를",
     ),
     (
-        "`rules/coding-style.md#surgical-changes--외과적-변경`을",
+        "`skills/coding-style/SKILL.md#surgical-changes--외과적-변경`을",
         "AGENTS.md 의 Surgical Changes 를",
     ),
     (
-        "(rules/coding-style.md#surgical-changes--외과적-변경)",
+        "(skills/coding-style/SKILL.md#surgical-changes--외과적-변경)",
         "(AGENTS.md Surgical Changes)",
     ),
     (
-        "`rules/coding-style.md#surgical-changes--외과적-변경`",
+        "`skills/coding-style/SKILL.md#surgical-changes--외과적-변경`",
         "AGENTS.md 의 Surgical Changes",
     ),
     # docs-sync: current-state-only documentation rule
     (
-        "(`rules/coding-style.md#documentation`)",
+        "(`skills/coding-style/SKILL.md#documentation`)",
         "(AGENTS.md 의 Anti-Patterns — 현재 상태만 기록)",
     ),
     # git safety
     ("`rules/git-workflow.md`", "AGENTS.md 의 Git Safety"),
     # anti-patterns
-    ("`rules/anti-patterns.md#git--deployment`", "AGENTS.md 의 Anti-Patterns"),
+    ("`skills/anti-patterns/SKILL.md#git--deployment`", "AGENTS.md 의 Anti-Patterns"),
     # generic instruction-file rename (after the specific rules above)
     ("CLAUDE.md", "AGENTS.md"),
     # deployed skill path (Codex scans ~/.agents/skills)

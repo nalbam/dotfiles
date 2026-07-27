@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-git 안전 규칙은 `rules/git-workflow.md`, 변경 작업 자체는 `rules/coding-style.md#surgical-changes--외과적-변경` 을 따른다.
+git 안전 규칙은 `rules/git-workflow.md`, 변경 작업 자체는 `skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 을 따른다.
 
 ## Philosophy
 
