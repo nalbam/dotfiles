@@ -245,34 +245,16 @@
     "command": "python3 ~/.claude/statusline.py"
   },
   "enabledPlugins": {
-    "auth0@claude-plugins-official": false,
-    "chrome-devtools-mcp@claude-plugins-official": false,
-    "claude-code-setup@claude-plugins-official": false,
-    "claude-md-management@claude-plugins-official": false,
-    "code-review@claude-plugins-official": false,
-    "code-simplifier@claude-plugins-official": false,
-    "coderabbit@claude-plugins-official": false,
     "codex@openai-codex": true,
     "context7@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true,
-    "github@claude-plugins-official": false,
-    "humanize-korean@im-not-ai": false,
     "karrot-self-review@karrot-hr": true,
     "linear@claude-plugins-official": false,
     "notion@claude-plugins-official": true,
     "playwright@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": false,
-    "slack@claude-plugins-official": true,
-    "superpowers@claude-plugins-official": false,
-    "claude-obsidian@agricidaniel-claude-obsidian": true
+    "slack@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "im-not-ai": {
-      "source": {
-        "source": "github",
-        "repo": "epoko77-ai/im-not-ai"
-      }
-    },
     "karrot-hr": {
       "source": {
         "source": "git",
@@ -283,12 +265,6 @@
       "source": {
         "source": "github",
         "repo": "openai/codex-plugin-cc"
-      }
-    },
-    "agricidaniel-claude-obsidian": {
-      "source": {
-        "source": "github",
-        "repo": "AgriciDaniel/claude-obsidian"
       }
     }
   },
