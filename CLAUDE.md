@@ -19,57 +19,7 @@ The installer (`run.sh`) is plain bash; files sourced by interactive shells (`al
 
 **Before changing installer behavior, read `run.sh` end-to-end.** The steps are interdependent (e.g., Step 5 bootstraps Homebrew before Step 6 uses it).
 
-## Installation flow (run.sh)
-
-1. OS/arch detection (`darwin`/`linux`/`mingw64` × `arm64`/`x86_64`/`aarch64`/`armv7l`)
-2. Directory scaffolding + SSH key generation (RSA + ED25519)
-3. Clone/update dotfiles repo to `~/.dotfiles`
-4. Deploy SSH/AWS/Git config templates
-5. Package manager setup (APT for Linux, Homebrew install)
-6. Package installation (Homebrew, NPM, PIP) — version-aware, skipped if up to date
-7. OS-specific settings (macOS: Xcode CLT, `.macos` system preferences)
-8. ZSH + Oh My ZSH install
-9. Theme/UI (Dracula, iTerm2 profile)
-10. Deploy user config files (`~/.zshrc`, `~/.aliases`, etc.)
-11. AI tools sync (`claude/` → `~/.claude/`, `codex/` → `~/.codex/`, `codex/skills/` → `~/.agents/skills/`, `kiro/` → `~/.kiro/`)
-
-`run.sh --vibe` runs **only step 11**.
-
-## Repository layout
-
-```
-run.sh / run.ps1          # installers
-aliases, zshrc, bashrc    # shell config
-profile, vimrc, tmux.conf # tool config
-gitconfig                 # base (sets me@nalbam.com)
-gitconfig-nalbam          # personal profile
-gitconfig-bruce           # work profile
-macos                     # macOS system-pref script
-
-darwin/                   # macOS
-  Brewfile
-  DefaultkeyBinding.dict  # Korean ₩ → backtick remap
-  zprofile.arm64.sh       # Homebrew at /opt/homebrew
-  zprofile.x86_64.sh      # Homebrew at /usr/local
-linux/                    # Linux (per-arch zprofile.*.sh)
-ssh/, aws/                # config templates
-iterm2/, ghostty/         # terminal profiles
-
-claude/                   # synced to ~/.claude/
-  CLAUDE.md, settings.json
-  agents/ hooks/ rules/ skills/
-codex/                    # synced to ~/.codex/
-  AGENTS.md, config.toml, hooks.json
-  rules/
-  skills/                 # synced to ~/.agents/skills/ (Codex scan path);
-                          # generated from claude/skills/ — do not edit directly
-kiro/                     # synced to ~/.kiro/
-  agents/
-scripts/                  # dev-time tools (not part of install flow)
-  gen-codex-skills.py     # claude/skills → codex/skills mirror generator
-
-docs/ARCHITECTURE.md      # diagrams + deeper notes
-```
+`run.sh --vibe` runs **only the AI tools sync step** (step 11 of 11).
 
 ## Git profile switching (non-obvious)
 
@@ -106,7 +56,7 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 - Put them in `aliases` (not `zshrc`), grouped by tool.
 - Keep functions small; prefer POSIX-compatible syntax so `bashrc` can source them too.
 - Toast CLI is the central workspace manager — `c`, `x`, `d`, `e`, `g`, `r`, `p`, `ssm` route through `toast`. Separately: `m` runs `aws sts get-caller-identity`, `tu` updates toast-cli itself, `tt` re-runs the dotfiles installer.
-- Claude CLI shortcuts live at `aliases:32-36` (`cc`, `ccc`, `ccp`, `ccu`).
+- Claude CLI shortcuts (`cc`, `ccc`, `ccp`, `ccu`) live near the top of `aliases`.
 - Korean keyboard aliases exist (`ㅊ`→`c`, `ㅊㅇ`→`cd`, `ㅅㅅ`→`tt`, `ㅊㅊ`→`cc`) — preserve them when refactoring.
 
 ## AI tool settings (claude/, codex/, kiro/)
@@ -133,15 +83,4 @@ When adding a new Claude Code agent/skill/rule:
 - **Prefer editing `aliases` or `Brewfile` over adding logic to `run.sh`.** The installer should stay declarative.
 - **POSIX-compatible in files sourced by both bash and zsh** (`aliases`, `zshrc`, `bashrc`, `zprofile.*`): no `[[ ]]`, no arrays, no bash-only expansions there. `run.sh` itself is bash and may use bash features.
 
-## Quick reference paths
-
-- Installer: `run.sh`
-- Main helper functions: `aliases:38-410` — `tm()` (tmux, L38-140), `av()` (aws-vault, L142-206), terraform aliases (L221-242), node helpers `np`/`nn`/`nb` (npm·pnpm·yarn 자동 판별, L252-291), local dev servers `ss`/`sl`/`sk` (node dev 또는 python http.server 자동, 포트는 `~/.toast/servers`에 추적, L312-407)
-- Brewfiles: `darwin/Brewfile`, `linux/Brewfile`
-- Arch zprofiles: `darwin/zprofile.{arm64,x86_64}.sh`, `linux/zprofile.{x86_64,aarch64,armv7l}.sh`
-- Claude Code settings: `claude/settings.json`
-- Codex settings: `codex/hooks.json`, `codex/config.toml`
-- Codex skills mirror generator: `scripts/gen-codex-skills.py`
-- Korean ₩→` keymap: `darwin/DefaultkeyBinding.dict`
-
-For architecture diagrams and installation flow sequence, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+For the directory tree, installation flow sequence, and architecture diagrams, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).

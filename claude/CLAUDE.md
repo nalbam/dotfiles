@@ -4,7 +4,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 
 **구조 원칙**: 이 파일(hub)이 *작동 규칙의 source*다 — 여기 적힌 규칙만으로 판단할 수 있어야 한다. spoke 는 hub가 담기 어려운 *깊은 예시·근거·체크리스트*를 *단 한 곳*에서 정의하며, 두 종류로 나뉜다.
 
-- **항상 로드** — `rules/git-workflow.md`, `rules/security.md`, `rules/language.md`. 안전 규칙과 언어 규칙이라 지연 로딩하지 않는다.
+- **rules/ 파일** — `rules/git-workflow.md`, `rules/security.md`, `rules/language.md`. 자동 로드되지 *않는다* (`@` import 가 아니므로 Read 해야 읽힌다). 안전 규칙과 언어 규칙의 *작동 부분*은 이 hub 본문에 인라인으로 담겨 있으므로, rules/ 는 상세 근거·체크리스트가 필요할 때만 편다.
 - **필요할 때 로드** — `claude-code-usage`, `coding-style`, `problem-solving`, `testing-rules`, `anti-patterns` 스킬. 목록의 한 줄 설명만 상주하고 본문은 호출 시 로드된다.
 
 링크(`자세히:`)는 더 깊은 예시·체크리스트가 필요할 때 펼쳐 보는 용도다. 스킬 spoke 는 Skill 도구로 호출하며, hub를 보지 못하는 서브에이전트도 같은 경로를 참조한다.
