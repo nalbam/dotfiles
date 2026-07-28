@@ -26,15 +26,16 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | Language | TypeScript 6 | `strict: true` 필수. `typescript@^6` 로 **핀한다** — 7.x 는 lint·build 를 깬다 (2단계) |
 | Style | Tailwind CSS v4 | `@import "tailwindcss"` + `@tailwindcss/postcss` (v3 의 `tailwind.config.js` 없음) |
 | Auth | Better Auth 1.6 + Google OAuth | 커스텀 DynamoDB 어댑터 |
-| Data | AWS DynamoDB Single Table Design | `@aws-sdk/lib-dynamodb` DocumentClient |
+| Data | AWS DynamoDB Single Table Design | `@aws-sdk/lib-dynamodb` DocumentClient. 개발·테스트는 DynamoDB Local |
 | Structure | Clean Architecture | `domain` / `application` / `infrastructure` / `app` |
+| Testing | Vitest 4 + DynamoDB Local | 게이트는 `vitest run` (watch 금지). 로컬 DB 2개 — dev `:8083` 유지, test `:8084` 초기화 |
 | Deploy | Docker standalone → AWS ECR | GitHub Actions + OIDC |
 
 **버전은 기본값일 뿐 절대 규칙이 아니다.** 사용자가 다른 버전·구성을 요청하면 그쪽을 따른다.
 
 ## Scope
 
-- **한다**: 프로젝트 생성, 레이어 뼈대, 인증 배선, DynamoDB 어댑터, Dockerfile, CI 워크플로, `.env.example`
+- **한다**: 프로젝트 생성, 레이어 뼈대, 인증 배선, DynamoDB 어댑터, 접근 패턴·어댑터 계약 테스트, Dockerfile, CI 워크플로, `.env.example`
 - **안 한다**: 도메인 비즈니스 로직, UI 디자인, AWS 리소스 *실제 생성*, git commit/push
 - **경계**: 기존 프로젝트 수정은 이 스킬 대상이 아니다. 검증은 `/validate`, 커밋은 `/commit`.
 
@@ -59,7 +60,7 @@ ls -A <target-dir> 2>/dev/null
 
 버전이 다르면 *멈추고 보고*한다 — 임의로 다운그레이드하지 않는다. 대상 디렉토리가 비어있지 않으면 사용자에게 확인한다.
 
-사용자에게 확인할 값: **프로젝트명**, **AWS 계정 ID**, **AWS 리전**, **DynamoDB 테이블명**, **ECR 리포지토리명**, **OIDC IAM 역할명**. 정해지지 않았으면 프로젝트명 기반 기본값을 제안하고 승인받는다 — 계정 ID·리전·역할명은 6단계 워크플로에 평문으로 박히므로 여기서 확정해야 한다.
+사용자에게 확인할 값: **프로젝트명**, **AWS 계정 ID**, **AWS 리전**, **DynamoDB 테이블명**, **ECR 리포지토리명**, **OIDC IAM 역할명**. 정해지지 않았으면 프로젝트명 기반 기본값을 제안하고 승인받는다 — 계정 ID·리전·역할명은 7단계 워크플로에 평문으로 박히므로 여기서 확정해야 한다.
 
 > 검증: 위 값이 모두 확정됨.
 
@@ -82,7 +83,7 @@ pnpm create next-app@latest <name> \
 - `next build` 의 타입체크가 그 API 를 쓴다 → 실패한다. Next.js 는 `tsc` CLI 를 직접 부르는 `experimental.useTypeScriptCli` 로 대응했지만 **16.3 preview 전용**이고 stable(16.2.x)엔 없다
 - `@typescript-eslint/parser` 도 그 API 로 `.ts` 를 파싱한다 → `eslint-config-next` 가 통째로 죽는다. typescript-eslint 는 canary 까지 peer 가 `>=4.8.4 <6.1.0` 이라 우회로가 없다
 
-즉 TS 7 은 3단계(레이어 강제)와 7단계(검증 게이트)를 동시에 무력화한다. `^6` 은 typescript-eslint 지원 상한이면서 strict 기본값이라 이 스킬과 결이 맞는다. **Next.js 16.3 이 stable 이 되면 그때 재검토한다** — 그 전엔 preview 채널 + 린터 교체(oxlint/Biome)가 딸려온다.
+즉 TS 7 은 3단계(레이어 강제)와 8단계(검증 게이트)를 동시에 무력화한다. `^6` 은 typescript-eslint 지원 상한이면서 strict 기본값이라 이 스킬과 결이 맞는다. **Next.js 16.3 이 stable 이 되면 그때 재검토한다** — 그 전엔 preview 채널 + 린터 교체(oxlint/Biome)가 딸려온다.
 
 > 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` 기동 후 `/` 200 응답. 확인 뒤 종료.
 
@@ -141,7 +142,46 @@ Better Auth 코어 스키마는 4개 모델이다 (테이블명 단수형): `use
 - `entity` — 모델명 (`user` / `session` / …). 필터·디버깅용
 - `ttl` — **session·verification 만**. `expiresAt` 을 epoch seconds 로 변환. DynamoDB TTL 을 이 속성에 설정하면 만료 세션이 자동 정리된다
 
-테이블 생성 명령은 *제시만* 한다 (실행은 사용자):
+**로컬 DynamoDB** (`compose.yaml`) — 개발과 테스트 모두 여기를 쓴다. 실제 AWS 테이블은 배포용이지 개발용이 아니다:
+
+```yaml
+services:
+  # 로컬 개발용 — 데이터가 유지된다 (재시작해도 로그인 세션·테이블이 남음)
+  dynamodb:
+    image: amazon/dynamodb-local:3.3.0
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
+    working_dir: /home/dynamodblocal
+    volumes: ["dynamodb-data:/home/dynamodblocal/data"]
+    ports: ["8083:8000"]
+
+  # 테스트용 — 매 기동마다 초기화된다
+  dynamodb-test:
+    image: amazon/dynamodb-local:3.3.0
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
+    ports: ["8084:8000"]
+
+volumes:
+  dynamodb-data:
+```
+
+**왜 인스턴스를 둘로 나누는가** — `-sharedDb` 는 모든 클라이언트가 *하나의 DB* 를 보게 만든다. 하나만 띄우면 테스트가 개발 중이던 데이터를 매번 지운다. 포트를 나누는 게 유일하게 안 헷갈리는 방법이다.
+
+OrbStack·Docker Desktop 모두 소켓이 표준 위치라 `docker compose up -d dynamodb` 로 그대로 뜬다.
+
+**함정 4개 — 여기서 시간을 가장 많이 버린다:**
+
+1. **자격증명을 반드시 준다.** AWS 문서가 *"Downloadable DynamoDB requires any credentials to work"* 라고 명시한다. 값은 검증되지 않지만, 없으면 SDK 가 자격증명 탐색 단계에서 먼저 죽는다
+2. **`-sharedDb` 를 빼지 않는다.** 없으면 DynamoDB Local 이 (accessKeyId, region) 조합마다 별도 DB 를 만든다. 테이블 생성 스크립트와 앱의 자격증명·리전이 조금이라도 다르면 서로 다른 DB 를 보고 `ResourceNotFoundException` 이 난다 — "분명히 만들었는데 없다"의 정체
+3. **`-inMemory` 와 `-dbPath` 는 동시에 못 쓴다.** 그래서 위 두 서비스의 설정이 다르다. 테스트 인스턴스는 기동할 때마다 테이블이 사라지므로 **테이블 생성을 vitest `globalSetup` 에서 해야 한다**
+4. **GSI 일관성이 운영과 다르다.** DynamoDB Local 은 GSI 를 동기로 갱신하지만 실제 DynamoDB 의 GSI 는 *eventually consistent* 다. 위 접근 패턴 7개 중 6개가 GSI 경유이므로, 쓰기 직후 GSI 를 읽는 코드는 **로컬에서 되고 운영에서 깨진다**
+
+**테이블 생성** — 로컬은 지금 실행하고, AWS 는 *제시만* 한다 (실행은 사용자):
+
+```bash
+# 로컬 (개발용 인스턴스). 테스트 인스턴스는 --endpoint-url http://localhost:8084
+aws dynamodb create-table --table-name <table> ... --endpoint-url http://localhost:8083 \
+  --region ap-northeast-2   # 값은 아무거나 좋지만 앱과 반드시 같아야 한다 (함정 2)
+```
 
 ```bash
 aws dynamodb create-table --table-name <table> \
@@ -159,7 +199,7 @@ aws dynamodb update-time-to-live --table-name <table> \
   --time-to-live-specification 'Enabled=true,AttributeName=ttl' --region <region>
 ```
 
-> 검증: 접근 패턴 7개가 각각 어떤 인덱스로 처리되는지 표로 대응됨. 대응되지 않는 패턴이 남아 있으면 키 설계를 고친다.
+> 검증: 접근 패턴 7개가 각각 어떤 인덱스로 처리되는지 표로 대응됨 (대응 안 되는 패턴이 남으면 키 설계를 고친다). `docker compose up -d dynamodb` 후 `aws dynamodb list-tables --endpoint-url http://localhost:8083` 에 테이블이 보임.
 
 ### 5. Better Auth + Google OAuth + 커스텀 어댑터
 
@@ -235,15 +275,83 @@ BETTER_AUTH_SECRET=      # openssl rand -base64 32
 BETTER_AUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-AWS_REGION=
+AWS_REGION=ap-northeast-2
 DYNAMODB_TABLE_NAME=
+DYNAMODB_ENDPOINT=http://localhost:8083   # 로컬 개발 전용. 운영에서는 반드시 비운다
 ```
+
+**DynamoDB 클라이언트는 엔드포인트로 로컬/운영을 가른다** (`src/infrastructure/dynamodb/client.ts`):
+
+```ts
+const endpoint = process.env.DYNAMODB_ENDPOINT;
+
+export const docClient = DynamoDBDocumentClient.from(
+  new DynamoDBClient({
+    region: process.env.AWS_REGION!,
+    // 로컬일 때만 엔드포인트와 더미 자격증명을 준다. 운영에서는 둘 다 생략해야
+    // SDK 가 실제 리전 엔드포인트로 가고 자격증명을 역할에서 가져온다.
+    ...(endpoint
+      ? { endpoint, credentials: { accessKeyId: "local", secretAccessKey: "local" } }
+      : {}),
+  })
+);
+```
+
+`DYNAMODB_ENDPOINT` 가 운영 환경에 남으면 앱이 존재하지 않는 localhost:8083 을 치면서 조용히 죽는다 — 배포 매니페스트에서 이 키가 비어 있는지 확인한다.
 
 운영에서 AWS 자격증명은 **환경변수가 아니라 역할**로 준다 (ECS 태스크 롤 / EKS IRSA). `NEXT_PUBLIC_*` 은 빌드 시점에 이미지에 박히므로 시크릿을 넣지 않는다.
 
-> 검증: `pnpm dev` → Google 로그인 → 세션 유지 → 로그아웃. DynamoDB 에 `user`·`session`·`account` 아이템 생성 확인.
+> 검증: `docker compose up -d dynamodb` → `pnpm dev` → Google 로그인 → 세션 유지 → 로그아웃. `aws dynamodb scan --table-name <table> --endpoint-url http://localhost:8083` 에 `user`·`session`·`account` 아이템이 보임. **AWS 계정에는 아무것도 만들지 않은 상태여야 한다.**
 
-### 6. Docker + ECR
+### 6. 테스트 — Vitest + DynamoDB Local
+
+```bash
+pnpm add -D vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom vite-tsconfig-paths
+```
+
+`vitest.config.mts` — Next.js 공식 구성 그대로:
+
+```ts
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+import tsconfigPaths from "vite-tsconfig-paths";
+
+export default defineConfig({
+  plugins: [tsconfigPaths(), react()],
+  test: { environment: "jsdom" },
+});
+```
+
+`package.json` 에 `"test": "vitest run"`, `"test:watch": "vitest"`. **CI·검증 게이트에는 반드시 `vitest run`** — 인자 없는 `vitest` 는 watch 모드로 떠서 영원히 끝나지 않는다.
+
+전역 환경은 jsdom 이고, 도메인·어댑터 테스트는 파일 상단 docblock 으로 node 로 내린다:
+
+```ts
+// @vitest-environment node
+```
+
+glob 으로 환경을 나누는 `environmentMatchGlobs` 는 현행 Vitest 문서에 없다 — docblock 을 쓴다.
+
+**테스트는 `dynamodb-test`(포트 8084)를 쓴다** — 4단계에서 띄운 개발용 인스턴스가 아니다. `-sharedDb` 때문에 같은 인스턴스를 쓰면 테스트가 개발 데이터를 지운다.
+
+테스트 인스턴스는 `-inMemory` 라 기동할 때마다 비어 있으므로 **테이블 생성을 `globalSetup` 에 둔다** — 4단계의 `create-table` 을 `--endpoint-url http://localhost:8084` 로 한 번 호출하면 된다. 테스트 코드에서 `DYNAMODB_ENDPOINT` 를 8084 로 덮어쓰면 5단계의 클라이언트가 그대로 재사용된다.
+
+**무엇을 테스트하는가** — 4·5단계에서 표로만 적어둔 것을 실행 가능하게 만든다:
+
+| 대상 | 테스트 |
+|------|--------|
+| 4단계 접근 패턴 7개 | 패턴마다 실제 쿼리 1개. 통과 = 키 설계가 실제로 성립한다는 증거 |
+| 어댑터 계약 1 (Scan 폴백 금지) | 인덱스로 못 푸는 `where` 에 **throw 하는지**. 조용히 결과를 돌려주면 실패 |
+| 어댑터 계약 2 (지원 연산자) | `eq`·`in` 통과, 미지원 연산자는 명확한 에러 |
+| 어댑터 계약 3 (GSI 키 재계산) | email 변경 후 새 email 로 조회되고 옛 키로는 안 잡히는지 |
+| 어댑터 계약 5 (중복 가입 방지) | 같은 email 로 `create` 2회 → 하나만 성공 |
+| 도메인·유스케이스 | DynamoDB 없이 순수 단위 테스트 (외부 의존 0 이라는 3단계 경계의 증명) |
+
+**Server Component 는 대상에서 뺀다** — Next.js 공식 문서가 *"Since `async` Server Components are new to the React ecosystem, Vitest currently does not support them"* 이라고 명시한다. 동기 컴포넌트만 단위 테스트하고 async 는 E2E 로 미룬다.
+
+> 검증: `docker compose up -d dynamodb-test` → `pnpm test` 전부 통과. 접근 패턴 7개 테스트가 모두 존재해야 한다. 테스트 후 개발용 인스턴스의 데이터가 그대로 남아 있는지도 확인한다 (남지 않으면 두 인스턴스가 섞인 것이다).
+
+### 7. Docker + ECR
 
 **Dockerfile** — 멀티스테이지, standalone 출력:
 
@@ -331,10 +439,11 @@ jobs:
 
 > 검증: `docker build` 성공 → `docker run -p 3000:3000` → `/` 200. CI 는 첫 태그 푸시 후 Actions 로그와 `aws ecr describe-images --repository-name <repo> --region <region>` 로 확인.
 
-### 7. 검증 게이트
+### 8. 검증 게이트
 
 ```bash
-pnpm lint && pnpm exec tsc --noEmit && pnpm build
+docker compose up -d dynamodb-test
+pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build
 ```
 
 전부 통과해야 완료다. 실패는 `/validate` 절차로 근본원인을 고친다.
@@ -345,16 +454,17 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm build
 ## Next.js 프로젝트 생성 완료
 
 경로: <path>
-스택: Next.js 16 / React 19 / TS strict / Tailwind v4 / Better Auth 1.6 / DynamoDB
+스택: Next.js 16 / React 19 / TS 6 strict / Tailwind v4 / Better Auth 1.6 / DynamoDB / Vitest 4
 
 검증:
+- pnpm test: PASS (접근 패턴 7/7, 어댑터 계약 5/5)
 - pnpm build: PASS
 - Google 로그인 플로우: PASS (또는 SKIP + 사유)
 - docker build: PASS (또는 SKIP + 사유)
 
 사용자 후속 작업 (실행하지 않음):
 - [ ] DynamoDB 테이블 생성 — 명령 위 4단계 참조
-- [ ] ECR 리포지토리 생성 (tag mutability: MUTABLE) + OIDC IAM 역할·신뢰 정책 — 6단계 참조
+- [ ] ECR 리포지토리 생성 (tag mutability: MUTABLE) + OIDC IAM 역할·신뢰 정책 — 7단계 참조
 - [ ] Google OAuth 클라이언트 발급 + 리다이렉트 URI 등록
 - [ ] .env.local 값 채우기
 - [ ] git init / 첫 커밋 (요청 시)
@@ -367,6 +477,12 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm build
 - 레이어를 디렉토리로만 나누고 lint 강제를 생략하지 않는다 — 한 달이면 무너진다
 - `create-next-app` 이 깐 `typescript@latest`(7.x)를 그대로 두지 않는다 — Compiler API 가 없어 lint·build 가 함께 죽는다
 - 어댑터에서 `Scan` 으로 폴백하지 않는다 — 지원 못 하는 쿼리는 던진다
+- 게이트에 인자 없는 `vitest` 를 넣지 않는다 — watch 모드로 떠서 CI 가 끝나지 않는다
+- DynamoDB Local 을 `-sharedDb` 없이 띄우지 않는다 — 자격증명·리전이 다르면 다른 DB 를 본다
+- 개발과 테스트가 같은 DynamoDB Local 인스턴스를 쓰지 않는다 — `-sharedDb` 라 테스트가 개발 데이터를 지운다
+- 로컬 개발을 실제 AWS DynamoDB 로 하지 않는다 — 비용·오염·오프라인 불가. `DYNAMODB_ENDPOINT` 로 가른다
+- `DYNAMODB_ENDPOINT` 를 운영 환경에 남기지 않는다 — 앱이 localhost:8083 을 치며 죽는다
+- 쓰기 직후 GSI 읽기를 강일관으로 가정하지 않는다 — 로컬에서만 통과하고 운영에서 깨진다
 - GSI 를 나중에 붙이면 된다고 미루지 않는다 — 접근 패턴을 4단계에서 확정한다
 - `middleware.ts` 를 만들지 않는다 (Next.js 16 에 없다) — `proxy.ts` 이고, 인가는 라우트에서 다시 확인한다
 - proxy/middleware 만으로 인가를 끝내지 않는다
