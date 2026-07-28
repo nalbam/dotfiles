@@ -43,7 +43,7 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 ## Rules
 
 - **빈 디렉토리에서만 생성한다** — 대상 경로에 파일이 있으면 멈추고 사용자에게 확인한다
-- **진짜 시크릿을 파일에 쓰지 않는다** — Google client secret 등 *발급받은* 값은 사용자가 `.env.local` 에 채운다. 저장소에는 `.env.example` 만 둔다 (`.gitignore` 확인). **예외는 로컬 전용으로 새로 만드는 무작위 값**(`BETTER_AUTH_SECRET`) — 어디서도 발급받은 적 없고 gitignore 된 파일에만 있으므로 스킬이 생성한다 (5단계)
+- **진짜 시크릿을 파일에 쓰지 않는다** — Google client secret 등 *발급받은* 값은 사용자가 `.env.local` 에 채운다. 저장소에는 `.env.example` 만 둔다 — 단 스캐폴더의 `.gitignore` 가 `.env*` 로 그것까지 막으므로 `!.env.example` 을 넣어야 실제로 커밋된다 (5단계). **예외는 로컬 전용으로 새로 만드는 무작위 값**(`BETTER_AUTH_SECRET`) — 어디서도 발급받은 적 없고 gitignore 된 파일에만 있으므로 스킬이 생성한다 (5단계)
 - **AWS 계정에 리소스를 만들지 않는다** — DynamoDB 테이블·ECR 리포지토리·IAM 역할 생성은 명령을 *제시*만 하고 실행은 사용자가 한다. **로컬 DynamoDB 컨테이너는 예외** — AWS 리소스가 아니므로 직접 띄우고 테이블도 만든다 (4단계)
 - **git 초기화·커밋은 사용자 요청 시에만** — `--disable-git` 으로 생성한다
 - 각 단계의 검증을 통과하지 못하면 다음 단계로 넘어가지 않는다
@@ -96,12 +96,17 @@ pnpm create next-app@latest <name> \
 | | 대상 |
 |---|---|
 | **지운다** | `public/` 의 svg 5개 (`next`·`vercel`·`file`·`globe`·`window`), `src/app/page.tsx` 의 데모 내용, `layout.tsx` 의 `"Create Next App"` metadata, `create-next-app` 이 만든 README 본문 |
-| **남긴다** | `src/app/layout.tsx`·`globals.css`·`favicon.ico`, 설정 파일 전부(`tsconfig`·`eslint.config.mjs`·`postcss.config.mjs`·`next.config.ts`·`next-env.d.ts`) |
+| **남긴다** | `src/app/layout.tsx`·`globals.css`·`favicon.ico`, 설정 파일 전부(`tsconfig`·`eslint.config.mjs`·`postcss.config.mjs`·`next.config.ts`·`next-env.d.ts`·`pnpm-workspace.yaml`), `AGENTS.md`·`AGENTS.md` |
 | **뒤에서 만든다** | `src/app/api/auth/[...all]/route.ts` (5단계), `src/app/providers.tsx`, `src/lib/auth-client.ts` |
 
 ```bash
 rm public/next.svg public/vercel.svg public/file.svg public/globe.svg public/window.svg
+touch public/.gitkeep   # 아래 "왜 .gitkeep 인가" 참조 — 빼면 CI 의 docker build 가 깨진다
 ```
+
+**왜 `.gitkeep` 인가** — `public/` 에 있는 건 저 svg 5개뿐이다(`favicon.ico` 는 `src/app/` 이다). 지우면 **빈 디렉토리**가 되고 git 은 빈 디렉토리를 추적하지 않는다. 그런데 `.next/standalone` 에는 `public/` 이 들어가지 않아서 7단계 Dockerfile 이 직접 `COPY` 해야 한다 → 신규 체크아웃에는 그 경로가 없으니 **CI 의 `docker build` 만 실패한다.** 로컬은 빈 디렉토리가 남아 있어 통과한다.
+
+**`AGENTS.md`·`AGENTS.md` 는 남긴다** — 데모가 아니다. `AGENTS.md` 는 *"Read the relevant guide in `node_modules/next/dist/docs/` before writing any code"* 라고 지시하고 `AGENTS.md` 는 그걸 `@AGENTS.md` 로 import 하는 한 줄이다. **설치된 버전의 문서가 이 스킬의 버전 서술보다 정확하므로**, 아래 내용과 실제가 어긋나면 그쪽을 믿는다. 프로젝트 지침을 따로 쓸 때 `AGENTS.md` 의 import 한 줄을 지우지 않는다.
 
 **"화면이 하나"라는 말은 라우트가 하나라는 뜻이 아니다.** 사람이 보는 화면은 `/` 하나지만, 인증은 **페이지가 아니라 API 라우트**로 동작한다 — `authClient.signIn.social()` 이 Google 로 보내고 돌아오는 곳이 `/api/auth/callback/google` 이며, 5단계의 catch-all 핸들러가 그걸 받는다. 그래서 이 구성에는 별도 로그인 페이지가 *필요 없을* 뿐이고, 나중에 이메일·비밀번호 로그인처럼 화면이 필요한 방식을 추가하면 그때는 만든다.
 
@@ -109,17 +114,33 @@ rm public/next.svg public/vercel.svg public/file.svg public/globe.svg public/win
 
 `src/app/page.tsx` 가 `/next.svg`·`/vercel.svg` 를 참조하므로 **에셋만 지우면 페이지가 깨진다** — 아래 페이지 교체와 같이 해야 한다.
 
-**테마 토글** — Tailwind v4 의 `dark:` 는 기본이 `prefers-color-scheme` 라서 수동 토글을 하려면 변형을 재정의한다. `src/app/globals.css` 에 한 줄:
+**테마 토글** — `src/app/globals.css` 를 **두 곳** 고친다. 한 곳만 고치면 토글이 반쪽만 동작한다.
+
+**(a) `dark:` 변형을 클래스 기준으로 재정의한다.** Tailwind v4 의 `dark:` 는 기본이 `prefers-color-scheme` 다. 파일 맨 위 `@import "tailwindcss";` 다음에 한 줄:
 
 ```css
 @custom-variant dark (&:where(.dark, .dark *));
 ```
 
+**(b) 스캐폴더의 `@media (prefers-color-scheme: dark)` 블록을 `.dark` 로 바꾼다.** 이게 빠지면 **배경색이 토글을 따라오지 않는다** — 스캐폴더는 `body { background: var(--background) }` 로 칠하면서 `--background` 의 다크 값을 미디어쿼리 안에 넣어 두고, (a) 는 `dark:` *유틸리티*만 고치므로 이 블록에 닿지 않는다:
+
+```css
+/* 지운다 */
+@media (prefers-color-scheme: dark) {
+  :root { --background: #0a0a0a; --foreground: #ededed; }
+}
+
+/* 대신 이렇게 */
+.dark { --background: #0a0a0a; --foreground: #ededed; }
+```
+
+`defaultTheme="system"` 이 OS 설정을 해석해서 클래스를 붙여 주므로 시스템 추종 동작은 그대로 남는다. **(b) 없이 두면 단순히 안 바뀌는 게 아니라 뒤섞인다** — OS 가 다크인데 토글을 light 로 옮기면 배경만 다크로 남고 `dark:` 유틸리티는 밝아진다.
+
 ```bash
 pnpm add next-themes
 ```
 
-next-themes 는 기본으로 `<html>` 에 `class="dark"` 를 붙이므로 위 변형과 맞물린다.
+next-themes 는 기본으로 `<html>` 에 `class="dark"` 를 붙이므로 (a) 의 변형과 (b) 의 선택자에 함께 맞물린다.
 
 교체할 파일 3개:
 
@@ -130,7 +151,7 @@ next-themes 는 기본으로 `<html>` 에 `class="dark"` 를 붙이므로 위 �
 ```tsx
 export default function Page() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 font-sans">
       <h1 className="text-4xl font-semibold">{/* 프로젝트명 */}</h1>
       <ThemeToggle />
       {/* 로그인 버튼은 5단계에서 추가 */}
@@ -139,11 +160,15 @@ export default function Page() {
 }
 ```
 
+`font-sans` 를 빼면 Geist 가 아니라 Arial 로 렌더된다 — `globals.css` 의 `body { font-family: Arial, Helvetica, sans-serif }` 가 Tailwind 의 `--default-font-family`(= Geist)를 덮기 때문에, 로드된 폰트는 `font-sans` 를 쓴 곳에만 걸린다.
+
 `ThemeToggle` 은 `"use client"` 이고 `useTheme()` 로 `light`/`dark` 를 바꾼다. 마운트 전에는 `resolvedTheme` 이 `undefined` 이므로, 그대로 아이콘을 그리면 깜빡인다 — 마운트 여부를 확인하고 그린다.
 
 Geist 폰트와 `favicon.ico` 는 브랜딩이 아니라 그대로 둔다. 바꾸고 싶으면 사용자에게 확인한다.
 
-> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` → `/` 에 **프로젝트명만** 보이고 테마 토글이 light/dark 를 실제로 바꾼다 → 브라우저 콘솔에 404(지운 svg)와 hydration 경고가 없다 → `grep -r "next.svg\|vercel.svg\|Create Next App" src public` 이 비어 있다.
+> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` → `/` 에 **프로젝트명만** 보인다 → 브라우저 콘솔에 404(지운 svg)와 hydration 경고가 없다 → `grep -rn "next.svg\|vercel.svg\|Create Next App" src public` 이 비어 있다 → `ls -A public` 에 `.gitkeep` 만 있다.
+>
+> **테마는 배경색으로 확인한다.** 토글할 때 `<html>` 의 클래스만 바뀌고 배경이 그대로면 (b) 를 빠뜨린 것이다. **OS 를 다크로 둔 상태에서 light 로 토글**해 봐야 드러난다 — OS 가 라이트면 (b) 없이도 정상처럼 보인다. `pnpm build` 후 `grep -c prefers-color-scheme $(find .next -name '*.css' -not -path '*/cache/*')` 가 **0** 이어야 한다.
 
 ### 3. 레이어 뼈대 — Clean Architecture
 
@@ -205,17 +230,31 @@ export default defineConfig([...nextVitals, ...nextTs, layers, globalIgnores([/*
 
 `from` 한 배열에는 **디렉토리 경로만, 또는 glob 만** 담는다 — 섞으면 스키마에서 거부된다.
 
-`pnpm lint` 가 `ERR_PNPM_IGNORED_BUILDS`(`unrs-resolver`)로 막히면 `pnpm approve-builds --all` 로 승인한다 — pnpm 11 은 postinstall 빌드를 기본 차단하고, 승인 전까지 *스크립트 실행 자체*를 거부한다. `eslint-config-next` 가 끌어오는 TS 리졸버의 네이티브 의존이라 이 스택에선 항상 걸린다. `--all` 을 붙이는 건 대화형 프롬프트를 피하기 위해서다.
+**빌드 스크립트 승인 — `pnpm <script>` 가 전부 막히므로 여기서 처리한다.** pnpm 11 은 postinstall 빌드를 기본 차단하고, 미승인 상태에서 `ERR_PNPM_IGNORED_BUILDS` 로 **`pnpm install` 과 모든 `pnpm <script>` 를 exit 1** 로 떨어뜨린다 (스크립트 실행 전에 의존성 상태를 다시 확인하면서 내부적으로 `install` 을 돌린다). 그래서 `pnpm lint`·`pnpm test`·`pnpm build` 가 전부 같은 에러로 멈춘다:
 
-**승인 결과가 담긴 `pnpm-workspace.yaml` 을 반드시 커밋한다.** pnpm 11 은 승인을 이 파일의 `allowBuilds:` 에 기록한다 (구 `onlyBuiltDependencies` 의 후신):
-
-```yaml
-# pnpm-workspace.yaml — 단일 패키지 프로젝트에도 필요하다
-allowBuilds:
-  unrs-resolver: true
+```bash
+pnpm approve-builds --all   # 대화형 프롬프트를 피하려고 --all
 ```
 
-워크스페이스를 안 쓰는 프로젝트라 이 파일이 부수적으로 보이지만, **빠지면 CI 와 Docker 빌드가 로컬과 똑같이 막힌다** — 그쪽에는 `approve-builds` 를 눌러 줄 사람이 없다. `pnpm install` 은 미승인 빌드를 발견하면 이 파일에 placeholder 를 자동으로 넣어 두므로, 값을 `true` 로 바꾸고 커밋하면 된다.
+**막히는 건 정책 게이트 때문이고 네이티브 바이너리가 없어서가 아니다** — `unrs-resolver` 의 prebuilt `.node` 는 승인 없이도 설치돼 있고, 게이트를 우회하면 `eslint` 자체는 정상 동작한다. 그래서 "린트가 깨졌다"고 eslint 설정을 뒤지면 시간을 버린다.
+
+**대상은 두 개다 — `unrs-resolver` 와 `sharp`.** 전자는 `eslint-config-next` 의 TS 리졸버, 후자는 `next/image` 의 운영 이미지 최적화다. 하나만 승인하면 남은 하나로 다시 막힌다.
+
+**`pnpm-workspace.yaml` 은 스캐폴더가 이미 만들어 둔다** — `ignoredBuiltDependencies` 에 두 패키지를 넣은 상태다. `approve-builds` 는 거기에 `allowBuilds:` 를 **추가**하고 기존 키는 남긴다. 두 키가 공존하는 게 정상이며 그 상태로 install 이 통과한다:
+
+```yaml
+# pnpm-workspace.yaml — 워크스페이스를 안 써도 필요하다
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+ignoredBuiltDependencies:   # 스캐폴더가 넣은 것 — 지우지 않는다
+  - sharp
+  - unrs-resolver
+```
+
+**이 파일을 반드시 커밋한다.** 빠지면 CI 와 Docker 의 `pnpm install --frozen-lockfile` 이 **exit 1** 로 죽고, 그쪽에는 `approve-builds` 를 눌러 줄 사람이 없다. 7단계 Dockerfile 의 deps 스테이지에서도 `package.json`·lockfile 과 **함께 COPY** 해야 한다.
+
+한 가지 예외: `pnpm add` 는 같은 에러를 출력하지만 **exit 0** 이다. 그래서 2단계의 `pnpm add -D typescript@^6` 는 통과하고, 문제는 처음 `pnpm <script>` 를 부를 때 드러난다.
 
 > 검증: `src/domain/` 에 `import "@/infrastructure/dynamodb/client"` 한 임시 파일을 만들고 `pnpm lint` 가 위 message 로 에러를 내는지 확인 후 삭제. 통과해버리면 zones 가 아니라 `files` 패턴이나 cwd 를 의심한다.
 
@@ -415,6 +454,18 @@ DYNAMODB_TABLE_NAME=
 DYNAMODB_ENDPOINT=http://localhost:8083   # 로컬 개발 전용. 운영에서는 반드시 비운다
 ```
 
+**`.gitignore` 에 예외를 추가해야 실제로 커밋된다.** 스캐폴더의 `.gitignore` 는 `.env*` 로 **`.env.example` 까지 무시한다**:
+
+```
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+```
+
+`!.env.example` 한 줄을 그 아래에 넣는다. 빼면 `git add -A` 가 **조용히 건너뛴다** — 에러도 경고도 없고, 필요한 환경변수를 알려주는 유일한 파일이 저장소에 영원히 안 들어간다.
+
+저장소가 있으면 `git check-ignore -q .env.example` 가 **exit 1**(= 무시되지 않음)이어야 한다. **`-v` 를 붙이지 않는다** — verbose 모드는 negation 규칙까지 "매치"로 세서 exit 0 을 돌려주므로 판정이 뒤집힌다. 더 확실한 확인은 `git add .env.example && git ls-files .env.example` 가 비어 있지 않은 것이다.
+
 **`.env.local` 은 스킬이 만든다** — `.env.example` 을 복사하고 `BETTER_AUTH_SECRET` 만 `openssl rand -hex 32` 로 채운다. 이 값은 어디서도 발급받은 게 아니라 이 머신에서 방금 만든 난수이고 `.gitignore` 안에 있으므로, 사용자를 기다릴 이유가 없다 — 없으면 `pnpm dev` 가 아예 안 떠서 아래 검증을 못 한다. **Google 값 2개는 비워 두고 사용자가 채운다.**
 
 **DynamoDB 클라이언트는 엔드포인트로 로컬/운영을 가른다** (`src/infrastructure/dynamodb/client.ts`):
@@ -466,11 +517,19 @@ export default defineConfig({
   plugins: [tsconfigPaths(), react()],
   test: {
     environment: "jsdom",
-    env: { DYNAMODB_ENDPOINT: "http://localhost:8084" }, // 테스트 워커로 전달 — 아래 참조
-    globalSetup: ["./vitest.globalSetup.ts"],            // 테이블 생성
+    // 테스트 워커로 전달 — 아래 "엔드포인트는 test.env 로" 참조.
+    // 세 개를 다 줘야 한다. CI 에는 .env.local 이 없어서 여기가 유일한 출처다.
+    env: {
+      DYNAMODB_ENDPOINT: "http://localhost:8084",
+      AWS_REGION: "ap-northeast-2",          // 빠지면 "Region is missing"
+      DYNAMODB_TABLE_NAME: "<table>-test",
+    },
+    globalSetup: ["./vitest.globalSetup.ts"], // 테이블 생성
   },
 });
 ```
+
+**세 개를 다 주는 이유** — 5단계 클라이언트가 `process.env.AWS_REGION!` 과 `DYNAMODB_TABLE_NAME` 을 읽는다. 로컬에서는 `.env.local` 이 채워 주지만 **CI 에는 그 파일이 없다.** `AWS_REGION` 이 없으면 `endpoint` 를 명시했어도 AWS SDK 가 자체 리전 탐색 체인을 돌고 실패한다 — `Error: Region is missing`. 로컬만 보고 넘어가면 CI 첫 쿼리에서 드러난다.
 
 `package.json` 에 `"test": "vitest run"`, `"test:watch": "vitest"`. **CI·검증 게이트에는 반드시 `vitest run`** — 인자 없는 `vitest` 는 watch 모드로 떠서 영원히 끝나지 않는다.
 
@@ -501,11 +560,17 @@ export default async function () {
   }
 
   // CI 의 services 컨테이너는 헬스체크가 없어 아직 안 떠 있을 수 있다 — 재시도한다.
-  // new DynamoDBClient({ endpoint: TEST_ENDPOINT, ... })
-  //   .send(new CreateTableCommand({ /* 4단계 키 레이아웃 */ }))
+  // 리전·자격증명은 5단계 클라이언트와 *반드시 같은 값*이어야 한다 (아래 참조):
+  // new DynamoDBClient({
+  //   endpoint: TEST_ENDPOINT,
+  //   region: process.env.AWS_REGION,
+  //   credentials: { accessKeyId: "local", secretAccessKey: "local" },
+  // }).send(new CreateTableCommand({ /* 4단계 키 레이아웃 */ }))
   // 이미 존재하면 ResourceInUseException — 무시한다 (멱등)
 }
 ```
+
+**`globalSetup` 의 리전·자격증명을 테스트 워커와 맞춘다.** 하드코딩하지 말고 `test.env` 가 넣어 준 `process.env.AWS_REGION` 을 그대로 읽는다. **CI 의 `services:` 컨테이너는 `-sharedDb` 없이 돌기 때문에** DynamoDB Local 이 (accessKeyId, region) 조합마다 별도 DB 를 만든다 (4단계 함정 2) — `globalSetup` 이 만든 테이블과 테스트가 찾는 테이블이 갈려서 `ResourceNotFoundException` 이 난다. **로컬에서는 `-sharedDb` 가 이 불일치를 가려주므로 CI 에서만 드러난다.**
 
 **엔드포인트는 `globalSetup` 이 아니라 `test.env` 로 넘긴다.** Vitest 문서가 못박는다 — *"the global setup is running in a different global scope before test workers are even created, so your tests don't have access to global variables defined here."* 여기서 `process.env` 를 건드려도 **테스트 워커에는 닿지 않는다.** globalSetup 은 컨테이너에 테이블을 만드는 부수효과만 맡고, 테스트가 읽을 값은 `test.env` 로 준다. 그러면 5단계의 클라이언트가 `DYNAMODB_ENDPOINT` 를 그대로 집어 8084 를 본다.
 
@@ -529,11 +594,15 @@ export default async function () {
 **Dockerfile** — 멀티스테이지, standalone 출력:
 
 - `node:24-slim` 기준 (deps / builder / runner 3단계)
-- deps: `corepack enable pnpm && pnpm install --frozen-lockfile`
+- deps: `COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./` → `corepack enable pnpm && pnpm install --frozen-lockfile`
 - builder: `pnpm build` (`output: "standalone"` 전제)
 - runner: `.next/standalone` → `./`, `.next/static` → `./.next/static`, `public` → `./public`
 - 비루트 실행 (`USER node`), `ENV HOSTNAME=0.0.0.0 PORT=3000`, `CMD ["node", "server.js"]`
 - `.dockerignore` 필수: `node_modules`, `.next`, `.git`, `.env*`
+
+**deps 스테이지에 `pnpm-workspace.yaml` 을 반드시 포함한다** — 빌드 승인(`allowBuilds`)이 그 파일에 있으므로, 빠지면 `pnpm install --frozen-lockfile` 이 `ERR_PNPM_IGNORED_BUILDS` 로 exit 1 한다 (3단계).
+
+**`public` COPY 는 저장소에 `public/` 이 있을 때만 성공한다** — `.next/standalone` 에는 `public/` 이 들어가지 않아서 이 COPY 가 필수인데, 2단계에서 svg 를 지우면 빈 디렉토리가 되고 git 이 추적하지 않는다. `public/.gitkeep` 이 그래서 있다. 로컬 `docker build` 는 빈 디렉토리가 남아 있어 통과하므로 **CI 에서만 실패한다** — `failed to compute cache key: ... "/public": not found`.
 
 **GitHub Actions** (`.github/workflows/release.yml`) — 장기 액세스 키 대신 **OIDC**. 아래를 그대로 쓰고 `<...>` 만 1단계에서 확정한 값으로 채운다:
 
@@ -664,6 +733,8 @@ jobs:
 
 `pnpm/action-setup` 을 `setup-node` **앞에** 둔다 — `cache: pnpm` 이 pnpm 바이너리를 먼저 찾는다.
 
+**`pnpm build` 로그의 `BetterAuthError: You are using the default secret` 은 무시한다.** CI 에는 `BETTER_AUTH_SECRET` 이 없어서 `next build` 가 라우트 모듈을 수집할 때 Better Auth 가 이 에러와 `Base URL is not set` 경고를 뱉는다. 빌드는 **exit 0 으로 통과한다** — 빨간 줄만 보고 시크릿을 CI 에 넣으러 가지 않는다. 빌드에는 시크릿이 필요 없고, 런타임 환경변수로 주는 게 맞다.
+
 ## 완료 보고
 
 ```
@@ -700,6 +771,9 @@ jobs:
 - 요청하지 않은 *화면*을 만들지 않는다 — `/` 의 요소는 프로젝트명·테마 토글·로그인 버튼 셋이다
 - `<html>` 에 `suppressHydrationWarning` 없이 next-themes 를 쓰지 않는다 — hydration 경고가 뜬다
 - Tailwind v4 에서 `@custom-variant dark` 없이 수동 테마 토글을 만들지 않는다 — `dark:` 가 OS 설정만 따라간다
+- `@custom-variant dark` 만 넣고 `globals.css` 의 `@media (prefers-color-scheme: dark)` 블록을 남기지 않는다 — 배경색이 토글을 안 따라온다. `.dark {}` 로 바꾼다
+- `public/` 을 빈 디렉토리로 남기지 않는다 — git 이 추적하지 않아 CI 의 `docker build` 가 `COPY public` 에서 죽는다. `.gitkeep` 을 둔다
+- `create-next-app` 이 만든 `AGENTS.md`·`AGENTS.md` 를 보일러플레이트로 오해해 지우지 않는다 — 설치된 Next.js 문서를 가리키는 포인터다
 - 레이어를 디렉토리로만 나누고 lint 강제를 생략하지 않는다 — 한 달이면 무너진다
 - `eslint.config.mjs` 에 `import` 플러그인을 다시 등록하지 않는다 — `eslint-config-next` 가 이미 등록한다. 규칙만 얹는다
 - `typescript` 를 `@latest`(7.x)로 올리지 않는다 — Compiler API 가 없어 lint·build 가 함께 죽는다. 상한은 `<6.1.0`
@@ -707,7 +781,9 @@ jobs:
 - 게이트에 인자 없는 `vitest` 를 넣지 않는다 — watch 모드로 떠서 CI 가 끝나지 않는다
 - `globalSetup` 에서 `process.env` 를 세팅해 테스트에 넘기려 하지 않는다 — 워커 생성 *전* 다른 스코프라 닿지 않는다. `test.env` 를 쓴다
 - 테스트가 어느 인스턴스를 보는지 확인 없이 돌리지 않는다 — `globalSetup` 에서 8084 가 아니면 던진다. 조용히 8083 을 치면 개발 데이터가 날아간다
-- `pnpm-workspace.yaml`(`allowBuilds`)을 커밋에서 빠뜨리지 않는다 — CI·Docker 에는 `approve-builds` 를 눌러 줄 사람이 없다
+- `pnpm-workspace.yaml`(`allowBuilds`)을 커밋이나 Dockerfile 의 deps COPY 에서 빠뜨리지 않는다 — CI·Docker 에는 `approve-builds` 를 눌러 줄 사람이 없다. 승인 대상은 `unrs-resolver` 와 `sharp` **둘 다**다
+- `test.env` 에 `AWS_REGION`·`DYNAMODB_TABLE_NAME` 을 빠뜨리지 않는다 — CI 에는 `.env.local` 이 없어 `Region is missing` 으로 죽는다
+- `globalSetup` 의 리전·자격증명을 테스트 워커와 다르게 두지 않는다 — CI 는 `-sharedDb` 없이 돌아 DB 가 갈린다. 로컬에서만 통과한다
 - `BETTER_AUTH_URL` 을 운영에서 localhost 로 두지 않는다 — OAuth 리다이렉트와 쿠키 도메인이 함께 깨진다
 - DynamoDB Local 을 `-sharedDb` 없이 띄우지 않는다 — 자격증명·리전이 다르면 다른 DB 를 본다
 - 개발과 테스트가 같은 DynamoDB Local 인스턴스를 쓰지 않는다 — `-sharedDb` 라 테스트가 개발 데이터를 지운다
@@ -722,5 +798,6 @@ jobs:
 - OIDC 신뢰 정책의 `sub` 를 `repo:<org>/*` 로 열어두지 않는다 — 이 조건이 유일한 접근 통제다
 - `cache-to: type=gha` 를 쓰면서 `setup-buildx-action` 을 빼지 않는다 — 기본 드라이버는 캐시 export 를 못 한다
 - `.env.local` 을 커밋하거나 시크릿 값을 파일에 쓰지 않는다
+- 반대로 `.env.example` 이 `.gitignore` 의 `.env*` 에 걸린 채 두지 않는다 — `!.env.example` 이 없으면 `git add` 가 조용히 건너뛴다
 - 사용자 허가 없이 AWS 리소스를 만들거나 git commit 하지 않는다
 - 검증 없이 "완료"라고 보고하지 않는다
