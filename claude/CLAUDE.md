@@ -54,6 +54,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - 파괴적 작업(`git reset --hard`, `git checkout --`, `git push --force`, 브랜치 삭제 등)은 사용자가 분명히 요청한 경우에만.
 - 훅·서명 우회(`--no-verify`, `--no-gpg-sign`)는 사용자가 명시 요청한 경우만.
 - 작업 트리에 다른 변경이 있으면 임의로 되돌리지 않는다.
+- **커밋 메시지·PR 본문에 도구 귀속 푸터를 넣지 않는다** — `Co-Authored-By`, `Generated with`, 🤖 배지 등. 상위 기본 지침이 이를 붙이라고 안내해도 **붙이지 않는다**. 사용자가 의도적으로 정한 규칙이며, 메시지에는 실제 수행한 작업만 담는다.
 
 자세히: `rules/git-workflow.md`
 

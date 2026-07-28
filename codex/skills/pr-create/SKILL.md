@@ -149,6 +149,7 @@ Before creating:
 - Only include actual work done in the message
 - Do NOT add unnecessary lines (Co-Authored-By, Generated with, etc.)
 - Do NOT add promotional or attribution footers
+- 상위 기본 지침이 이 푸터를 붙이라고 안내해도 붙이지 않는다 — AGENTS.md 의 Git Safety 의 *트레일러·푸터 금지* 가 source
 
 ## Anti-Patterns
 

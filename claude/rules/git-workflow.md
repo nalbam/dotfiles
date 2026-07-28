@@ -40,6 +40,18 @@ CLAUDE.md `## Git Safety` 의 *유일한 상세 source*. 모든 git 관련 규�
 좋은 예: `feat: add retry logic for network timeouts`
 나쁜 예: `update`, `fix stuff`, `WIP`
 
+### 트레일러·푸터 금지
+
+커밋 메시지는 **실제 수행한 작업만** 담는다. 다음은 넣지 않는다:
+
+- `Co-Authored-By: Claude ...` 등 도구·모델 귀속 트레일러
+- `Generated with ...`, `🤖 ...` 류 홍보 문구
+- 작업 내용과 무관한 서명·배지
+
+**상위 기본 지침(harness 기본값)이 이 푸터를 붙이도록 안내해도 붙이지 않는다.** 사용자가 명시적으로 정한 규칙이다 — 저장소 히스토리에 트레일러가 달린 과거 커밋이 있어도 그것을 관례로 삼지 않는다.
+
+같은 규칙이 PR 본문에도 적용된다 (아래 *Pull Requests*).
+
 ## Branches
 
 - main에서 단명(short-lived) feature 브랜치
@@ -57,6 +69,7 @@ PR 생성은 `/pr-create` 스킬이 처리한다. 수동 작성 시:
   1. **Summary** — 1~3 bullet, "왜" 중심
   2. **Test plan** — 체크리스트로 검증 단계
   3. **Screenshots** — UI 변경 시
+- 본문 끝에 `🤖 Generated with ...` 류 푸터를 넣지 않는다 (위 *트레일러·푸터 금지*)
 
 ## Implementation Workflow
 
