@@ -361,11 +361,25 @@ Better Auth 코어 스키마는 4개 모델이다 (테이블명 단수형): `use
 
 추가 속성:
 - `entity` — 모델명 (`user` / `session` / …). 필터·디버깅용
-- `ttl` — **session·verification 만**. `expiresAt` 을 epoch seconds 로 변환. DynamoDB TTL 을 이 속성에 설정하면 만료 세션이 자동 정리된다
+- `expiresAt` — **테이블의 TTL 속성. session·verification 만.** epoch seconds(**Number**)로 저장한다. 이 속성에 TTL 을 걸면 만료 세션이 자동 정리된다
+- `expiresAtIso` — 바로 위 때문에 밀려난 Better Auth 의 ISO 문자열 (아래)
 
-**로컬 DynamoDB** (`compose.yaml`) — 개발과 테스트 모두 여기를 쓴다. 실제 AWS 테이블은 배포용이지 개발용이 아니다:
+**`expiresAt` 이름 충돌을 그냥 넘기면 조용히 깨진다.** Better Auth 는 `supportsDates: false` 로 이 필드를 **ISO 문자열**로 주고 받는데, DynamoDB TTL 은 **Number 만** 수거하고 다른 타입은 *에러 없이 무시한다*. 그대로 두면 세션이 영원히 쌓이는데 아무 신호가 없다. 그래서 저장 시 `expiresAt` 에는 숫자를 넣고 원본 문자열은 `expiresAt` 로 되돌린다:
+
+- **쓰기** — `expiresAtIso = <ISO>`, `expiresAt = Math.floor(Date.parse(ISO) / 1000)`
+- **읽기** — 내부 속성을 벗길 때 `expiresAtIso` 를 지우고 그 값을 `expiresAt` 에 돌려놓는다. `expiresAtIso` 가 없는 옛 행은 문자열 `expiresAt` 을 그대로 갖고 있으므로 그냥 통과시킨다 (수거만 안 될 뿐 읽기는 정상)
+- **순서** — 내부 속성 제거를 `where`·`sortBy` 적용 **앞**에 둔다. 저장 아이템의 `expiresAt` 은 숫자, 반환 레코드의 `expiresAt` 은 문자열이라, 원본 행에 필터를 걸면 타입이 어긋나 아무것도 안 걸린다
+
+TTL 속성명을 `ttl` 로 따로 두면 이 장치가 전부 필요 없지만, **다른 프로젝트와 이름을 맞추는 쪽을 택했다** — 한 테이블에 auth 외 엔티티(트레이스·사용량 등)가 들어오면 그쪽 만료 필드도 자연스럽게 `expiresAt` 이 되기 때문이다.
+
+**로컬 DynamoDB** (`compose.yaml`) — 개발과 테스트 모두 여기를 쓴다. 실제 AWS 테이블은 배포용이지 개발용이 아니다.
+
+**이 블록은 프로젝트마다 고쳐 쓰는 것이 아니라 그대로 복사한다** — 아래 "공유 인스턴스" 참조:
 
 ```yaml
+# 이 머신의 모든 프로젝트가 같은 컨테이너 쌍을 재사용한다 (아래 "공유 인스턴스").
+name: localdev
+
 services:
   # 로컬 개발용 — 데이터가 유지된다 (재시작해도 로그인 세션·테이블이 남음)
   dynamodb:
@@ -375,18 +389,30 @@ services:
     working_dir: /home/dynamodblocal
     volumes: ["dynamodb-data:/home/dynamodblocal/data"]
     ports: ["8083:8000"]
+    restart: unless-stopped        # 머신 공용이라 Docker 재시작 후 알아서 돌아온다
 
   # 테스트용 — 매 기동마다 초기화된다
   dynamodb-test:
     image: amazon/dynamodb-local:3.3.0
     command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-inMemory"]
     ports: ["8084:8000"]
+    restart: unless-stopped
 
 volumes:
   dynamodb-data:
 ```
 
 **왜 인스턴스를 둘로 나누는가** — `-sharedDb` 는 모든 클라이언트가 *하나의 DB* 를 보게 만든다. 하나만 띄우면 테스트가 개발 중이던 데이터를 매번 지운다. 포트를 나누는 게 유일하게 안 헷갈리는 방법이다.
+
+**공유 인스턴스 — 프로젝트마다 새 포트를 고르지 않는다.** 8083·8084 는 *이 머신의* 로컬 DynamoDB 포트이며, 모든 프로젝트가 같은 컨테이너 쌍을 재사용한다. `name: localdev` 가 그 장치다 — compose 프로젝트명이 같고 서비스 스탠자가 동일하면, 두 번째 저장소에서 `docker compose up -d dynamodb` 를 해도 기존 컨테이너를 그대로 쓰고 끝난다(`Running`). **스탠자가 한 글자라도 다르면 compose 가 컨테이너를 recreate 하므로 위 블록을 그대로 복사한다** — 출력에 `Recreated` 가 보이면 어긋난 것이다.
+
+여기서 따라 나오는 규칙 셋:
+
+1. **테이블명 = 프로젝트명.** 공유 인스턴스에서 테이블명이 프로젝트를 가르는 *유일한* 수단이다. `app` 같은 범용 이름을 쓰면 두 프로젝트가 에러 없이 같은 데이터를 본다
+2. **초기화·정리 코드는 자기 테이블만 건드린다.** `ListTables` 로 훑어 전부 지우는 로직은 남의 프로젝트를 지운다
+3. **`docker compose down -v` 를 쓰지 않는다.** 볼륨이 공유라 이 머신의 모든 프로젝트 개발 데이터가 함께 날아간다. `--remove-orphans` 도 다른 저장소가 띄운 서비스를 지운다
+
+`docker compose ps` 에 다른 저장소의 서비스가 같이 보이는 것은 정상이다 — 한 compose 프로젝트를 나눠 쓰고 있기 때문이다. CI 는 잡마다 자기 컨테이너를 띄우므로 공유 개념이 없다 (7단계).
 
 **왜 `user: root` 인가** — 이미지에 `/home/dynamodblocal/data` 가 없어서 Docker 가 마운트 지점을 **root 소유 755** 로 새로 만든다. 컨테이너는 uid 1000(`dynamodblocal`)으로 도니 SQLite 가 DB 파일을 못 만들고, 다음을 3초마다 무한 반복한다:
 
@@ -421,12 +447,14 @@ aws dynamodb create-table --table-name <table> \
   --billing-mode PAY_PER_REQUEST --region <region>
 
 aws dynamodb update-time-to-live --table-name <table> \
-  --time-to-live-specification 'Enabled=true,AttributeName=ttl' --region <region>
+  --time-to-live-specification 'Enabled=true,AttributeName=expiresAt' --region <region>
 ```
 
-로컬 실행 시 `--region` 값은 무엇이든 되지만 **앱의 `AWS_REGION` 과 반드시 같아야 한다** (함정 2). 테스트 인스턴스용은 `--endpoint-url http://localhost:8084` 이고, 이건 6단계의 `globalSetup` 이 맡는다.
+`<table>` 은 **프로젝트명이다** — 8083 인스턴스를 다른 프로젝트와 나눠 쓰므로 여기서 유일하지 않으면 데이터가 섞인다 (위 "공유 인스턴스").
 
-> 검증: 접근 패턴 7개가 각각 어떤 인덱스로 처리되는지 표로 대응됨 (대응 안 되는 패턴이 남으면 키 설계를 고친다). `docker compose up -d dynamodb` 후 `aws dynamodb list-tables --endpoint-url http://localhost:8083` 에 테이블이 보임.
+로컬 실행 시 `--region` 값은 무엇이든 되지만 **앱의 `AWS_REGION` 과 반드시 같아야 한다** (함정 2). 테스트 인스턴스용은 `--endpoint-url http://localhost:8084` + 테이블명 `<table>-test` 이고, 이건 6단계의 `globalSetup` 이 맡는다.
+
+> 검증: 접근 패턴 7개가 각각 어떤 인덱스로 처리되는지 표로 대응됨 (대응 안 되는 패턴이 남으면 키 설계를 고친다). `docker compose up -d dynamodb` 후 `aws dynamodb list-tables --endpoint-url http://localhost:8083` 에 테이블이 보임 — 다른 프로젝트의 테이블이 같이 나오는 것은 정상이다.
 
 ### 5. Better Auth + Google OAuth + 커스텀 어댑터
 
@@ -467,7 +495,7 @@ export const dynamodbAdapter = (client: DynamoDBDocumentClient, table: string) =
 1. **`where` 절을 인덱스로 해석하지 못하면 던진다.** 조용히 `Scan` 으로 폴백하지 않는다 — 개발 중엔 동작하는 것처럼 보이다가 운영에서 비용·지연으로 터진다
 2. **지원 연산자를 명시한다.** 최소 `eq` 와 `in`. 나머지(`contains`, `starts_with`, `lt`, `gt`)는 필요할 때 추가하고, 미지원은 명확한 에러 메시지로 거부한다. `findMany` 의 `offset` 도 거부한다 — DynamoDB 에 대응 개념이 없다
 3. **`create`/`update` 에서 파생 키를 항상 재계산한다.** GSI 키는 그대로 update 하면 되지만 두 경우는 트랜잭션이다 — **session 의 token 이 바뀌면 PK 가 바뀌므로 delete+put**, **user 의 email 이 바뀌면 마커 스왑**(옛 `EMAIL#` 마커 Delete + 새 마커 조건부 Put + user Update)
-4. **`ttl` 은 `expiresAt` 이 있는 모델에서만 계산한다**
+4. **`expiresAt` 은 만료가 있는 모델(session·verification)에서만 숫자로 바꾸고, ISO 는 `expiresAtIso` 에 보관한다** (4단계). 내부 속성 제거는 필터·정렬보다 **먼저** 돈다
 5. **동일 이메일 중복 가입 방지는 email 마커 + 트랜잭션이다.** user 의 PK 는 `USER#<id>` 라 user 아이템에 건 `attribute_not_exists(PK)` 는 id 충돌만 막고 **중복 이메일은 통과시킨다** (다른 id → 다른 PK). GSI 도 유니크 제약이 없다. user `create` 는 `TransactWriteItems` 로 user 아이템 Put + `EMAIL#<email>` 마커 Put 을 묶고 **둘 다** `attribute_not_exists(PK)` 조건을 건다 — 마커가 이미 있으면 트랜잭션 전체가 취소된다. user 삭제 시 마커도 함께 지운다. 애플리케이션 레벨 select-then-insert 는 경합에 취약해서 대안이 아니다
 
 **설정** (`src/infrastructure/auth/auth.ts`):
@@ -605,7 +633,7 @@ export default defineConfig({
 });
 ```
 
-**세 개를 다 주는 이유** — 5단계 클라이언트가 `process.env.AWS_REGION!` 과 `DYNAMODB_TABLE_NAME` 을 읽는다. 로컬에서는 `.env.local` 이 채워 주지만 **CI 에는 그 파일이 없다.** `AWS_REGION` 이 없으면 `endpoint` 를 명시했어도 AWS SDK 가 자체 리전 탐색 체인을 돌고 실패한다 — `Error: Region is missing`. 로컬만 보고 넘어가면 CI 첫 쿼리에서 드러난다.
+**세 개를 다 주는 이유** — 5단계 클라이언트가 `process.env.AWS_REGION!` 과 `DYNAMODB_TABLE_NAME` 을 읽는데, **테스트 워커는 `.env.local` 을 물려받지 않는다.** Vite 는 `.env` 파일에서 `VITE_` 접두사가 붙은 값만 노출하므로, 이 세 변수의 출처는 로컬이든 CI 든 `test.env` 하나뿐이다. `AWS_REGION` 이 없으면 `endpoint` 를 명시했어도 AWS SDK 가 자체 리전 탐색 체인을 돌고 실패한다 — `Error: Region is missing`.
 
 `package.json` 에 `"test": "vitest run"`, `"test:watch": "vitest"`. **CI·검증 게이트에는 반드시 `vitest run`** — 인자 없는 `vitest` 는 watch 모드로 떠서 영원히 끝나지 않는다.
 
@@ -619,36 +647,36 @@ glob 으로 환경을 나누는 `environmentMatchGlobs` 는 현행 Vitest 문서
 
 **테스트는 `dynamodb-test`(포트 8084)를 쓴다** — 4단계에서 띄운 개발용 인스턴스가 아니다. `-sharedDb` 때문에 같은 인스턴스를 쓰면 테스트가 개발 데이터를 지운다.
 
+**테이블명에 `-test` 를 붙이는 것이 그 방어선의 두 번째 겹이다.** `test.env` 의 엔드포인트가 어떤 이유로든 8083 으로 새도, 이름이 다르면 테스트가 개발 테이블에 닿지 못한다. 인스턴스를 다른 프로젝트와 공유하므로(4단계) 값이 어긋날 경로가 그만큼 늘어난다.
+
 테스트 인스턴스는 `-inMemory` 라 기동할 때마다 비어 있으므로 **테이블 생성을 `globalSetup` 에 둔다**. 4단계의 스키마를 **SDK `CreateTableCommand` 로** 만든다 — AWS CLI 를 호출하지 않는다. 테스트가 CLI 설치 여부에 의존하면 CI 에서 깨진다.
 
 ```ts
 // vitest.globalSetup.ts — 테이블 생성만 한다
-const TEST_ENDPOINT = "http://localhost:8084";
+// 상수로 박는다. globalSetup 은 process.env 로 아무것도 받지 못한다 (아래 참조).
+const ENDPOINT = "http://localhost:8084";
+const REGION = "ap-northeast-2";
+const TABLE = "<table>-test";
 
 export default async function () {
-  // 안전장치: 개발 인스턴스를 가리키고 있으면 즉시 멈춘다.
-  // .env.local 이 DYNAMODB_ENDPOINT=8083 을 들고 있고 Vitest 가 .env 를 읽으므로
-  // test.env 를 덮어쓸 여지가 있다. 그대로 두면 -sharedDb 라 테스트가 개발 데이터를 지운다.
-  if (process.env.DYNAMODB_ENDPOINT !== TEST_ENDPOINT) {
-    throw new Error(
-      `테스트가 ${process.env.DYNAMODB_ENDPOINT} 를 가리킨다. ${TEST_ENDPOINT} 여야 한다.`
-    );
-  }
-
-  // CI 의 services 컨테이너는 헬스체크가 없어 아직 안 떠 있을 수 있다 — 재시도한다.
-  // 리전·자격증명은 5단계 클라이언트와 *반드시 같은 값*이어야 한다 (아래 참조):
+  // 재실행 가능하게: 이미 있으면 지우고 다시 만든다. -inMemory 는 컨테이너 기동에만
+  // 비워지므로, 이게 없으면 두 번째 `pnpm test` 가 첫 번째의 행과 충돌한다.
+  // DeleteTable 은 반드시 이 TABLE 한 개만 — 인스턴스를 다른 프로젝트와 공유한다 (4단계).
+  //
   // new DynamoDBClient({
-  //   endpoint: TEST_ENDPOINT,
-  //   region: process.env.AWS_REGION,
+  //   endpoint: ENDPOINT,
+  //   region: REGION,
   //   credentials: { accessKeyId: "local", secretAccessKey: "local" },
   // }).send(new CreateTableCommand({ /* 4단계 키 레이아웃 */ }))
-  // 이미 존재하면 ResourceInUseException — 무시한다 (멱등)
+  // ResourceNotFoundException(삭제) / ResourceInUseException(생성) 은 무시한다 (멱등)
 }
 ```
 
-**`globalSetup` 의 리전·자격증명을 테스트 워커와 맞춘다.** 하드코딩하지 말고 `test.env` 가 넣어 준 `process.env.AWS_REGION` 을 그대로 읽는다. **CI 의 `services:` 컨테이너는 `-sharedDb` 없이 돌기 때문에** DynamoDB Local 이 (accessKeyId, region) 조합마다 별도 DB 를 만든다 (4단계 함정 2) — `globalSetup` 이 만든 테이블과 테스트가 찾는 테이블이 갈려서 `ResourceNotFoundException` 이 난다. **로컬에서는 `-sharedDb` 가 이 불일치를 가려주므로 CI 에서만 드러난다.**
+**`globalSetup` 은 `process.env` 로 아무것도 받지 못한다.** `test.env` 는 워커 전용이고(Vitest 문서: *"These variables will not be available in the main process"*), `.env.local` 은 Vite 가 `VITE_` 접두사 없는 값을 `process.env` 에 넣지 않아 역시 안 보인다 — Vitest 4 에서 확인했다. 그래서 엔드포인트·리전·테이블명을 **상수로 박고, `test.env` 에 같은 값을 적는다.** 여기서 `process.env.AWS_REGION` 을 읽으려 하면 `undefined` 로 `Region is missing` 이 난다.
 
-**엔드포인트는 `globalSetup` 이 아니라 `test.env` 로 넘긴다.** Vitest 문서가 못박는다 — *"the global setup is running in a different global scope before test workers are even created, so your tests don't have access to global variables defined here."* 여기서 `process.env` 를 건드려도 **테스트 워커에는 닿지 않는다.** globalSetup 은 컨테이너에 테이블을 만드는 부수효과만 맡고, 테스트가 읽을 값은 `test.env` 로 준다. 그러면 5단계의 클라이언트가 `DYNAMODB_ENDPOINT` 를 그대로 집어 8084 를 본다.
+**두 곳의 값이 갈리면 조용히 깨진다.** globalSetup 이 만든 테이블과 워커가 찾는 테이블이 달라져 `ResourceNotFoundException` 이 난다. 리전까지 맞춰야 하는 이유는 **CI 의 `services:` 컨테이너가 `-sharedDb` 없이 돌기 때문**이다 — DynamoDB Local 이 (accessKeyId, region) 조합마다 별도 DB 를 만든다 (4단계 함정 2). **로컬에서는 `-sharedDb` 가 이 불일치를 가려주므로 CI 에서만 드러난다.**
+
+**엔드포인트를 `globalSetup` 에서 `process.env` 로 넘기려 하지 않는다.** Vitest 문서가 못박는다 — *"the global setup is running in a different global scope before test workers are even created."* globalSetup 은 컨테이너에 테이블을 만드는 부수효과만 맡고, 테스트가 읽을 값은 `test.env` 로 준다. 그러면 5단계의 클라이언트가 `DYNAMODB_ENDPOINT` 를 그대로 집어 8084 를 본다. 워커가 실제로 8084 를 보는지 확인하는 가드가 필요하면 `setupFiles` 에 둔다 — 거기가 `test.env` 가 보이는 유일한 자리다.
 
 **무엇을 테스트하는가** — 4·5단계에서 표로만 적어둔 것을 실행 가능하게 만든다:
 
@@ -658,7 +686,7 @@ export default async function () {
 | 어댑터 계약 1 (Scan 폴백 금지) | 인덱스로 못 푸는 `where` 에 **throw 하는지**. 조용히 결과를 돌려주면 실패 |
 | 어댑터 계약 2 (지원 연산자) | `eq`·`in` 통과, 미지원 연산자는 명확한 에러 |
 | 어댑터 계약 3 (파생 키 재계산) | email 변경 후 새 email 로 조회되고 옛 키로는 안 잡히는지 — 마커 스왑 후 옛 email 로 재가입이 *가능*해지는 것까지 |
-| 어댑터 계약 4 (ttl) | session `create` → `ttl` 이 `expiresAt` 의 epoch seconds 로 존재, user `create` → `ttl` 부재 |
+| 어댑터 계약 4 (TTL) | session `create` → 저장 아이템의 `expiresAt` 이 **Number**(epoch seconds), `expiresAtIso` 는 원본 ISO, 반환값의 `expiresAt` 은 다시 ISO. user `create` → 둘 다 부재 |
 | 어댑터 계약 5 (중복 가입 방지) | 같은 email 로 `create` 2회 → 하나만 성공 |
 | 도메인·유스케이스 | DynamoDB 없이 순수 단위 테스트 (외부 의존 0 이라는 3단계 경계의 증명) |
 
@@ -849,7 +877,7 @@ jobs:
 - docker build: PASS (또는 SKIP + 사유)
 
 로컬에 이미 만들어 둔 것:
-- 로컬 DynamoDB 2개 (dev :8083 / test :8084) + dev 테이블
+- 로컬 DynamoDB 2개 (dev :8083 / test :8084 — 다른 프로젝트가 이미 띄워 뒀으면 재사용) + dev 테이블 `<table>`
 
 사용자 후속 작업 (실행하지 않음):
 - [ ] **AWS** DynamoDB 테이블 생성 — 4단계 명령에서 `--endpoint-url` 만 빼면 된다 (로컬은 완료됨)
@@ -883,19 +911,24 @@ jobs:
 - `eslint.config.mjs` 에 `import` 플러그인을 다시 등록하지 않는다 — `eslint-config-next` 가 이미 등록한다. 규칙만 얹는다
 - `typescript` 를 `@latest`(7.x)로 올리지 않는다 — Compiler API 가 없어 lint·build 가 함께 죽는다. 상한은 `<6.1.0`
 - 어댑터에서 `Scan` 으로 폴백하지 않는다 — 지원 못 하는 쿼리는 던진다
+- TTL 속성(`expiresAt`)에 ISO 문자열을 남기지 않는다 — DynamoDB 는 Number 가 아니면 *에러 없이* 무시한다. 세션이 영원히 쌓이는데 신호가 없다
+- 내부 속성 제거를 `where`·`sortBy` *뒤*에 두지 않는다 — 저장 아이템의 `expiresAt` 은 숫자, 반환 레코드는 문자열이라 필터가 아무것도 못 잡는다
 - email 유니크를 GSI 나 select-then-insert 로 보장하려 하지 않는다 — GSI 엔 유니크 제약이 없고 select-then-insert 는 경합에 진다. `EMAIL#` 마커 + `TransactWriteItems` 다
 - session 의 token 조회를 GSI 에 두지 않는다 — 매 요청 + 로그인 직후 경로가 eventually consistent 가 된다. token 이 PK 다
 - 게이트에 인자 없는 `vitest` 를 넣지 않는다 — watch 모드로 떠서 CI 가 끝나지 않는다
 - `globalSetup` 에서 `process.env` 를 세팅해 테스트에 넘기려 하지 않는다 — 워커 생성 *전* 다른 스코프라 닿지 않는다. `test.env` 를 쓴다
-- 테스트가 어느 인스턴스를 보는지 확인 없이 돌리지 않는다 — `globalSetup` 에서 8084 가 아니면 던진다. 조용히 8083 을 치면 개발 데이터가 날아간다
+- `globalSetup` 에서 `process.env` 로 엔드포인트·리전을 읽지 않는다 — `test.env` 도 `.env.local` 도 거기엔 닿지 않아 `undefined` 다. 상수로 박고 `test.env` 와 같은 값을 유지한다
 - `pnpm-workspace.yaml`(`allowBuilds`)을 커밋이나 Dockerfile 의 deps COPY 에서 빠뜨리지 않는다 — CI·Docker 에는 승인을 눌러 줄 사람이 없다. 승인 대상은 `unrs-resolver` 와 `sharp` **둘 다**다
 - `create-next-app` 을 `--skip-install` 없이 돌리지 않는다 — 빌드 승인 전이라 install 이 exit 1 하고, 스캐폴딩이 `Aborting installation.` 으로 중단돼 반쪽 프로젝트가 남는다
 - 빌드 승인을 `pnpm approve-builds` 로 먼저 해결하려 하지 않는다 — `node_modules` 가 있어야 후보를 찾으므로 설치 전에는 아무것도 안 한다. `pnpm-workspace.yaml` 에 두 줄을 적는다
-- `test.env` 에 `AWS_REGION`·`DYNAMODB_TABLE_NAME` 을 빠뜨리지 않는다 — CI 에는 `.env.local` 이 없어 `Region is missing` 으로 죽는다
-- `globalSetup` 의 리전·자격증명을 테스트 워커와 다르게 두지 않는다 — CI 는 `-sharedDb` 없이 돌아 DB 가 갈린다. 로컬에서만 통과한다
+- `test.env` 에 `AWS_REGION`·`DYNAMODB_TABLE_NAME` 을 빠뜨리지 않는다 — 워커는 `.env.local` 을 물려받지 않아 `test.env` 가 유일한 출처다. 없으면 `Region is missing`
+- `globalSetup` 의 리전·테이블명을 `test.env` 와 다르게 두지 않는다 — CI 는 `-sharedDb` 없이 돌아 DB 가 갈린다. 로컬에서만 통과한다
 - `BETTER_AUTH_URL` 을 운영에서 localhost 로 두지 않는다 — OAuth 리다이렉트와 쿠키 도메인이 함께 깨진다
 - DynamoDB Local 을 `-sharedDb` 없이 띄우지 않는다 — 자격증명·리전이 다르면 다른 DB 를 본다
 - 개발과 테스트가 같은 DynamoDB Local 인스턴스를 쓰지 않는다 — `-sharedDb` 라 테스트가 개발 데이터를 지운다
+- 프로젝트마다 새 포트 쌍을 고르지 않는다 — 8083·8084 고정이고 `name: localdev` 로 컨테이너를 공유한다
+- 테이블명을 프로젝트명과 다르게 두지 않는다 — 공유 인스턴스에서 테이블명이 유일한 격리 수단이라, 겹치면 에러 없이 데이터가 섞인다
+- `docker compose down -v` 를 쓰지 않는다 — 볼륨이 공유라 이 머신의 모든 프로젝트 개발 데이터가 함께 날아간다
 - CI 의 `services:` 로 DynamoDB Local 에 `-sharedDb` 같은 인자를 넘기려 하지 않는다 — 넘길 방법이 없다. 대신 호스트 포트를 8084 로 맞춘다
 - 로컬 개발을 실제 AWS DynamoDB 로 하지 않는다 — 비용·오염·오프라인 불가. `DYNAMODB_ENDPOINT` 로 가른다
 - `DYNAMODB_ENDPOINT` 를 운영 환경에 남기지 않는다 — 앱이 localhost:8083 을 치며 죽는다
