@@ -222,15 +222,15 @@ _dotfiles() {
       _error "Failed to clone dotfiles repository after 3 attempts"
     fi
   else
-    cd ~/.dotfiles || _error "Failed to change directory to ~/.dotfiles"
+    # git -C 로 cwd 를 바꾸지 않는다 — cd/cd - 는 OLDPWD 에 의존해 실패 경로가 취약하다
     _run "Updating dotfiles repository..."
-    if _retry "Pull" git pull; then
+    if _retry "Pull" git -C ~/.dotfiles pull; then
       _ok "Dotfiles repository updated"
     else
-      cd - >/dev/null || _error "Failed to return to previous directory"
-      _error "Failed to update dotfiles repository after 3 attempts"
+      # 이미 클론이 있으므로 치명적이지 않다. 로컬 변경·네트워크 문제로 pull 이 막혀도
+      # 기존 체크아웃으로 나머지 단계를 계속 진행한다 (중단하면 재실행도 같은 지점에서 막힌다).
+      _warn "Failed to update dotfiles repository — continuing with existing checkout"
     fi
-    cd - >/dev/null || _error "Failed to return to previous directory"
   fi
 }
 
@@ -748,12 +748,22 @@ _install_pip_package() {
   fi
 }
 
-# 업데이트 타이머 체크 함수 (12시간 간격)
+# 업데이트 타이머 체크 함수 (UPDATE_INTERVAL 간격)
 _should_update() {
   local timestamp_file="$1"
   if [ ! -f "$timestamp_file" ]; then return 0; fi
-  local time_diff=$(( $(date +%s) - $(cat "$timestamp_file") ))
-  [ $time_diff -ge $UPDATE_INTERVAL ]
+
+  local last
+  last=$(cat "$timestamp_file" 2>/dev/null)
+
+  # 빈 파일·비숫자는 "갱신 필요"로 처리한다. 중단된 쓰기나 디스크 풀로 파일이 비면
+  # $(( now - )) 가 산술 오류를 내고, 그 결과가 "갱신 불필요"로 해석되어 해당 업데이트
+  # 경로가 영구히 차단된다.
+  case "$last" in
+    '' | *[!0-9]*) return 0 ;;
+  esac
+
+  [ $(( $(date +%s) - last )) -ge $UPDATE_INTERVAL ]
 }
 
 ################################################################################
@@ -801,6 +811,9 @@ _progress "Creating directories and setting up SSH keys..."
 mkdir -p ~/.aws
 mkdir -p ~/.ssh
 mkdir -p ~/.toast
+# ~/.ssh 는 700 이어야 한다 — umask 에 따라 755 로 생성되면 ssh 가 config·키를 거부하거나
+# 다른 사용자에게 노출된다. 기존 디렉토리도 매 실행마다 교정한다 (멱등).
+chmod 700 ~/.ssh
 _ok "Directories created"
 
 # Generate SSH keys
@@ -907,6 +920,15 @@ if ! command -v brew >/dev/null 2>&1; then
   fi
 else
   _skip "Homebrew already installed"
+fi
+
+# 신규 macOS 대응: Step 3 시점에는 Xcode CLT 가 없어 _dotfiles 가 git 사용을 차단하고 클론을
+# 건너뛴다. 그 상태로 진행하면 Step 6 은 Brewfile 을 못 찾고 Step 11 은 sync 를 통째로 건너뛰어,
+# 첫 실행이 "설정 파일만 받고 끝나는" 반쪽 설치가 된다.
+# Homebrew 설치가 CLT 를 함께 넣으므로 여기서 한 번 더 시도한다. _dotfiles 는 멱등이다.
+if [ ! -d ~/.dotfiles ]; then
+  _info "Dotfiles repository still missing — retrying now that build tools are available"
+  _dotfiles
 fi
 
 # Step 6: 개발 도구 패키지 설치
