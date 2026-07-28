@@ -1,6 +1,6 @@
 ---
 name: code-audit
-description: Deep code audit — analyze entire codebase for issues, root causes, and improvements. 전체 코드 심층 감사 — 문제점, 근본원인, 개선사항 분석.
+description: Deep read-only audit of an entire codebase — issues, root causes, severity-ranked report. 저장소 전체 코드 심층 감사 — 문제점·근본원인·개선사항 분석 후 보고 (코드는 수정하지 않음). 변경분·PR 리뷰는 review, 검사 실행·수정은 validate.
 allowed-tools: Read, Bash, Grep, Glob, Agent
 ---
 
@@ -11,6 +11,12 @@ allowed-tools: Read, Bash, Grep, Glob, Agent
 프로젝트의 전체 구현 코드를 심층 분석하여 문제점·근본원인·개선사항을 도출한다. 평가 기준은 `skills/coding-style/SKILL.md`, `skills/testing-rules/SKILL.md`, `rules/security.md` 와 일관해야 한다 — *수치 강제 없음*, 프로젝트 관례 우선.
 
 이 파일의 *Exclude Patterns* 표는 다른 skill (예: `docs-sync`) 이 참조하는 단일 source 다.
+
+## Scope
+
+- **대상**: 저장소 전체 구현 코드 (Exclude Patterns 적용 후)
+- **읽기 전용** — 이 스킬은 코드를 수정하지 않는다. 발견 사항은 보고까지이며, 수정은 사용자 승인 후 별도 작업이다
+- **경계**: 변경분·PR 리뷰는 `/review`, lint·typecheck·test 실행과 수정은 `/validate`, 코드↔문서 정합은 `/docs-sync`. 이 스킬은 *현재 코드 전체의 상태* 만 다룬다
 
 ## Philosophy
 
@@ -74,37 +80,24 @@ ls -d */ 2>/dev/null
 
 ### Phase 2: Deep Analysis — 병렬 심층 분석
 
-**Team 모드를 사용하여 4개의 전문 에이전트를 병렬로 실행합니다.**
+**4개의 감사 에이전트를 한 메시지에 동시 spawn 한다** (`skills/claude-code-usage/SKILL.md#subagents--서브에이전트`). 순차 실행하면 감사 시간이 4배가 되고 메인 컨텍스트가 전체 코드로 채워진다.
 
-#### Team 모드 사용 (권장)
+| # | 감사 축 | `subagent_type` |
+|---|---------|-----------------|
+| 1 | Security | `code-reviewer` |
+| 2 | Architecture & Design | `architect` |
+| 3 | Code Quality & Maintainability | `code-reviewer` |
+| 4 | Testing & Reliability | `general-purpose` |
 
-`TeamCreate` 도구가 사용 가능한 경우 Team 모드로 실행합니다:
+위 에이전트가 배치돼 있지 않은 환경이면 전부 `general-purpose` 로 대체한다. **available agent 목록에 없는 타입을 추측해서 호출하지 않는다.**
 
-```
-1. TeamCreate로 "code-audit" 팀 생성
-2. TaskCreate로 4개 감사 태스크 생성
-3. Agent 도구로 각 에이전트를 team_name="code-audit"으로 스폰
-4. 모든 에이전트가 완료될 때까지 대기 (SendMessage 알림)
-5. TeamDelete로 팀 정리
-```
+**서브에이전트는 이 파일을 보지 못한다** — 각 프롬프트에 다음을 함께 넣는다:
 
-**Team 모드 스폰 예시:**
-```
-Agent(
-  subagent_type="Explore",
-  team_name="code-audit",
-  name="security-auditor",
-  prompt="[Security Audit 프롬프트]"
-)
-```
+- 위의 *Exclude Patterns* 표
+- "수치는 참고 가이드이며 프로젝트 관례가 우선" 이라는 평가 기준
+- 산출물 형식 — 항목마다 `{severity, file:line, 문제, 근거, 영향}`
 
-#### Fallback: Agent 도구 직접 사용
-
-`TeamCreate`가 없는 경우 Agent 도구로 병렬 에이전트를 직접 스폰합니다.
-
----
-
-아래 4가지 분석을 동시에 실행합니다:
+각 에이전트에 전달할 프롬프트:
 
 #### Agent 1: Security Audit
 ```
@@ -166,14 +159,6 @@ Analyze the testing strategy and reliability:
 8. Build/CI reliability — configuration issues, missing steps
 
 Report specific untested functions/paths and their risk level.
-```
-
-#### Team 종료
-
-Team 모드를 사용한 경우, 모든 에이전트 완료 후 팀을 정리합니다:
-```
-1. 각 에이전트에 SendMessage(type="shutdown_request") 전송
-2. 모든 shutdown_response 확인 후 TeamDelete 실행
 ```
 
 ### Phase 3: Root Cause Analysis — 근본원인 추적

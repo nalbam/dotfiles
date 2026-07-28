@@ -54,8 +54,8 @@ if [ -f "pnpm-lock.yaml" ]; then
   PM="pnpm"
 elif [ -f "yarn.lock" ]; then
   PM="yarn"
-elif [ -f "bun.lockb" ]; then
-  PM="bun"
+elif [ -f "bun.lock" ] || [ -f "bun.lockb" ]; then
+  PM="bun"   # bun 1.2+ 는 텍스트 bun.lock, 그 이전은 바이너리 bun.lockb
 else
   PM="npm"
 fi

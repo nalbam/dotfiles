@@ -1,6 +1,6 @@
 ---
 name: docs-read
-description: Read README, AGENTS.md, and docs/ to understand a project. 프로젝트 문서 읽고 파악, 온보딩, 구조 이해.
+description: Read README, AGENTS.md, and docs/ to understand a project. Read-only onboarding. 프로젝트 문서 읽고 파악, 온보딩, 구조 이해. 문서를 고치려면 docs-sync.
 ---
 
 # Documentation Read
@@ -23,7 +23,7 @@ description: Read README, AGENTS.md, and docs/ to understand a project. 프로�
 
 ## Exclude Patterns
 
-문서 탐색 시 dependency / build / cache / VCS / IDE / 테스트 산출물 디렉토리는 제외한다. 전체 목록은 `code-audit` 스킬 (`~/.agents/skills/code-audit/SKILL.md`) 의 *Exclude Patterns* 표를 *유일한 source* 로 한다.
+문서 탐색 시 dependency / build / cache / VCS / IDE / 테스트 산출물 디렉토리는 제외한다. 전체 목록은 `skills/code-audit/SKILL.md#exclude-patterns` 의 표를 *유일한 source* 로 한다.
 
 ## Process
 

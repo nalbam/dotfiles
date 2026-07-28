@@ -33,7 +33,7 @@ description: Verify docs against code and fix gaps. 코드↔문서 정합 검�
 
 ## Exclude Patterns
 
-dependency / build / cache / VCS / IDE / 테스트 산출물은 제외한다. 전체 목록은 `code-audit` 스킬 (`~/.agents/skills/code-audit/SKILL.md`) 의 *Exclude Patterns* 표가 *유일한 source* 다.
+dependency / build / cache / VCS / IDE / 테스트 산출물은 제외한다. 전체 목록은 `skills/code-audit/SKILL.md#exclude-patterns` 의 표가 *유일한 source* 다.
 
 ## Process
 

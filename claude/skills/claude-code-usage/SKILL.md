@@ -80,7 +80,7 @@ Claude Code 고유 기능의 *유일한 상세 source*. CLAUDE.md `## Claude Cod
 - available-skills 리스트에 없는 스킬은 추측 호출 금지
 - 이미 실행 중인 스킬을 재호출하지 않는다
 
-대표 스킬: `/validate`, `/commit`, `/commit-push`, `/pr-create`, `/pr-summary`, `/review`, `/security-review`, `/docs-read`, `/docs-sync`, `/code-audit`, `/init`, `/resolve-coderabbit`
+이 저장소가 배치하는 스킬: `/nextjs-init`, `/docs-read`, `/commit`, `/commit-push`, `/validate`, `/pr-create`, `/pr-summary`, `/resolve-coderabbit`, `/code-audit`, `/docs-sync` (단계별 매핑은 `skills/README.md`). 그 외 `/review`, `/security-review`, `/init` 은 Claude Code 기본 제공.
 
 ## Tasks / 작업 추적
 

@@ -20,7 +20,7 @@ git 안전 규칙은 `rules/git-workflow.md`, 변경 작업 자체는 `skills/co
 ## Workflow
 
 ### 0. Run Validation First
-Before creating PR, run validation (lint·typecheck·test) to ensure checks pass.
+Before creating PR, run validation (lint·typecheck·test) to ensure checks pass. 프로젝트 타입·package manager 감지와 실행 명령은 `validate` 스킬이 *유일한 source* 다.
 
 **If validation fails, report the failures and STOP — do not create the PR.** 이 스킬은 *PR 생성*이 목적이며 코드를 수정하지 않는다 — 수정은 사용자 또는 `/validate` 로 별도 수행한 뒤 다시 시도한다.
 **If the project has no lint/typecheck/test tooling (e.g., shell scripts, dotfiles), skip this step.**
