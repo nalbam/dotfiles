@@ -77,6 +77,7 @@ pnpm create next-app@latest <name> \
 이후:
 - **`pnpm add -D typescript@^6`** — 스캐폴더는 `^5` 를 깐다. 아래 이유를 읽고 넘어간다
 - `package.json` 에 `"packageManager": "pnpm@11.x.x"` 확인 (없으면 추가)
+- `package.json` 에 `"engines": { "node": ">=24" }` 추가 — 1단계에서 손으로 확인한 요구를 저장소에 남겨 다른 머신·CI 에서도 드러나게 한다
 - `next.config.ts` 에 `output: "standalone"` 추가 — Docker 이미지 최소화의 전제
 - `tsconfig.json` 의 `strict: true` 확인
 - `--eslint` 는 `eslint@^9` + `eslint-config-next` 와 `"lint": "eslint"` 스크립트를 넣는다. **Next.js 16 에서 `next lint` 는 제거됐으므로** 8단계 게이트의 `pnpm lint` 는 ESLint CLI 를 부르는 것이다
@@ -96,7 +97,7 @@ pnpm create next-app@latest <name> \
 
 | | 대상 |
 |---|---|
-| **지운다** | `public/` 의 svg 5개 (`next`·`vercel`·`file`·`globe`·`window`), `src/app/page.tsx` 의 데모 내용, `layout.tsx` 의 `"Create Next App"` metadata, `create-next-app` 이 만든 README 본문 |
+| **지운다** | `public/` 의 svg 5개 (`next`·`vercel`·`file`·`globe`·`window`), `src/app/page.tsx` 의 데모 내용, `layout.tsx` 의 `"Create Next App"` metadata, `create-next-app` 이 만든 README 본문 (실제 내용은 8단계에서 쓴다) |
 | **남긴다** | `src/app/layout.tsx`·`globals.css`·`favicon.ico`, 설정 파일 전부(`tsconfig`·`eslint.config.mjs`·`postcss.config.mjs`·`next.config.ts`·`next-env.d.ts`·`pnpm-workspace.yaml`), `AGENTS.md`·`CLAUDE.md` |
 | **뒤에서 만든다** | `src/app/api/auth/[...all]/route.ts` (5단계), `src/app/providers.tsx`, `src/lib/auth-client.ts` |
 
@@ -267,9 +268,9 @@ Better Auth 코어 스키마는 4개 모델이다 (테이블명 단수형): `use
 
 | # | 패턴 | 연산 |
 |---|------|------|
-| 1 | id 로 단건 조회 (전 모델) | GetItem |
+| 1 | id 로 단건 조회 | GetItem — **session 만 Query GSI1** (아래 키 설계 참조) |
 | 2 | email 로 user 조회 | Query GSI1 |
-| 3 | token 으로 session 조회 | Query GSI1 |
+| 3 | token 으로 session 조회 — **매 요청의 hot path** | GetItem |
 | 4 | userId 로 session 목록 | Query GSI2 |
 | 5 | (providerId, accountId) 로 account 조회 | Query GSI1 |
 | 6 | userId 로 account 목록 | Query GSI2 |
@@ -280,9 +281,14 @@ Better Auth 코어 스키마는 4개 모델이다 (테이블명 단수형): `use
 | 모델 | PK | SK | GSI1PK | GSI1SK | GSI2PK | GSI2SK |
 |------|----|----|--------|--------|--------|--------|
 | user | `USER#<id>` | `USER#<id>` | `EMAIL#<email>` | `USER#<id>` | — | — |
-| session | `SESSION#<id>` | `SESSION#<id>` | `TOKEN#<token>` | `SESSION#<id>` | `USER#<userId>` | `SESSION#<createdAt>` |
+| email 마커 | `EMAIL#<email>` | `EMAIL#<email>` | — | — | — | — |
+| session | `SESSION#<token>` | `SESSION#<token>` | `SESSION#<id>` | `SESSION#<id>` | `USER#<userId>` | `SESSION#<createdAt>` |
 | account | `ACCOUNT#<id>` | `ACCOUNT#<id>` | `PROVIDER#<providerId>#<accountId>` | `ACCOUNT#<id>` | `USER#<userId>` | `ACCOUNT#<providerId>` |
 | verification | `VERIFICATION#<id>` | `VERIFICATION#<id>` | `IDENT#<identifier>` | `VERIFICATION#<createdAt>` | — | — |
+
+**session 만 token 이 PK 다** — 패턴 3(token→session)은 인증된 *모든* 요청이 타고, 특히 로그인 직후엔 방금 쓴 세션을 곧바로 되읽는다. 이 경로를 GSI 에 두면 통째로 eventually consistent 가 된다(아래 함정 4) — PK 로 두면 강일관 GetItem 이고, token 기준 update·delete 도 GSI 선조회 없이 바로 친다. id 조회(패턴 1)는 드물어서 GSI1 로 보낸다. 대신 **token 은 PK 구성 요소라 in-place update 로 바꿀 수 없다** — token 이 바뀌는 update 는 delete+put 트랜잭션이다 (5단계 계약 3).
+
+**email 마커는 유니크 제약이다** — user 의 GSI1(`EMAIL#<email>`)은 *조회*용일 뿐 중복을 막지 못한다 (GSI 에는 유니크 제약이 없다). 중복 방지는 이 마커 아이템과 트랜잭션이 맡는다 — 5단계 계약 5 참조.
 
 추가 속성:
 - `entity` — 모델명 (`user` / `session` / …). 필터·디버깅용
@@ -329,7 +335,7 @@ OrbStack·Docker Desktop 모두 소켓이 표준 위치라 `docker compose up -d
 1. **자격증명을 반드시 준다.** AWS 문서가 *"Downloadable DynamoDB requires any credentials to work"* 라고 명시한다. 값은 검증되지 않지만, 없으면 SDK 가 자격증명 탐색 단계에서 먼저 죽는다
 2. **`-sharedDb` 를 빼지 않는다.** 없으면 DynamoDB Local 이 (accessKeyId, region) 조합마다 별도 DB 를 만든다. 테이블 생성 스크립트와 앱의 자격증명·리전이 조금이라도 다르면 서로 다른 DB 를 보고 `ResourceNotFoundException` 이 난다 — "분명히 만들었는데 없다"의 정체
 3. **`-inMemory` 와 `-dbPath` 는 동시에 못 쓴다.** 그래서 위 두 서비스의 설정이 다르다. 테스트 인스턴스는 기동할 때마다 테이블이 사라지므로 **테이블 생성을 vitest `globalSetup` 에서 해야 한다**
-4. **GSI 일관성이 운영과 다르다.** DynamoDB Local 은 GSI 를 동기로 갱신하지만 실제 DynamoDB 의 GSI 는 *eventually consistent* 다. 위 접근 패턴 7개 중 6개가 GSI 경유이므로, 쓰기 직후 GSI 를 읽는 코드는 **로컬에서 되고 운영에서 깨진다**
+4. **GSI 일관성이 운영과 다르다.** DynamoDB Local 은 GSI 를 동기로 갱신하지만 실제 DynamoDB 의 GSI 는 *eventually consistent* 다. 위 접근 패턴 중 5개(2·4·5·6·7)가 GSI 경유이므로, 쓰기 직후 GSI 를 읽는 코드는 **로컬에서 되고 운영에서 깨진다**. 세션의 token 조회를 GSI 가 아니라 PK 로 설계한 이유가 이것이다 — 매 요청 + 로그인 직후 경로는 여기서 빼야 한다
 
 **테이블 생성** — 아래가 정본이다. **로컬에는 지금 실행**하고(`--endpoint-url http://localhost:8083` 을 덧붙인다), **AWS 에는 제시만** 한다 (실행은 사용자):
 
@@ -390,10 +396,10 @@ export const dynamodbAdapter = (client: DynamoDBDocumentClient, table: string) =
 **어댑터 계약 — 반드시 지킬 것:**
 
 1. **`where` 절을 인덱스로 해석하지 못하면 던진다.** 조용히 `Scan` 으로 폴백하지 않는다 — 개발 중엔 동작하는 것처럼 보이다가 운영에서 비용·지연으로 터진다
-2. **지원 연산자를 명시한다.** 최소 `eq` 와 `in`. 나머지(`contains`, `starts_with`, `lt`, `gt`)는 필요할 때 추가하고, 미지원은 명확한 에러 메시지로 거부한다
-3. **`create`/`update` 에서 GSI 키를 항상 재계산한다.** email·token 이 바뀌면 GSI1 키도 바뀐다
+2. **지원 연산자를 명시한다.** 최소 `eq` 와 `in`. 나머지(`contains`, `starts_with`, `lt`, `gt`)는 필요할 때 추가하고, 미지원은 명확한 에러 메시지로 거부한다. `findMany` 의 `offset` 도 거부한다 — DynamoDB 에 대응 개념이 없다
+3. **`create`/`update` 에서 파생 키를 항상 재계산한다.** GSI 키는 그대로 update 하면 되지만 두 경우는 트랜잭션이다 — **session 의 token 이 바뀌면 PK 가 바뀌므로 delete+put**, **user 의 email 이 바뀌면 마커 스왑**(옛 `EMAIL#` 마커 Delete + 새 마커 조건부 Put + user Update)
 4. **`ttl` 은 `expiresAt` 이 있는 모델에서만 계산한다**
-5. **동일 이메일 중복 가입 방지**는 `ConditionExpression: attribute_not_exists(PK)` 로 조건부 쓰기 — 애플리케이션 레벨 select-then-insert 는 경합에 취약하다
+5. **동일 이메일 중복 가입 방지는 email 마커 + 트랜잭션이다.** user 의 PK 는 `USER#<id>` 라 user 아이템에 건 `attribute_not_exists(PK)` 는 id 충돌만 막고 **중복 이메일은 통과시킨다** (다른 id → 다른 PK). GSI 도 유니크 제약이 없다. user `create` 는 `TransactWriteItems` 로 user 아이템 Put + `EMAIL#<email>` 마커 Put 을 묶고 **둘 다** `attribute_not_exists(PK)` 조건을 건다 — 마커가 이미 있으면 트랜잭션 전체가 취소된다. user 삭제 시 마커도 함께 지운다. 애플리케이션 레벨 select-then-insert 는 경합에 취약해서 대안이 아니다
 
 **설정** (`src/infrastructure/auth/auth.ts`):
 
@@ -451,7 +457,7 @@ BETTER_AUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 AWS_REGION=ap-northeast-2
-DYNAMODB_TABLE_NAME=
+DYNAMODB_TABLE_NAME=<table>               # 1단계에서 확정한 값 — 비밀이 아니므로 채워 둔다
 DYNAMODB_ENDPOINT=http://localhost:8083   # 로컬 개발 전용. 운영에서는 반드시 비운다
 ```
 
@@ -582,7 +588,8 @@ export default async function () {
 | 4단계 접근 패턴 7개 | 패턴마다 실제 쿼리 1개. 통과 = 키 설계가 실제로 성립한다는 증거 |
 | 어댑터 계약 1 (Scan 폴백 금지) | 인덱스로 못 푸는 `where` 에 **throw 하는지**. 조용히 결과를 돌려주면 실패 |
 | 어댑터 계약 2 (지원 연산자) | `eq`·`in` 통과, 미지원 연산자는 명확한 에러 |
-| 어댑터 계약 3 (GSI 키 재계산) | email 변경 후 새 email 로 조회되고 옛 키로는 안 잡히는지 |
+| 어댑터 계약 3 (파생 키 재계산) | email 변경 후 새 email 로 조회되고 옛 키로는 안 잡히는지 — 마커 스왑 후 옛 email 로 재가입이 *가능*해지는 것까지 |
+| 어댑터 계약 4 (ttl) | session `create` → `ttl` 이 `expiresAt` 의 epoch seconds 로 존재, user `create` → `ttl` 부재 |
 | 어댑터 계약 5 (중복 가입 방지) | 같은 email 로 `create` 2회 → 하나만 성공 |
 | 도메인·유스케이스 | DynamoDB 없이 순수 단위 테스트 (외부 의존 0 이라는 3단계 경계의 증명) |
 
@@ -597,7 +604,7 @@ export default async function () {
 - `node:24-slim` 기준 (deps / builder / runner 3단계)
 - deps: `COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./` → `corepack enable pnpm && pnpm install --frozen-lockfile`
 - builder: `pnpm build` (`output: "standalone"` 전제)
-- runner: `.next/standalone` → `./`, `.next/static` → `./.next/static`, `public` → `./public`
+- runner: `.next/standalone` → `./`, `.next/static` → `./.next/static`, `public` → `./public` — 셋 다 **`COPY --chown=node:node`**. 기본 COPY 는 root 소유로 남아서, `USER node` 로 돌면 `next/image` 가 `.next/cache` 에 최적화 캐시를 못 쓴다 — `sharp` 를 승인해 둔 의미가 사라진다
 - 비루트 실행 (`USER node`), `ENV HOSTNAME=0.0.0.0 PORT=3000`, `CMD ["node", "server.js"]`
 - `.dockerignore` 필수: `node_modules`, `.next`, `.git`, `.env*`
 
@@ -666,7 +673,7 @@ jobs:
 - **`provenance: false`, `sbom: false`.** buildx 는 기본으로 attestation 을 붙여 결과를 OCI image index 로 만든다. ECR 콘솔과 일부 배포 대상이 이를 단일 이미지로 읽지 못한다
 - **`platforms: linux/amd64`.** 실행 대상이 arm64(Graviton)면 바꾼다. 멀티 아키텍처는 QEMU 에뮬레이션으로 빌드 시간이 몇 배가 되므로 실제로 두 아키텍처가 필요할 때만
 
-**IAM 신뢰 정책** — 역할 생성은 사용자가 한다. `sub` 조건이 이 구성의 유일한 접근 통제다:
+**IAM 신뢰 정책** — 역할 생성은 사용자가 한다. `Principal` 의 provider ARN 은 계정에 IAM OIDC identity provider(`token.actions.githubusercontent.com`)가 **이미 등록돼 있어야** 성립한다 — GitHub OIDC 를 처음 쓰는 계정이면 그것부터다. `sub` 조건이 이 구성의 유일한 접근 통제다:
 
 ```json
 {
@@ -696,6 +703,8 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build
 ```
 
 전부 통과해야 완료다. 실패는 `/validate` 절차로 근본원인을 고친다.
+
+게이트 통과 후 **README 를 쓴다** — 2단계에서 비운 자리를 실제 내용으로 채운다. 최소 구성: 프로젝트 한 줄 소개, 로컬 셋업(`.env.example` → `.env.local` 복사 + Google 값 2개 채우기, `docker compose up -d dynamodb`, `pnpm dev`), 테스트(`docker compose up -d dynamodb-test && pnpm test`), 릴리스(`git tag v* && git push origin v*`). 이 스킬이 만든 것만 적고 도메인 설명을 지어내지 않는다.
 
 **같은 게이트를 CI 에도 둔다** (`.github/workflows/ci.yml`) — 7단계의 릴리스 워크플로는 태그에서만 돌기 때문에 PR 을 막아주지 못한다:
 
@@ -728,7 +737,21 @@ jobs:
       - run: pnpm exec tsc --noEmit
       - run: pnpm test
       - run: pnpm build
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 ```
+
+**`docker` 잡은 push 없는 빌드 스모크다** — `public/` COPY·`pnpm-workspace.yaml` 누락처럼 **신규 체크아웃에서만 깨지는 회귀**를 첫 태그 릴리스가 아니라 PR 에서 잡는다. 이게 없으면 2단계·7단계에서 말한 "CI 의 docker build 실패"가 실제로는 릴리스 시점까지 숨는다. gha 캐시를 7단계 릴리스 빌드와 공유하므로 중복 비용도 크지 않다.
 
 **서비스 컨테이너에는 커맨드 인자를 넘길 수 없다** — `services:` 가 받는 건 `image`·`env`·`ports`·`volumes`·`options` 뿐이고, `options` 로 entrypoint 는 바꿔도 그 뒤 인자는 못 준다. 그래서 compose 의 `-sharedDb -inMemory` 가 여기엔 없는데, **CI 에서는 둘 다 필요가 없다** — 잡마다 새 컨테이너라 이미 비어 있고(`-inMemory`), 자격증명·리전이 한 잡 안에서 하나뿐이라 DB 가 갈릴 일도 없다(`-sharedDb`). 대신 **호스트 포트를 8084 로 맞추는 건 필수다** — 6단계 `globalSetup` 이 그 주소를 박아 두기 때문이다.
 
@@ -756,7 +779,7 @@ jobs:
 
 사용자 후속 작업 (실행하지 않음):
 - [ ] **AWS** DynamoDB 테이블 생성 — 4단계 명령에서 `--endpoint-url` 만 빼면 된다 (로컬은 완료됨)
-- [ ] ECR 리포지토리 생성 (tag mutability: MUTABLE) + OIDC IAM 역할·신뢰 정책 — 7단계 참조
+- [ ] ECR 리포지토리 생성 (tag mutability: MUTABLE) + IAM OIDC identity provider 등록(계정에 처음이면) + OIDC IAM 역할·신뢰 정책 — 7단계 참조
 - [ ] Google OAuth 클라이언트 발급 + 리다이렉트 URI 등록
 - [ ] `.env.local` 의 `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET` 채우기 (나머지는 생성됨)
 - [ ] 배포 시 `BETTER_AUTH_URL` 을 실제 오리진으로, `DYNAMODB_ENDPOINT` 를 빈 값으로
@@ -779,6 +802,8 @@ jobs:
 - `eslint.config.mjs` 에 `import` 플러그인을 다시 등록하지 않는다 — `eslint-config-next` 가 이미 등록한다. 규칙만 얹는다
 - `typescript` 를 `@latest`(7.x)로 올리지 않는다 — Compiler API 가 없어 lint·build 가 함께 죽는다. 상한은 `<6.1.0`
 - 어댑터에서 `Scan` 으로 폴백하지 않는다 — 지원 못 하는 쿼리는 던진다
+- email 유니크를 GSI 나 select-then-insert 로 보장하려 하지 않는다 — GSI 엔 유니크 제약이 없고 select-then-insert 는 경합에 진다. `EMAIL#` 마커 + `TransactWriteItems` 다
+- session 의 token 조회를 GSI 에 두지 않는다 — 매 요청 + 로그인 직후 경로가 eventually consistent 가 된다. token 이 PK 다
 - 게이트에 인자 없는 `vitest` 를 넣지 않는다 — watch 모드로 떠서 CI 가 끝나지 않는다
 - `globalSetup` 에서 `process.env` 를 세팅해 테스트에 넘기려 하지 않는다 — 워커 생성 *전* 다른 스코프라 닿지 않는다. `test.env` 를 쓴다
 - 테스트가 어느 인스턴스를 보는지 확인 없이 돌리지 않는다 — `globalSetup` 에서 8084 가 아니면 던진다. 조용히 8083 을 치면 개발 데이터가 날아간다
