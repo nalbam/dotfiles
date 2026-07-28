@@ -42,7 +42,7 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 
 - **빈 디렉토리에서만 생성한다** — 대상 경로에 파일이 있으면 멈추고 사용자에게 확인한다
 - **시크릿을 파일에 쓰지 않는다** — `.env.local` 은 사용자가 채우고, 저장소에는 `.env.example` 만 둔다 (`.gitignore` 확인)
-- **AWS 리소스를 만들지 않는다** — DynamoDB 테이블·ECR 리포지토리·IAM 역할 생성은 명령을 *제시*만 하고 실행은 사용자가 한다
+- **AWS 계정에 리소스를 만들지 않는다** — DynamoDB 테이블·ECR 리포지토리·IAM 역할 생성은 명령을 *제시*만 하고 실행은 사용자가 한다. **로컬 DynamoDB 컨테이너는 예외** — AWS 리소스가 아니므로 직접 띄우고 테이블도 만든다 (4단계)
 - **git 초기화·커밋은 사용자 요청 시에만** — `--disable-git` 으로 생성한다
 - 각 단계의 검증을 통과하지 못하면 다음 단계로 넘어가지 않는다
 
@@ -148,6 +148,7 @@ services:
   # 로컬 개발용 — 데이터가 유지된다 (재시작해도 로그인 세션·테이블이 남음)
   dynamodb:
     image: amazon/dynamodb-local:3.3.0
+    user: root                          # 아래 "왜 user: root 인가" 참조 — 지우면 조용히 멈춘다
     command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
     working_dir: /home/dynamodblocal
     volumes: ["dynamodb-data:/home/dynamodblocal/data"]
@@ -165,6 +166,15 @@ volumes:
 
 **왜 인스턴스를 둘로 나누는가** — `-sharedDb` 는 모든 클라이언트가 *하나의 DB* 를 보게 만든다. 하나만 띄우면 테스트가 개발 중이던 데이터를 매번 지운다. 포트를 나누는 게 유일하게 안 헷갈리는 방법이다.
 
+**왜 `user: root` 인가** — 이미지에 `/home/dynamodblocal/data` 가 없어서 Docker 가 마운트 지점을 **root 소유 755** 로 새로 만든다. 컨테이너는 uid 1000(`dynamodblocal`)으로 도니 SQLite 가 DB 파일을 못 만들고, 다음을 3초마다 무한 반복한다:
+
+```
+WARNING: [sqlite] cannot open DB: SQLiteException: [14] unable to open database file
+         SQLiteQueue[shared-local-instance.db]: stopped abnormally, reincarnating in 3000ms
+```
+
+**가장 나쁜 형태로 실패한다** — `docker compose ps` 는 `Up` 으로 보이고, 클라이언트는 에러 대신 *무응답으로 멈춘다*. 로그를 보기 전엔 원인을 알 수 없다. AWS 공식 예제는 대신 호스트 bind mount 를 쓰는데, 그건 Docker Desktop·OrbStack 이 uid 를 remap 해줘서 macOS 에서만 동작한다 — Linux(WSL 포함)에서 호스트 uid 가 1000 이 아니면 똑같이 깨진다. 로컬 개발용 컨테이너라 root 실행의 위험은 없다.
+
 OrbStack·Docker Desktop 모두 소켓이 표준 위치라 `docker compose up -d dynamodb` 로 그대로 뜬다.
 
 **함정 4개 — 여기서 시간을 가장 많이 버린다:**
@@ -174,13 +184,7 @@ OrbStack·Docker Desktop 모두 소켓이 표준 위치라 `docker compose up -d
 3. **`-inMemory` 와 `-dbPath` 는 동시에 못 쓴다.** 그래서 위 두 서비스의 설정이 다르다. 테스트 인스턴스는 기동할 때마다 테이블이 사라지므로 **테이블 생성을 vitest `globalSetup` 에서 해야 한다**
 4. **GSI 일관성이 운영과 다르다.** DynamoDB Local 은 GSI 를 동기로 갱신하지만 실제 DynamoDB 의 GSI 는 *eventually consistent* 다. 위 접근 패턴 7개 중 6개가 GSI 경유이므로, 쓰기 직후 GSI 를 읽는 코드는 **로컬에서 되고 운영에서 깨진다**
 
-**테이블 생성** — 로컬은 지금 실행하고, AWS 는 *제시만* 한다 (실행은 사용자):
-
-```bash
-# 로컬 (개발용 인스턴스). 테스트 인스턴스는 --endpoint-url http://localhost:8084
-aws dynamodb create-table --table-name <table> ... --endpoint-url http://localhost:8083 \
-  --region ap-northeast-2   # 값은 아무거나 좋지만 앱과 반드시 같아야 한다 (함정 2)
-```
+**테이블 생성** — 아래가 정본이다. **로컬에는 지금 실행**하고(`--endpoint-url http://localhost:8083` 을 덧붙인다), **AWS 에는 제시만** 한다 (실행은 사용자):
 
 ```bash
 aws dynamodb create-table --table-name <table> \
@@ -197,6 +201,8 @@ aws dynamodb create-table --table-name <table> \
 aws dynamodb update-time-to-live --table-name <table> \
   --time-to-live-specification 'Enabled=true,AttributeName=ttl' --region <region>
 ```
+
+로컬 실행 시 `--region` 값은 무엇이든 되지만 **앱의 `AWS_REGION` 과 반드시 같아야 한다** (함정 2). 테스트 인스턴스용은 `--endpoint-url http://localhost:8084` 이고, 이건 6단계의 `globalSetup` 이 맡는다.
 
 > 검증: 접근 패턴 7개가 각각 어떤 인덱스로 처리되는지 표로 대응됨 (대응 안 되는 패턴이 남으면 키 설계를 고친다). `docker compose up -d dynamodb` 후 `aws dynamodb list-tables --endpoint-url http://localhost:8083` 에 테이블이 보임.
 
@@ -267,7 +273,7 @@ export const auth = betterAuth({
 - `http://localhost:3000/api/auth/callback/google`
 - `https://<domain>/api/auth/callback/google`
 
-**환경변수** — `.env.example` 에 키만, 값은 비워서 커밋:
+**환경변수** — `.env.example` 은 커밋한다. **시크릿만 비우고, 비밀이 아닌 로컬 기본값은 채운다** — 받는 사람이 뭘 넣어야 할지 알 수 있어야 한다:
 
 ```
 BETTER_AUTH_SECRET=      # openssl rand -base64 32
@@ -301,6 +307,8 @@ export const docClient = DynamoDBDocumentClient.from(
 운영에서 AWS 자격증명은 **환경변수가 아니라 역할**로 준다 (ECS 태스크 롤 / EKS IRSA). `NEXT_PUBLIC_*` 은 빌드 시점에 이미지에 박히므로 시크릿을 넣지 않는다.
 
 > 검증: `docker compose up -d dynamodb` → `pnpm dev` → Google 로그인 → 세션 유지 → 로그아웃. `aws dynamodb scan --table-name <table> --endpoint-url http://localhost:8083` 에 `user`·`session`·`account` 아이템이 보임. **AWS 계정에는 아무것도 만들지 않은 상태여야 한다.**
+>
+> **Google OAuth 클라이언트가 아직 없으면** 여기서 로그인 플로우를 검증할 수 없다. 이때는 멈추지 말고 (a) 사용자에게 클라이언트 발급과 리다이렉트 URI 등록을 *요청*한 뒤 (b) 6단계 어댑터 테스트로 배선의 정합을 대신 검증하고 (c) 완료 보고에 로그인 플로우를 `SKIP + 사유` 로 기록한다. 이 단계는 Rules 의 "검증 통과 전 진행 금지"에 대한 **명시적 예외**다 — 사용자 계정 작업에 의존하기 때문이다.
 
 ### 6. 테스트 — Vitest + DynamoDB Local
 
@@ -333,7 +341,16 @@ glob 으로 환경을 나누는 `environmentMatchGlobs` 는 현행 Vitest 문서
 
 **테스트는 `dynamodb-test`(포트 8084)를 쓴다** — 4단계에서 띄운 개발용 인스턴스가 아니다. `-sharedDb` 때문에 같은 인스턴스를 쓰면 테스트가 개발 데이터를 지운다.
 
-테스트 인스턴스는 `-inMemory` 라 기동할 때마다 비어 있으므로 **테이블 생성을 `globalSetup` 에 둔다** — 4단계의 `create-table` 을 `--endpoint-url http://localhost:8084` 로 한 번 호출하면 된다. 테스트 코드에서 `DYNAMODB_ENDPOINT` 를 8084 로 덮어쓰면 5단계의 클라이언트가 그대로 재사용된다.
+테스트 인스턴스는 `-inMemory` 라 기동할 때마다 비어 있으므로 **테이블 생성을 `globalSetup` 에 둔다**. 4단계의 스키마를 **SDK `CreateTableCommand` 로** 만든다 — AWS CLI 를 호출하지 않는다. 테스트가 CLI 설치 여부에 의존하면 CI 에서 깨진다.
+
+```ts
+// vitest.globalSetup.ts — vitest.config.mts 의 test.globalSetup 에 등록
+export default async function () {
+  process.env.DYNAMODB_ENDPOINT = "http://localhost:8084";  // 5단계 클라이언트를 그대로 재사용
+  // new DynamoDBClient({...}).send(new CreateTableCommand({ /* 4단계 키 레이아웃 */ }))
+  // 이미 존재하면 ResourceInUseException — 무시한다 (멱등)
+}
+```
 
 **무엇을 테스트하는가** — 4·5단계에서 표로만 적어둔 것을 실행 가능하게 만든다:
 
@@ -417,7 +434,7 @@ jobs:
 
 - **태그 푸시가 곧 릴리스다.** 브랜치 푸시로는 이미지가 나가지 않는다 — `git tag v0.1.0 && git push origin v0.1.0`. `workflow_dispatch` 는 같은 커밋 재빌드용이고, 이때 `github.ref_name` 은 태그가 아니라 *브랜치명*이 된다
 - **이미지 태그는 `github.ref_name`(= `v0.1.0`) + `latest`.** 버전 태그가 롤백 대상을 특정하고 `latest` 는 배포 편의용이다. 따라서 ECR 리포지토리의 tag mutability 는 **MUTABLE** 이어야 한다 — IMMUTABLE 이면 두 번째 릴리스의 `latest` 푸시가 실패한다
-- **역할 ARN·레지스트리 URI 는 시크릿이 아니다.** 식별자일 뿐이고 실제 접근은 OIDC 신뢰 정책이 통제하므로 `env:` 에 평문으로 둔다. 대신 신뢰 정책의 `sub` 조건을 저장소·ref 단위로 좁힌다 — `repo:<org>/<repo>:ref:refs/tags/*`. `repo:<org>/*` 같은 와일드카드는 조직 내 아무 저장소나 이 역할을 가져다 쓰게 만든다
+- **역할 ARN·레지스트리 URI 는 시크릿이 아니다.** 식별자일 뿐이고 실제 접근은 OIDC 신뢰 정책이 통제하므로 `env:` 에 평문으로 둔다. 대신 신뢰 정책의 `sub` 조건을 **저장소 단위로** 좁힌다 (아래 JSON). `repo:<org>/*` 같은 와일드카드는 조직 내 아무 저장소나 이 역할을 가져다 쓰게 만든다
 - **`docker/setup-buildx-action` 을 생략하지 않는다.** 기본 `docker` 드라이버는 캐시 export 를 지원하지 않아 `cache-to: type=gha` 가 그대로 실패한다
 - **`provenance: false`, `sbom: false`.** buildx 는 기본으로 attestation 을 붙여 결과를 OCI image index 로 만든다. ECR 콘솔과 일부 배포 대상이 이를 단일 이미지로 읽지 못한다
 - **`platforms: linux/amd64`.** 실행 대상이 arm64(Graviton)면 바꾼다. 멀티 아키텍처는 QEMU 에뮬레이션으로 빌드 시간이 몇 배가 되므로 실제로 두 아키텍처가 필요할 때만
@@ -435,6 +452,12 @@ jobs:
   }
 }
 ```
+
+**경계는 저장소 하나다.** `:*` 는 그 저장소의 모든 ref 를 허용한다 — GitHub 의 `sub` 는 태그가 `repo:<org>/<repo>:ref:refs/tags/<tag>`, 브랜치·`workflow_dispatch` 가 `ref:refs/heads/<branch>`, PR 이 `repo:<org>/<repo>:pull_request` 형태다. 즉 이 저장소에 푸시 권한이 있는 사람이면 어떤 ref 로든 역할을 쓸 수 있고, 그건 이미 릴리스를 낼 수 있는 사람과 같은 집합이라 실질적인 추가 노출이 아니다. 트리거를 추가해도 신뢰 정책을 같이 고칠 필요가 없다는 게 이 방식의 값어치다.
+
+더 좁히려면 ref 단위로 나열한다 (`ref:refs/tags/*` + `ref:refs/heads/main`). 단, 이 워크플로는 태그 푸시와 `workflow_dispatch` 두 트리거를 쓰고 후자는 *브랜치*에서 돌기 때문에 **태그만 넣으면 수동 실행이 `sts:AssumeRoleWithWebIdentity` 에서 거부된다** — 좁힐 거면 두 항목을 다 넣어야 한다.
+
+바꾸지 말아야 할 것은 **저장소 경계**다. `repo:<org>/*` 로 열면 조직 내 아무 저장소나 이 역할을 가져다 쓴다.
 
 > 검증: `docker build` 성공 → `docker run -p 3000:3000` → `/` 200. CI 는 첫 태그 푸시 후 Actions 로그와 `aws ecr describe-images --repository-name <repo> --region <region>` 로 확인.
 
@@ -458,11 +481,14 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build
 검증:
 - pnpm test: PASS (접근 패턴 7/7, 어댑터 계약 5/5)
 - pnpm build: PASS
-- Google 로그인 플로우: PASS (또는 SKIP + 사유)
+- Google 로그인 플로우: PASS (또는 SKIP + 사유 — OAuth 클라이언트 미발급 등)
 - docker build: PASS (또는 SKIP + 사유)
 
+로컬에 이미 만들어 둔 것:
+- 로컬 DynamoDB 2개 (dev :8083 / test :8084) + dev 테이블
+
 사용자 후속 작업 (실행하지 않음):
-- [ ] DynamoDB 테이블 생성 — 명령 위 4단계 참조
+- [ ] **AWS** DynamoDB 테이블 생성 — 4단계 명령에서 `--endpoint-url` 만 빼면 된다 (로컬은 완료됨)
 - [ ] ECR 리포지토리 생성 (tag mutability: MUTABLE) + OIDC IAM 역할·신뢰 정책 — 7단계 참조
 - [ ] Google OAuth 클라이언트 발급 + 리다이렉트 URI 등록
 - [ ] .env.local 값 채우기
