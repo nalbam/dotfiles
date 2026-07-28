@@ -44,7 +44,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ## Rules
 
 - **빈 디렉토리에서만 생성한다** — 대상 경로에 파일이 있으면 멈추고 사용자에게 확인한다
-- **시크릿을 파일에 쓰지 않는다** — `.env.local` 은 사용자가 채우고, 저장소에는 `.env.example` 만 둔다 (`.gitignore` 확인)
+- **진짜 시크릿을 파일에 쓰지 않는다** — Google client secret 등 *발급받은* 값은 사용자가 `.env.local` 에 채운다. 저장소에는 `.env.example` 만 둔다 (`.gitignore` 확인). **예외는 로컬 전용으로 새로 만드는 무작위 값**(`BETTER_AUTH_SECRET`) — 어디서도 발급받은 적 없고 gitignore 된 파일에만 있으므로 스킬이 생성한다 (5단계)
 - **AWS 계정에 리소스를 만들지 않는다** — DynamoDB 테이블·ECR 리포지토리·IAM 역할 생성은 명령을 *제시*만 하고 실행은 사용자가 한다. **로컬 DynamoDB 컨테이너는 예외** — AWS 리소스가 아니므로 직접 띄우고 테이블도 만든다 (4단계)
 - **git 초기화·커밋은 사용자 요청 시에만** — `--disable-git` 으로 생성한다
 - 각 단계의 검증을 통과하지 못하면 다음 단계로 넘어가지 않는다
@@ -206,7 +206,17 @@ export default defineConfig([...nextVitals, ...nextTs, layers, globalIgnores([/*
 
 `from` 한 배열에는 **디렉토리 경로만, 또는 glob 만** 담는다 — 섞으면 스키마에서 거부된다.
 
-`pnpm lint` 가 `ERR_PNPM_IGNORED_BUILDS`(`unrs-resolver`)로 막히면 `pnpm approve-builds` 로 승인한다 — pnpm 11 은 postinstall 빌드를 기본 차단하고, 승인 전까지 *스크립트 실행 자체*를 거부한다. `eslint-config-next` 가 끌어오는 TS 리졸버의 네이티브 의존이라 이 스택에선 항상 걸린다.
+`pnpm lint` 가 `ERR_PNPM_IGNORED_BUILDS`(`unrs-resolver`)로 막히면 `pnpm approve-builds --all` 로 승인한다 — pnpm 11 은 postinstall 빌드를 기본 차단하고, 승인 전까지 *스크립트 실행 자체*를 거부한다. `eslint-config-next` 가 끌어오는 TS 리졸버의 네이티브 의존이라 이 스택에선 항상 걸린다. `--all` 을 붙이는 건 대화형 프롬프트를 피하기 위해서다.
+
+**승인 결과가 담긴 `pnpm-workspace.yaml` 을 반드시 커밋한다.** pnpm 11 은 승인을 이 파일의 `allowBuilds:` 에 기록한다 (구 `onlyBuiltDependencies` 의 후신):
+
+```yaml
+# pnpm-workspace.yaml — 단일 패키지 프로젝트에도 필요하다
+allowBuilds:
+  unrs-resolver: true
+```
+
+워크스페이스를 안 쓰는 프로젝트라 이 파일이 부수적으로 보이지만, **빠지면 CI 와 Docker 빌드가 로컬과 똑같이 막힌다** — 그쪽에는 `approve-builds` 를 눌러 줄 사람이 없다. `pnpm install` 은 미승인 빌드를 발견하면 이 파일에 placeholder 를 자동으로 넣어 두므로, 값을 `true` 로 바꾸고 커밋하면 된다.
 
 > 검증: `src/domain/` 에 `import "@/infrastructure/dynamodb/client"` 한 임시 파일을 만들고 `pnpm lint` 가 위 message 로 에러를 내는지 확인 후 삭제. 통과해버리면 zones 가 아니라 `files` 패턴이나 cwd 를 의심한다.
 
@@ -394,7 +404,7 @@ export const config = {
 - `http://localhost:3000/api/auth/callback/google`
 - `https://<domain>/api/auth/callback/google`
 
-**환경변수** — `.env.example` 은 커밋한다. **시크릿만 비우고, 비밀이 아닌 로컬 기본값은 채운다** — 받는 사람이 뭘 넣어야 할지 알 수 있어야 한다:
+**환경변수** — `.env.example` 은 커밋한다. **발급받은 시크릿만 비우고, 비밀이 아닌 로컬 기본값은 채운다** — 받는 사람이 뭘 넣어야 할지 알 수 있어야 한다:
 
 ```
 BETTER_AUTH_SECRET=      # openssl rand -hex 32
@@ -405,6 +415,8 @@ AWS_REGION=ap-northeast-2
 DYNAMODB_TABLE_NAME=
 DYNAMODB_ENDPOINT=http://localhost:8083   # 로컬 개발 전용. 운영에서는 반드시 비운다
 ```
+
+**`.env.local` 은 스킬이 만든다** — `.env.example` 을 복사하고 `BETTER_AUTH_SECRET` 만 `openssl rand -hex 32` 로 채운다. 이 값은 어디서도 발급받은 게 아니라 이 머신에서 방금 만든 난수이고 `.gitignore` 안에 있으므로, 사용자를 기다릴 이유가 없다 — 없으면 `pnpm dev` 가 아예 안 떠서 아래 검증을 못 한다. **Google 값 2개는 비워 두고 사용자가 채운다.**
 
 **DynamoDB 클라이언트는 엔드포인트로 로컬/운영을 가른다** (`src/infrastructure/dynamodb/client.ts`):
 
@@ -423,7 +435,14 @@ export const docClient = DynamoDBDocumentClient.from(
 );
 ```
 
-`DYNAMODB_ENDPOINT` 가 운영 환경에 남으면 앱이 존재하지 않는 localhost:8083 을 치면서 조용히 죽는다 — 배포 매니페스트에서 이 키가 비어 있는지 확인한다.
+**로컬 기본값 두 개는 운영에서 반드시 바꾼다** — 둘 다 `.env.example` 에 localhost 로 적혀 있어 그대로 배포되기 쉽다:
+
+| 키 | 운영에서 |
+|---|---|
+| `DYNAMODB_ENDPOINT` | **비운다.** 남으면 앱이 존재하지 않는 localhost:8083 을 치며 죽는다 |
+| `BETTER_AUTH_URL` | **실제 오리진**(`https://<domain>`). localhost 로 남으면 Better Auth 가 OAuth 리다이렉트 URI 를 localhost 로 만들어 Google 이 거부하고, 쿠키 도메인도 어긋나 로그인이 통째로 실패한다 |
+
+배포 매니페스트에서 이 두 키를 확인한다.
 
 운영에서 AWS 자격증명은 **환경변수가 아니라 역할**로 준다 (ECS 태스크 롤 / EKS IRSA). `NEXT_PUBLIC_*` 은 빌드 시점에 이미지에 박히므로 시크릿을 넣지 않는다.
 
@@ -470,8 +489,20 @@ glob 으로 환경을 나누는 `environmentMatchGlobs` 는 현행 Vitest 문서
 
 ```ts
 // vitest.globalSetup.ts — 테이블 생성만 한다
+const TEST_ENDPOINT = "http://localhost:8084";
+
 export default async function () {
-  // new DynamoDBClient({ endpoint: "http://localhost:8084", ... })
+  // 안전장치: 개발 인스턴스를 가리키고 있으면 즉시 멈춘다.
+  // .env.local 이 DYNAMODB_ENDPOINT=8083 을 들고 있고 Vitest 가 .env 를 읽으므로
+  // test.env 를 덮어쓸 여지가 있다. 그대로 두면 -sharedDb 라 테스트가 개발 데이터를 지운다.
+  if (process.env.DYNAMODB_ENDPOINT !== TEST_ENDPOINT) {
+    throw new Error(
+      `테스트가 ${process.env.DYNAMODB_ENDPOINT} 를 가리킨다. ${TEST_ENDPOINT} 여야 한다.`
+    );
+  }
+
+  // CI 의 services 컨테이너는 헬스체크가 없어 아직 안 떠 있을 수 있다 — 재시도한다.
+  // new DynamoDBClient({ endpoint: TEST_ENDPOINT, ... })
   //   .send(new CreateTableCommand({ /* 4단계 키 레이아웃 */ }))
   // 이미 존재하면 ResourceInUseException — 무시한다 (멱등)
 }
@@ -656,7 +687,8 @@ jobs:
 - [ ] **AWS** DynamoDB 테이블 생성 — 4단계 명령에서 `--endpoint-url` 만 빼면 된다 (로컬은 완료됨)
 - [ ] ECR 리포지토리 생성 (tag mutability: MUTABLE) + OIDC IAM 역할·신뢰 정책 — 7단계 참조
 - [ ] Google OAuth 클라이언트 발급 + 리다이렉트 URI 등록
-- [ ] .env.local 값 채우기
+- [ ] `.env.local` 의 `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET` 채우기 (나머지는 생성됨)
+- [ ] 배포 시 `BETTER_AUTH_URL` 을 실제 오리진으로, `DYNAMODB_ENDPOINT` 를 빈 값으로
 - [ ] git init / 첫 커밋 (요청 시)
 - [ ] 첫 릴리스 — `git tag v0.1.0 && git push origin v0.1.0`
 ```
@@ -675,6 +707,9 @@ jobs:
 - 어댑터에서 `Scan` 으로 폴백하지 않는다 — 지원 못 하는 쿼리는 던진다
 - 게이트에 인자 없는 `vitest` 를 넣지 않는다 — watch 모드로 떠서 CI 가 끝나지 않는다
 - `globalSetup` 에서 `process.env` 를 세팅해 테스트에 넘기려 하지 않는다 — 워커 생성 *전* 다른 스코프라 닿지 않는다. `test.env` 를 쓴다
+- 테스트가 어느 인스턴스를 보는지 확인 없이 돌리지 않는다 — `globalSetup` 에서 8084 가 아니면 던진다. 조용히 8083 을 치면 개발 데이터가 날아간다
+- `pnpm-workspace.yaml`(`allowBuilds`)을 커밋에서 빠뜨리지 않는다 — CI·Docker 에는 `approve-builds` 를 눌러 줄 사람이 없다
+- `BETTER_AUTH_URL` 을 운영에서 localhost 로 두지 않는다 — OAuth 리다이렉트와 쿠키 도메인이 함께 깨진다
 - DynamoDB Local 을 `-sharedDb` 없이 띄우지 않는다 — 자격증명·리전이 다르면 다른 DB 를 본다
 - 개발과 테스트가 같은 DynamoDB Local 인스턴스를 쓰지 않는다 — `-sharedDb` 라 테스트가 개발 데이터를 지운다
 - CI 의 `services:` 로 DynamoDB Local 에 `-sharedDb` 같은 인자를 넘기려 하지 않는다 — 넘길 방법이 없다. 대신 호스트 포트를 8084 로 맞춘다
