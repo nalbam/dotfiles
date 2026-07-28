@@ -12,7 +12,7 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## Philosophy
 
-- **스캐폴더가 만드는 것은 다시 만들지 않는다** — `create-next-app` 이 생성하는 보일러플레이트는 손대지 않고, *비자명한 부분*(레이어 경계·키 설계·어댑터·배포)만 추가한다
+- **스캐폴더의 *설정*은 다시 만들지 않는다** — `tsconfig`·`eslint.config.mjs`·`postcss.config.mjs`·`next.config.ts` 는 손대지 않고 *비자명한 부분*(레이어 경계·키 설계·어댑터·배포)만 추가한다. **단 데모 페이지와 브랜딩 에셋은 예외다** — 남길 이유가 없으므로 2단계에서 걷어낸다
 - **경계가 곧 아키텍처다** — 디렉토리 이름이 아니라 *의존 방향*을 lint 로 강제해야 유지된다
 - **접근 패턴을 먼저 정하고 테이블을 만든다** — Single Table Design 은 나중에 GSI 를 붙여 고칠 수 없다
 - **단계마다 검증하고 넘어간다** — 각 단계에 종료 조건이 있다 (`skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`)
@@ -24,7 +24,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 | Runtime | Node.js 24 (LTS), pnpm 11 | `package.json` 의 `packageManager` 필드로 고정, corepack 사용 |
 | Framework | Next.js 16 (App Router), React 19 | Turbopack 기본, `middleware.ts` 없음 → `proxy.ts` |
 | Language | TypeScript 6 | `strict: true` 필수. `typescript@^6` 로 **핀한다** — 7.x 는 lint·build 를 깬다 (2단계) |
-| Style | Tailwind CSS v4 | `@import "tailwindcss"` + `@tailwindcss/postcss` (v3 의 `tailwind.config.js` 없음) |
+| Style | Tailwind CSS v4 + next-themes | `@import "tailwindcss"` + `@tailwindcss/postcss` (v3 의 `tailwind.config.js` 없음). 수동 테마 토글은 `@custom-variant dark` |
+| UI | 프로젝트명 1페이지 | 데모 템플릿·Vercel 에셋 제거. 페이지 요소는 프로젝트명·테마 토글·로그인 버튼뿐 |
 | Auth | Better Auth 1.6 + Google OAuth | 커스텀 DynamoDB 어댑터 |
 | Data | AWS DynamoDB Single Table Design | `@aws-sdk/lib-dynamodb` DocumentClient. 개발·테스트는 DynamoDB Local |
 | Structure | Clean Architecture | `domain` / `application` / `infrastructure` / `app` |
@@ -35,8 +36,8 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## Scope
 
-- **한다**: 프로젝트 생성, 레이어 뼈대, 인증 배선, DynamoDB 어댑터, 접근 패턴·어댑터 계약 테스트, Dockerfile, CI 워크플로, `.env.example`
-- **안 한다**: 도메인 비즈니스 로직, UI 디자인, AWS 리소스 *실제 생성*, git commit/push
+- **한다**: 프로젝트 생성, 보일러플레이트 제거 + 단일 페이지(프로젝트명·테마 토글·로그인), 레이어 뼈대, 인증 배선, DynamoDB 어댑터, 접근 패턴·어댑터 계약 테스트, Dockerfile, CI 워크플로, `.env.example`
+- **안 한다**: 도메인 비즈니스 로직, 그 외 화면·UI 디자인, AWS 리소스 *실제 생성*, git commit/push
 - **경계**: 기존 프로젝트 수정은 이 스킬 대상이 아니다. 검증은 `/validate`, 커밋은 `/commit`.
 
 ## Rules
@@ -85,7 +86,49 @@ pnpm create next-app@latest <name> \
 
 즉 TS 7 은 3단계(레이어 강제)와 8단계(검증 게이트)를 동시에 무력화한다. `^6` 은 typescript-eslint 지원 상한이면서 strict 기본값이라 이 스킬과 결이 맞는다. **Next.js 16.3 이 stable 이 되면 그때 재검토한다** — 그 전엔 preview 채널 + 린터 교체(oxlint/Biome)가 딸려온다.
 
-> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` 기동 후 `/` 200 응답. 확인 뒤 종료.
+**보일러플레이트 제거** — 데모 페이지와 Vercel 브랜딩 에셋은 남기지 않는다. 만드는 것은 **프로젝트명 하나를 띄우는 페이지**뿐이고, 여기에 테마 토글과 (5단계에서) 로그인 버튼만 붙는다.
+
+```bash
+rm public/next.svg public/vercel.svg public/file.svg public/globe.svg public/window.svg
+```
+
+`app/page.tsx` 가 `/next.svg`·`/vercel.svg` 를 참조하므로 **에셋만 지우면 페이지가 깨진다** — 아래 페이지 교체와 같이 해야 한다.
+
+**테마 토글** — Tailwind v4 의 `dark:` 는 기본이 `prefers-color-scheme` 라서 수동 토글을 하려면 변형을 재정의한다. `app/globals.css` 에 한 줄:
+
+```css
+@custom-variant dark (&:where(.dark, .dark *));
+```
+
+```bash
+pnpm add next-themes
+```
+
+next-themes 는 기본으로 `<html>` 에 `class="dark"` 를 붙이므로 위 변형과 맞물린다.
+
+교체할 파일 3개:
+
+- **`app/layout.tsx`** — `metadata.title` 을 프로젝트명으로 (기본값 `"Create Next App"` 을 남기지 않는다). `<html lang="ko" suppressHydrationWarning>` — 테마는 클라이언트에서만 알 수 있어 서버 렌더 결과와 달라지고, 이게 없으면 hydration 경고가 뜬다. `<body>` 를 ThemeProvider 로 감싼다
+- **`app/providers.tsx`** — `"use client"` + `next-themes` 의 `ThemeProvider`(`attribute="class"`, `defaultTheme="system"`). **layout 은 Server Component 로 유지**하기 위해 분리한다
+- **`app/page.tsx`** — 아래로 전부 교체
+
+```tsx
+export default function Page() {
+  return (
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6">
+      <h1 className="text-4xl font-semibold">{/* 프로젝트명 */}</h1>
+      <ThemeToggle />
+      {/* 로그인 버튼은 5단계에서 추가 */}
+    </main>
+  );
+}
+```
+
+`ThemeToggle` 은 `"use client"` 이고 `useTheme()` 로 `light`/`dark` 를 바꾼다. 마운트 전에는 `resolvedTheme` 이 `undefined` 이므로, 그대로 아이콘을 그리면 깜빡인다 — 마운트 여부를 확인하고 그린다.
+
+Geist 폰트와 `favicon.ico` 는 브랜딩이 아니라 그대로 둔다. 바꾸고 싶으면 사용자에게 확인한다.
+
+> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` → `/` 에 **프로젝트명만** 보이고 테마 토글이 light/dark 를 실제로 바꾼다 → 브라우저 콘솔에 404(지운 svg)와 hydration 경고가 없다 → `grep -r "next.svg\|vercel.svg\|Create Next App" src public` 이 비어 있다.
 
 ### 3. 레이어 뼈대 — Clean Architecture
 
@@ -269,6 +312,7 @@ export const auth = betterAuth({
 - 클라이언트: `src/lib/auth-client.ts` → `createAuthClient()` from `better-auth/react`
 - 서버 세션: `auth.api.getSession({ headers: await headers() })`
 - 보호 라우트: Next.js 16 은 `middleware.ts` 가 없다 → **`proxy.ts`** 사용. 단, proxy 는 *낙관적 리다이렉트*용이고 **실질 인가 검사는 각 라우트·서버 액션에서 세션을 다시 확인**한다 (CVE-2025-29927 의 교훈)
+- **로그인 버튼**: 2단계에서 만든 `app/page.tsx` 의 자리표시자를 채운다. `"use client"` 컴포넌트에서 `authClient.signIn.social({ provider: "google" })` / `authClient.signOut()` 을 부르고, 세션 유무로 "Google 로그인" ↔ "로그아웃"을 바꾼다. 페이지는 여전히 **프로젝트명 + 테마 토글 + 로그인 버튼** 셋뿐이다 — 대시보드·프로필 화면 같은 걸 덧붙이지 않는다
 
 **Google Cloud Console 리다이렉트 URI** (사용자가 등록):
 - `http://localhost:3000/api/auth/callback/google`
@@ -499,7 +543,11 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build
 
 ## Anti-Patterns
 
-- `create-next-app` 결과물을 즉시 재작성하지 않는다 — 필요한 것만 덧붙인다
+- `create-next-app` 의 *설정 파일*을 재작성하지 않는다 — 필요한 것만 덧붙인다
+- 반대로 데모 페이지·Vercel 에셋(`next.svg` 등 5개)·`"Create Next App"` metadata 를 남기지 않는다 — 2단계에서 지운다
+- 요청하지 않은 화면을 만들지 않는다 — 페이지는 프로젝트명·테마 토글·로그인 버튼 셋뿐이다
+- `<html>` 에 `suppressHydrationWarning` 없이 next-themes 를 쓰지 않는다 — hydration 경고가 뜬다
+- Tailwind v4 에서 `@custom-variant dark` 없이 수동 테마 토글을 만들지 않는다 — `dark:` 가 OS 설정만 따라간다
 - 레이어를 디렉토리로만 나누고 lint 강제를 생략하지 않는다 — 한 달이면 무너진다
 - `create-next-app` 이 깐 `typescript@latest`(7.x)를 그대로 두지 않는다 — Compiler API 가 없어 lint·build 가 함께 죽는다
 - 어댑터에서 `Scan` 으로 폴백하지 않는다 — 지원 못 하는 쿼리는 던진다
