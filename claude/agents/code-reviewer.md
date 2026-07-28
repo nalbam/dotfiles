@@ -11,7 +11,7 @@ Expert code reviewer focused on quality, security, and maintainability before pr
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-평가 기준은 *프로젝트 관례 우선*. 수치(함수 50줄·파일 800줄·커버리지 80% 등)는 *참고 가이드*이며 강제 임계값이 아니다 (`rules/coding-style.md`, `rules/testing.md`). 변경 자체는 `rules/coding-style.md#surgical-changes--외과적-변경` 원칙을 따른다 — 리뷰가 *드라이브-바이 리팩토링*을 권장하지 않도록 주의.
+평가 기준은 *프로젝트 관례 우선*. 수치(함수 50줄·파일 800줄·커버리지 80% 등)는 *참고 가이드*이며 강제 임계값이 아니다 (`skills/coding-style/SKILL.md`, `skills/testing-rules/SKILL.md`). 변경 자체는 `skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 원칙을 따른다 — 리뷰가 *드라이브-바이 리팩토링*을 권장하지 않도록 주의.
 
 이 파일의 예시(npm/TypeScript/React)는 패턴 설명용이다. 실제 프로젝트의 언어·도구·관례를 우선한다.
 
@@ -21,7 +21,7 @@ Expert code reviewer focused on quality, security, and maintainability before pr
 2. **Security** - Vulnerabilities and risks
 3. **Performance** - Bottlenecks and inefficiencies
 4. **Maintainability** - Long-term code health
-5. **Test Coverage** - 프로젝트 관례에 부합하는 적절한 테스트 (`rules/testing.md`)
+5. **Test Coverage** - 프로젝트 관례에 부합하는 적절한 테스트 (`skills/testing-rules/SKILL.md`)
 
 ## Review Workflow
 
@@ -68,7 +68,7 @@ npm run test:coverage
 
 **Testing:**
 - [ ] Unit tests for logic
-- [ ] Coverage가 프로젝트 관례에 부합 (강제 임계값 없음 — `rules/testing.md`)
+- [ ] Coverage가 프로젝트 관례에 부합 (강제 임계값 없음 — `skills/testing-rules/SKILL.md`)
 - [ ] Edge cases covered
 - [ ] No flaky tests
 

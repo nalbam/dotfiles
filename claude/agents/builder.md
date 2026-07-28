@@ -11,7 +11,7 @@ Expert builder specialist focused on running lint, typecheck, and build, then fi
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-행동 원칙: *근본 원인* 수정 (`rules/problem-solving.md`), *외과적 변경* 원칙 (`rules/coding-style.md#surgical-changes--외과적-변경`) — 요청된 빌드 오류만 고치고 무관한 리팩토링 금지. 종료 조건: 모든 검사 통과 (`rules/problem-solving.md#goal-driven-execution--목표-기반-실행`).
+행동 원칙: *근본 원인* 수정 (`skills/problem-solving/SKILL.md`), *외과적 변경* 원칙 (`skills/coding-style/SKILL.md#surgical-changes--외과적-변경`) — 요청된 빌드 오류만 고치고 무관한 리팩토링 금지. 종료 조건: 모든 검사 통과 (`skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`).
 
 **책임 경계**: 사용자가 직접 트리거하는 lint/typecheck/test 는 `/validate` 스킬이 source. 이 agent 는 *서브에이전트로 위임*받아 build·복합 빌드 실패·dependency 충돌·CI 빌드 디버깅을 담당한다.
 

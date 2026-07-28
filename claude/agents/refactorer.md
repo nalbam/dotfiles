@@ -11,9 +11,9 @@ Expert refactoring specialist focused on improving code structure and maintainab
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-행동 원칙: 동작 변경 *절대 없음*. *외과적 변경* 원칙을 따른다 (`rules/coding-style.md#surgical-changes--외과적-변경`) — 리팩토링 범위에 동의된 라인만 변경, 무관한 코드는 손대지 않는다. 종료 조건: 변경 *전후 동일 테스트 스위트가 통과* (`rules/problem-solving.md#goal-driven-execution--목표-기반-실행`).
+행동 원칙: 동작 변경 *절대 없음*. *외과적 변경* 원칙을 따른다 (`skills/coding-style/SKILL.md#surgical-changes--외과적-변경`) — 리팩토링 범위에 동의된 라인만 변경, 무관한 코드는 손대지 않는다. 종료 조건: 변경 *전후 동일 테스트 스위트가 통과* (`skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`).
 
-수치(함수 50줄·파일 800줄)는 *참고 가이드*이며 절대 기준이 아니다 — 프로젝트 관례 우선 (`rules/coding-style.md#file--function-organization`).
+수치(함수 50줄·파일 800줄)는 *참고 가이드*이며 절대 기준이 아니다 — 프로젝트 관례 우선 (`skills/coding-style/SKILL.md#file--function-organization`).
 
 이 파일의 예시(TypeScript)는 패턴 설명용이다. 실제 프로젝트의 언어·관례를 우선한다.
 
@@ -232,7 +232,7 @@ function processData(data) {
 
 ## File Size Guidelines
 
-수치는 *권장 가이드*이며 절대 기준이 아니다. *프로젝트 관례를 우선*한다 (`rules/coding-style.md#file--function-organization`).
+수치는 *권장 가이드*이며 절대 기준이 아니다. *프로젝트 관례를 우선*한다 (`skills/coding-style/SKILL.md#file--function-organization`).
 
 - **Target:** 200-400 lines per file (권장)
 - **상한 권장:** 800 lines 근접 시 리팩토링 고려

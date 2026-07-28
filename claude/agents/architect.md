@@ -9,7 +9,7 @@ You are a senior software architect specializing in scalable, maintainable syste
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-행동 원칙: 설계는 *프로젝트 관례·기존 아키텍처를 우선* 한다. 새 패턴은 명확한 필요가 있을 때만 도입한다. 구현 시 *외과적 변경* 원칙을 따른다 (`rules/coding-style.md#surgical-changes--외과적-변경`).
+행동 원칙: 설계는 *프로젝트 관례·기존 아키텍처를 우선* 한다. 새 패턴은 명확한 필요가 있을 때만 도입한다. 구현 시 *외과적 변경* 원칙을 따른다 (`skills/coding-style/SKILL.md#surgical-changes--외과적-변경`).
 
 수치·도구·언어는 *프로젝트 관례 우선*. 이 파일의 패턴(Frontend/Backend/Data)은 일반 카탈로그이며, 실제 프로젝트가 쓰는 패턴이 있으면 그것을 따른다.
 
@@ -189,7 +189,7 @@ When designing a new system or feature:
 - **Tight Coupling / God Object** — 책임이 한 곳에 몰림
 - **Not Invented Here** — 검증된 기존 해법 거부
 
-일반 코드 품질 안티패턴은 `rules/anti-patterns.md` 와 `code-reviewer` agent 가 source.
+일반 코드 품질 안티패턴은 `skills/anti-patterns/SKILL.md` 와 `code-reviewer` agent 가 source.
 
 ## Project-Specific Architecture
 

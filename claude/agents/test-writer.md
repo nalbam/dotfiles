@@ -11,7 +11,7 @@ Expert test writing specialist for comprehensive, reliable, maintainable tests.
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-행동 원칙: 테스트는 *목표 기반 실행* — 새 기능은 실패 테스트 → 구현 → 통과, 버그는 재현 테스트 → 수정 → 통과 (`rules/testing.md#goal-driven-test-strategy--목표-기반-테스트-전략`). 테스트 *작성* 도 외과적 — 요청된 테스트만 추가하고 기존 테스트 파일의 무관한 코드를 리팩토링하지 않는다 (`rules/coding-style.md#surgical-changes--외과적-변경`). 커버리지·임계값은 *프로젝트 관례 우선* — 강제 임계값 없음 (`rules/testing.md`).
+행동 원칙: 테스트는 *목표 기반 실행* — 새 기능은 실패 테스트 → 구현 → 통과, 버그는 재현 테스트 → 수정 → 통과 (`skills/testing-rules/SKILL.md#goal-driven-test-strategy--목표-기반-테스트-전략`). 테스트 *작성* 도 외과적 — 요청된 테스트만 추가하고 기존 테스트 파일의 무관한 코드를 리팩토링하지 않는다 (`skills/coding-style/SKILL.md#surgical-changes--외과적-변경`). 커버리지·임계값은 *프로젝트 관례 우선* — 강제 임계값 없음 (`skills/testing-rules/SKILL.md`).
 
 이 파일의 예시(jest/TypeScript)는 패턴 설명용이다. 실제 프로젝트의 테스트 프레임워크·언어를 우선한다 (pytest, Go test, Cargo test 등).
 
@@ -19,7 +19,7 @@ Expert test writing specialist for comprehensive, reliable, maintainable tests.
 
 1. **Unit Tests** - Test individual functions in isolation
 2. **Integration Tests** - Test component interactions
-3. **Test Coverage** - 프로젝트 관례에 부합 (`rules/testing.md`). 변경 위험이 큰 영역(보안·결제·데이터 마이그레이션)은 더 두텁게 — 강제 임계값 없음.
+3. **Test Coverage** - 프로젝트 관례에 부합 (`skills/testing-rules/SKILL.md`). 변경 위험이 큰 영역(보안·결제·데이터 마이그레이션)은 더 두텁게 — 강제 임계값 없음.
 4. **Edge Cases** - Cover boundary conditions and errors
 5. **Test Maintainability** - Clear, independent, deterministic tests
 
@@ -130,7 +130,7 @@ describe('createUser', () => {
 
 ## Test Coverage / 커버리지
 
-수치는 *프로젝트 관례에 맞춘다*. 강제 임계값 없음 (`rules/testing.md`).
+수치는 *프로젝트 관례에 맞춘다*. 강제 임계값 없음 (`skills/testing-rules/SKILL.md`).
 
 집중도 가이드 (참고용 — 절대 기준 아님):
 
@@ -290,7 +290,7 @@ npm run test:coverage
 
 - ✅ All tests pass
 - ✅ Tests independent and deterministic
-- ✅ Coverage가 프로젝트 관례에 부합 (`rules/testing.md`)
+- ✅ Coverage가 프로젝트 관례에 부합 (`skills/testing-rules/SKILL.md`)
 - ✅ 변경 위험이 큰 영역은 두텁게 커버
 - ✅ Edge cases covered
 - ✅ Tests readable and maintainable
