@@ -976,6 +976,29 @@ else
   _skip "Homebrew not found"
 fi
 
+# nvm 부트스트랩
+# brew 의 nvm formula 는 ~/.nvm 을 만들지 않고 node 도 딸려오지 않는다 (brew deps nvm 이 비어 있음).
+# zshrc 는 ~/.nvm 존재를 조건으로 nvm 을 로드하므로, 여기서 만들어주지 않으면 신규 머신에서
+# node/npm 이 영원히 없고 아래 NPM 패키지 설치가 통째로 skip 된다.
+# 업데이트 스로틀 바깥에 둔다 — 부트스트랩은 1회성이고 node 존재 여부로 가드된다.
+NVM_SH="$(brew --prefix nvm 2>/dev/null)/nvm.sh"
+if [ -s "$NVM_SH" ]; then
+  export NVM_DIR="$HOME/.nvm"
+  [ -d "$NVM_DIR" ] || mkdir -p "$NVM_DIR"
+  . "$NVM_SH"
+
+  if ! command -v node >/dev/null 2>&1; then
+    # stderr 는 가리지 않는다 — 프리빌트 바이너리가 없는 아키텍처(예: armv7l)에서는 nvm 이
+    # 소스 컴파일로 넘어가 수 시간이 걸릴 수 있고, 조용히 멈춘 것처럼 보이면 안 된다.
+    _run "Installing Node.js LTS via nvm (this may take a while on ARM)"
+    if nvm install --lts >/dev/null && nvm alias default 'lts/*' >/dev/null 2>&1; then
+      _ok "Node.js $(node -v) installed"
+    else
+      _warn "nvm install --lts failed — NPM packages will be skipped"
+    fi
+  fi
+fi
+
 # NPM 패키지 설치 (버전 체크 포함)
 if command -v npm >/dev/null; then
   NPM_TIMESTAMP_FILE=~/.toast/last_update_npm
@@ -984,9 +1007,9 @@ if command -v npm >/dev/null; then
     _info "Installing/updating NPM packages..."
 
     # npm prefix 의 쓰기 권한 확인
-    # sudo npm 은 brew 환경에서 lib/node_modules 에 root 소유 파일을 남겨
-    # 이후 brew node 의 post_install 과 npm install 을 영구 EACCES 로 망가뜨린다
-    # (자가 강화 권한 오염 사이클). 권한이 깨졌으면 도망가지 말고 멈춘다.
+    # sudo npm 은 lib/node_modules 에 root 소유 파일을 남겨 이후의 npm install 을
+    # 영구 EACCES 로 망가뜨린다 (자가 강화 권한 오염 사이클).
+    # 권한이 깨졌으면 도망가지 말고 멈춘다.
     NPM_PREFIX=$(npm config get prefix 2>/dev/null || echo "/usr/local")
     NPM_CMD="npm"
     NPM_OK=true
@@ -1010,13 +1033,13 @@ if command -v npm >/dev/null; then
     fi
 
     if [ "$NPM_OK" = false ]; then
-      _info "Do NOT use sudo npm — it permanently corrupts brew's node install."
+      _info "Do NOT use sudo npm — it permanently corrupts the node install."
       _info "Fix with: sudo chown -R \$(whoami):staff $NPM_NODE_MODULES"
       _info "Skipping NPM package install/update."
     fi
 
     if [ "$NPM_OK" = true ]; then
-      # npm 자체는 brew 의 node 패키지가 관리하므로 self-update 시도하지 않음
+      # npm 자체는 nvm 의 node 가 관리하므로 self-update 시도하지 않음
       _install_npm_package "corepack" "corepack"
       _install_npm_package "serverless" "serverless"
       _install_npm_package "ccusage" "ccusage"
