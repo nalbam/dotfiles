@@ -1,6 +1,6 @@
 ---
 name: nextjs-init
-description: Scaffold a new Next.js 16 project — App Router, TypeScript strict, Tailwind v4, Better Auth + Google OAuth on DynamoDB, Clean Architecture, ECR push. 새 Next.js 프로젝트 생성, 초기 셋업, 보일러플레이트 구성.
+description: Scaffold a new Next.js 16 project — App Router, TypeScript strict, Mantine 9, Better Auth + Google OAuth on DynamoDB, Clean Architecture, ECR push. 새 Next.js 프로젝트 생성, 초기 셋업, 보일러플레이트 구성.
 ---
 
 # Next.js Project Init
@@ -11,7 +11,7 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 
 ## Philosophy
 
-- **스캐폴더의 *설정*은 다시 만들지 않는다** — `tsconfig`·`postcss.config.mjs`·`next.config.ts` 는 손대지 않고 *비자명한 부분*(레이어 경계·키 설계·어댑터·배포)만 추가한다. `eslint.config.mjs` 도 다시 쓰지 않고 3단계에서 배열에 객체 하나를 끼운다. **단 데모 페이지와 브랜딩 에셋은 예외다** — 남길 이유가 없으므로 2단계에서 걷어낸다
+- **스캐폴더의 *설정*은 다시 만들지 않는다** — `tsconfig`·`next.config.ts` 는 손대지 않고 *비자명한 부분*(레이어 경계·키 설계·어댑터·배포)만 추가한다. `eslint.config.mjs` 도 다시 쓰지 않고 3단계에서 배열에 객체 하나를 끼운다. **PostCSS 설정은 이 규칙 밖이다** — `--no-tailwind` 로 만들면 `postcss.config.mjs` 가 *아예 생기지 않으므로* 2단계에서 Mantine 용으로 새로 만드는 것이다. **데모 페이지·스타일시트·브랜딩 에셋도 예외다** — 남길 이유가 없으므로 2단계에서 걷어낸다
 - **경계가 곧 아키텍처다** — 디렉토리 이름이 아니라 *의존 방향*을 lint 로 강제해야 유지된다
 - **접근 패턴을 먼저 정하고 테이블을 만든다** — Single Table Design 은 나중에 GSI 를 붙여 고칠 수 없다
 - **단계마다 검증하고 넘어간다** — 각 단계에 종료 조건이 있다 (`skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`)
@@ -23,8 +23,9 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 | Runtime | Node.js 24 (LTS), pnpm 11 | `package.json` 의 `packageManager` 필드로 고정, corepack 사용 |
 | Framework | Next.js 16 (App Router), React 19 | Turbopack 기본, `middleware.ts` 없음 → `proxy.ts` |
 | Language | TypeScript 6 | `strict: true` 필수. `typescript@^6` 로 **핀한다** — 7.x 는 lint·build 를 깬다 (2단계) |
-| Style | Tailwind CSS v4 + next-themes | `@import "tailwindcss"` + `@tailwindcss/postcss` (v3 의 `tailwind.config.js` 없음). 수동 테마 토글은 `@custom-variant dark` |
-| UI | 화면 1개 (`/`) | 템플릿·샘플만 제거. `/` 는 프로젝트명·테마 토글·로그인 버튼뿐이고, 인증은 화면이 아니라 API 라우트로 붙는다 |
+| Style | Mantine 9 | `@mantine/core` + `@mantine/hooks`. `styles.layer.css` 로 import 하고 내 CSS 는 `postcss-preset-mantine` 이 컴파일한다. **Tailwind 없음** — `--no-tailwind` 로 스캐폴딩한다 |
+| Theme | Mantine 컬러 스킴 | `ColorSchemeScript` + `data-mantine-color-scheme` + localStorage. next-themes 를 쓰지 않는다 |
+| UI | 화면 1개 (`/`) | 템플릿·샘플만 제거. `/` 는 프로젝트명·테마 토글·로그인 버튼뿐이고 셋 다 Mantine 컴포넌트다. 인증은 화면이 아니라 API 라우트로 붙는다 |
 | Auth | Better Auth 1.6 + Google OAuth | 커스텀 DynamoDB 어댑터 |
 | Data | AWS DynamoDB Single Table Design | `@aws-sdk/lib-dynamodb` DocumentClient. 개발·테스트는 DynamoDB Local |
 | Structure | Clean Architecture | `domain` / `application` / `infrastructure` / `app` |
@@ -69,9 +70,37 @@ ls -A <target-dir> 2>/dev/null
 
 ```bash
 pnpm create next-app@latest <name> \
-  --typescript --tailwind --eslint --app --src-dir \
-  --import-alias "@/*" --use-pnpm --disable-git --yes
+  --typescript --no-tailwind --eslint --app --src-dir \
+  --import-alias "@/*" --use-pnpm --disable-git --skip-install --yes
 ```
+
+**`--skip-install` 이 선택이 아니라 필수다.** pnpm 11 은 postinstall 빌드를 기본 차단하고, 미승인 상태의 `pnpm install` 을 `ERR_PNPM_IGNORED_BUILDS` 로 **exit 1** 시킨다. `--skip-install` 없이 스캐폴딩하면 `create-next-app` 이 그 실패를 그대로 받아 **`Aborting installation.` 으로 중단하고**, `AGENTS.md`·`AGENTS.md` 같은 뒷단 파일이 빠진 **반쪽 프로젝트가 남는다.** 승인을 먼저 넣고 설치하는 순서로 간다.
+
+**빌드 스크립트 승인 — 설치 전에 파일로 적는다.** `create-next-app` 은 `pnpm-workspace.yaml` 을 `ignoredBuiltDependencies` 만 채워서 만들어 둔다. 여기에 `allowBuilds` 를 직접 추가한다:
+
+```yaml
+# pnpm-workspace.yaml — 워크스페이스를 안 써도 필요하다
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+ignoredBuiltDependencies:   # 스캐폴더가 넣은 것 — 지우지 않는다
+  - sharp
+  - unrs-resolver
+```
+
+두 키가 공존하는 게 정상이고 `allowBuilds` 쪽이 이긴다. 그 다음 설치한다:
+
+```bash
+pnpm install
+```
+
+**`pnpm approve-builds --all` 을 먼저 부르려 하지 않는다.** 그 명령은 설치된 `node_modules` 를 훑어 후보를 찾으므로 설치 전에는 *"There are no packages awaiting approval"* 만 출력하고 아무것도 안 한다 — 실패하는 `pnpm install` 을 한 번 돌려 `node_modules` 를 채운 뒤에야 동작하는, 순서가 뒤집힌 경로다. 두 줄을 손으로 적는 쪽이 짧고 결정적이다.
+
+**대상은 두 개다 — `unrs-resolver` 와 `sharp`.** 전자는 `eslint-config-next` 의 TS 리졸버, 후자는 `next/image` 의 운영 이미지 최적화다. 하나만 승인하면 남은 하나로 다시 막힌다.
+
+**막히는 건 정책 게이트 때문이고 네이티브 바이너리가 없어서가 아니다** — `unrs-resolver` 의 prebuilt `.node` 는 승인 없이도 설치돼 있고, 게이트를 우회하면 `eslint` 자체는 정상 동작한다. 그래서 "린트가 깨졌다"고 eslint 설정을 뒤지면 시간을 버린다.
+
+**`pnpm-workspace.yaml` 을 반드시 커밋한다.** 빠지면 CI 와 Docker 의 `pnpm install --frozen-lockfile` 이 **exit 1** 로 죽고, 그쪽에는 승인을 눌러 줄 사람이 없다. 7단계 Dockerfile 의 deps 스테이지에서도 `package.json`·lockfile 과 **함께 COPY** 해야 한다.
 
 이후:
 - **`pnpm add -D typescript@^6`** — 스캐폴더는 `^5` 를 깐다. 아래 이유를 읽고 넘어간다
@@ -96,12 +125,13 @@ pnpm create next-app@latest <name> \
 
 | | 대상 |
 |---|---|
-| **지운다** | `public/` 의 svg 5개 (`next`·`vercel`·`file`·`globe`·`window`), `src/app/page.tsx` 의 데모 내용, `layout.tsx` 의 `"Create Next App"` metadata, `create-next-app` 이 만든 README 본문 (실제 내용은 8단계에서 쓴다) |
-| **남긴다** | `src/app/layout.tsx`·`globals.css`·`favicon.ico`, 설정 파일 전부(`tsconfig`·`eslint.config.mjs`·`postcss.config.mjs`·`next.config.ts`·`next-env.d.ts`·`pnpm-workspace.yaml`), `AGENTS.md`·`AGENTS.md` |
-| **뒤에서 만든다** | `src/app/api/auth/[...all]/route.ts` (5단계), `src/app/providers.tsx`, `src/lib/auth-client.ts` |
+| **지운다** | `public/` 의 svg 5개 (`next`·`vercel`·`file`·`globe`·`window`), `src/app/page.tsx` 의 데모 내용, `src/app/page.module.css`, `src/app/globals.css` (+ `layout.tsx` 의 import 한 줄), `layout.tsx` 의 `"Create Next App"` metadata, `create-next-app` 이 만든 README 본문 (실제 내용은 8단계에서 쓴다) |
+| **남긴다** | `src/app/layout.tsx`·`favicon.ico`, 설정 파일 전부(`tsconfig`·`eslint.config.mjs`·`next.config.ts`·`next-env.d.ts`·`pnpm-workspace.yaml`), `AGENTS.md`·`AGENTS.md` |
+| **뒤에서 만든다** | `postcss.config.mjs`·`src/app/theme.ts`·`ThemeToggle` + `theme-toggle.module.css` (아래 Mantine 셋업), `src/app/api/auth/[...all]/route.ts` (5단계), `src/lib/auth-client.ts` |
 
 ```bash
 rm public/next.svg public/vercel.svg public/file.svg public/globe.svg public/window.svg
+rm src/app/page.module.css src/app/globals.css   # 아래 "왜 globals.css 를 지우는가" 참조
 touch public/.gitkeep   # 아래 "왜 .gitkeep 인가" 참조 — 빼면 CI 의 docker build 가 깨진다
 ```
 
@@ -113,63 +143,122 @@ touch public/.gitkeep   # 아래 "왜 .gitkeep 인가" 참조 — 빼면 CI 의 
 
 `--src-dir` 로 만들었으므로 **코드는 `src/app/` 아래**고 `public/` 만 저장소 루트에 남는다 — 아래 경로는 전부 그 기준이다.
 
-`src/app/page.tsx` 가 `/next.svg`·`/vercel.svg` 를 참조하므로 **에셋만 지우면 페이지가 깨진다** — 아래 페이지 교체와 같이 해야 한다.
+`src/app/page.tsx` 가 `/next.svg`·`/vercel.svg` 와 `./page.module.css` 를 참조하고 `layout.tsx` 가 `./globals.css` 를 import 하므로, **에셋·스타일시트만 지우면 빌드가 깨진다** — 아래 파일 교체와 한 묶음으로 해야 한다.
 
-**테마 토글** — `src/app/globals.css` 를 **두 곳** 고친다. 한 곳만 고치면 토글이 반쪽만 동작한다.
-
-**(a) `dark:` 변형을 클래스 기준으로 재정의한다.** Tailwind v4 의 `dark:` 는 기본이 `prefers-color-scheme` 다. 파일 맨 위 `@import "tailwindcss";` 다음에 한 줄:
-
-```css
-@custom-variant dark (&:where(.dark, .dark *));
-```
-
-**(b) 스캐폴더의 `@media (prefers-color-scheme: dark)` 블록을 `.dark` 로 바꾼다.** 이게 빠지면 **배경색이 토글을 따라오지 않는다** — 스캐폴더는 `body { background: var(--background) }` 로 칠하면서 `--background` 의 다크 값을 미디어쿼리 안에 넣어 두고, (a) 는 `dark:` *유틸리티*만 고치므로 이 블록에 닿지 않는다:
-
-```css
-/* 지운다 */
-@media (prefers-color-scheme: dark) {
-  :root { --background: #0a0a0a; --foreground: #ededed; }
-}
-
-/* 대신 이렇게 */
-.dark { --background: #0a0a0a; --foreground: #ededed; }
-```
-
-`defaultTheme="system"` 이 OS 설정을 해석해서 클래스를 붙여 주므로 시스템 추종 동작은 그대로 남는다. **(b) 없이 두면 단순히 안 바뀌는 게 아니라 뒤섞인다** — OS 가 다크인데 토글을 light 로 옮기면 배경만 다크로 남고 `dark:` 유틸리티는 밝아진다.
+**Mantine 셋업**
 
 ```bash
-pnpm add next-themes
+pnpm add @mantine/core @mantine/hooks
+pnpm add -D postcss postcss-preset-mantine postcss-simple-vars
 ```
 
-next-themes 는 기본으로 `<html>` 에 `class="dark"` 를 붙이므로 (a) 의 변형과 (b) 의 선택자에 함께 맞물린다.
+**`postcss.config.mjs` 를 새로 만든다** — `--no-tailwind` 스캐폴드에는 이 파일이 아예 없다:
 
-교체할 파일 3개:
+```js
+// postcss.config.mjs — 객체를 변수에 담고 export 한다. Mantine 문서는 익명 default
+// export 로 적어 두는데, 그러면 eslint-config-next 의 import/no-anonymous-default-export
+// 경고가 뜬다 (에러는 아니라 게이트는 통과하지만 매번 로그에 남는다).
+const config = {
+  plugins: {
+    "postcss-preset-mantine": {},
+    "postcss-simple-vars": {
+      variables: {
+        "mantine-breakpoint-xs": "36em",
+        "mantine-breakpoint-sm": "48em",
+        "mantine-breakpoint-md": "62em",
+        "mantine-breakpoint-lg": "75em",
+        "mantine-breakpoint-xl": "88em",
+      },
+    },
+  },
+};
 
-- **`src/app/layout.tsx`** — `metadata.title` 을 프로젝트명으로 (기본값 `"Create Next App"` 을 남기지 않는다). `<html lang="ko" suppressHydrationWarning>` — 테마는 클라이언트에서만 알 수 있어 서버 렌더 결과와 달라지고, 이게 없으면 hydration 경고가 뜬다. `<body>` 를 ThemeProvider 로 감싼다
-- **`src/app/providers.tsx`** — `"use client"` + `next-themes` 의 `ThemeProvider`(`attribute="class"`, `defaultTheme="system"`). **layout 은 Server Component 로 유지**하기 위해 분리한다
+export default config;
+```
+
+**이 프리셋은 Mantine 이 배포한 CSS 와 무관하다** — `@mantine/core` 의 스타일시트는 이미 컴파일된 채로 온다. 프리셋이 필요한 쪽은 *앞으로 쓸 CSS 모듈*이다: `light-dark()`, `@mixin dark`/`@mixin light`, `rem()`. 빠뜨리면 첫 CSS 모듈에서 **에러 없이 조용히 안 먹는다.** `postcss-simple-vars` 도 같다 — 없으면 `@media (--mantine-breakpoint-sm)` 이 그냥 무시된다.
+
+**`@mantine/core/styles.layer.css` 로 import 한다** (`styles.css` 가 아니라). CSS 모듈의 클래스와 Mantine 의 클래스는 specificity 가 같아서 **import 순서가 승부를 가르는데**, Next.js 의 CSS 순서는 import 그래프를 따라가므로 손으로 보장할 수 없다. Mantine 이 `@layer mantine` 판본을 따로 배포하고 문서가 Next.js 를 그 대표 사례로 드는 이유가 이것이다 — layer 에 들어가면 layer 밖의 내 CSS 가 항상 이긴다. **`styles.css` 와 `styles.layer.css` 를 동시에 import 하지 않는다.**
+
+**왜 `globals.css` 를 지우는가** — `@mantine/core` 의 스타일시트에 리셋(`box-sizing`, `margin: 0`)과 `body` 의 배경·색·폰트가 **이미 들어 있다.** 스캐폴더의 `globals.css` 는 같은 것을 `--background`/`--foreground` 와 `@media (prefers-color-scheme: dark)` 로 칠하므로, 남겨두면 두 벌이 겹치고 **다크 모드가 Mantine 토글이 아니라 OS 설정을 따라간다.** 전역 CSS 가 나중에 필요해지면 그때 빈 파일로 다시 만든다.
+
+교체할 파일 2개 + 신규 3개:
+
+- **`src/app/layout.tsx`** — 지운 `./globals.css` import 자리에 `import "@mantine/core/styles.layer.css"`. `metadata.title` 을 프로젝트명으로 (기본값 `"Create Next App"` 을 남기지 않는다). `<html lang="ko" {...mantineHtmlProps} className={/* Geist 변수 — 그대로 둔다 */}>`, `<head>` 에 `<ColorSchemeScript defaultColorScheme="auto" />`, `<body>` 를 `<MantineProvider theme={theme} defaultColorScheme="auto">` 로 감싼다
+- **`src/app/theme.ts`** (신규) — `createTheme({ fontFamily: "var(--font-geist-sans)", fontFamilyMonospace: "var(--font-geist-mono)" })`
 - **`src/app/page.tsx`** — 아래로 전부 교체
+- **`ThemeToggle`** + **`theme-toggle.module.css`** (신규) — 아래
 
 ```tsx
+import { Stack, Title } from "@mantine/core";
+
 export default function Page() {
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 font-sans">
-      <h1 className="text-4xl font-semibold">{/* 프로젝트명 */}</h1>
+    <Stack align="center" justify="center" mih="100dvh" gap="lg">
+      <Title order={1}>{/* 프로젝트명 */}</Title>
       <ThemeToggle />
       {/* 로그인 버튼은 5단계에서 추가 */}
-    </main>
+    </Stack>
   );
 }
 ```
 
-`font-sans` 를 빼면 Geist 가 아니라 Arial 로 렌더된다 — `globals.css` 의 `body { font-family: Arial, Helvetica, sans-serif }` 가 Tailwind 의 `--default-font-family`(= Geist)를 덮기 때문에, 로드된 폰트는 `font-sans` 를 쓴 곳에만 걸린다.
+**`providers.tsx` 는 만들지 않는다.** `@mantine/*` 패키지의 엔트리에는 `'use client'` 가 이미 붙어 있어서 `MantineProvider` 를 Server Component 인 `layout.tsx` 에 바로 넣을 수 있다 — 클라이언트 경계를 만들자고 파일을 하나 더 두지 않는다.
 
-`ThemeToggle` 은 `"use client"` 이고 `useTheme()` 로 `light`/`dark` 를 바꾼다. 마운트 전에는 `resolvedTheme` 이 `undefined` 이므로, 그대로 아이콘을 그리면 깜빡인다 — 마운트 여부를 확인하고 그린다.
+**`mantineHtmlProps` 를 손으로 풀어 쓰지 않는다.** 실제 값은 `{ suppressHydrationWarning: true, "data-mantine-color-scheme": "light" }` 두 개이고, hydration 경고 억제와 *페인트 이전의 초기 색상 속성*이 한 세트로 온다. `suppressHydrationWarning` 만 따로 붙이면 후자를 빠뜨린다.
 
-Geist 폰트와 `favicon.ico` 는 브랜딩이 아니라 그대로 둔다. 바꾸고 싶으면 사용자에게 확인한다.
+**`defaultColorScheme` 은 `ColorSchemeScript` 와 `MantineProvider` 에 같은 값을 준다.** 다르면 스크립트가 세운 속성과 provider 가 마운트하며 세우는 속성이 어긋나 첫 렌더에 색이 한 번 튄다.
 
-> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` → `/` 에 **프로젝트명만** 보인다 → 브라우저 콘솔에 404(지운 svg)와 hydration 경고가 없다 → `grep -rn "next.svg\|vercel.svg\|Create Next App" src public` 이 비어 있다 → `ls -A public` 에 `.gitkeep` 만 있다.
+**`ThemeToggle` 은 현재 스킴으로 *렌더 결과를 분기하지 않는다*.** 서버는 localStorage 를 볼 수 없으므로, 스킴 값으로 JSX 를 고르는 순간 hydration mismatch 다. 아이콘 **둘 다 렌더하고 CSS 로 하나를 가린다** — 스킴 값은 `onClick` 안에서만 쓴다:
+
+```tsx
+"use client";
+
+import { ActionIcon, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import classes from "./theme-toggle.module.css";
+
+export function ThemeToggle() {
+  const { setColorScheme } = useMantineColorScheme();
+  const computed = useComputedColorScheme("light", { getInitialValueInEffect: true });
+
+  return (
+    <ActionIcon
+      variant="default"
+      aria-label="테마 전환"
+      onClick={() => setColorScheme(computed === "light" ? "dark" : "light")}
+    >
+      {/* 두 아이콘을 항상 렌더한다 — 분기는 아래 CSS 가 한다 */}
+      <SunIcon className={classes.light} />
+      <MoonIcon className={classes.dark} />
+    </ActionIcon>
+  );
+}
+```
+
+```css
+/* src/app/theme-toggle.module.css — postcss-preset-mantine 의 mixin 이 여기서 처음 쓰인다 */
+.light {
+  @mixin dark { display: none; }
+}
+
+.dark {
+  @mixin light { display: none; }
+}
+```
+
+**`getInitialValueInEffect: true` 로는 부족하다.** 이 옵션이 미루는 건 *OS 미디어쿼리 조회*뿐이고, localStorage 에 `light`/`dark` 가 명시적으로 저장돼 있으면 클라이언트 첫 렌더에서 **그 값이 곧바로 잡힌다.** 그래서 값으로 JSX 를 분기하면 서버가 그린 것과 어긋난다 — **첫 방문에는 안 나고 토글 후 새로고침해야 드러나므로** 특히 놓치기 쉽다. `computed` 는 이벤트 핸들러에서만 읽는 값으로 두는 게 규칙이다.
+
+**`optimizePackageImports` 는 켜지 않는다.** Next.js 의 기본 최적화 목록에 Mantine 은 없어서 켜려면 `next.config.ts` 에 명시해야 하는데, Next 문서가 이 옵션 자체를 experimental·프로덕션 비권장으로 표시한다. dev 컴파일이 느려지면 그때 `experimental: { optimizePackageImports: ["@mantine/core", "@mantine/hooks"] }` 를 추가한다.
+
+Geist 폰트와 `favicon.ico` 는 브랜딩이 아니라 그대로 둔다. **단 Geist 는 `theme.ts` 로 연결해야 실제로 쓰인다** — 스캐폴더는 `next/font` 로 폰트를 받아 `<html>` 에 `--font-geist-sans` 를 심어줄 뿐이고, Mantine 은 그와 무관하게 자체 시스템 폰트 스택을 기본값으로 쓴다. 연결을 빠뜨리면 폰트를 다운로드해 놓고 안 쓴다. 바꾸고 싶으면 사용자에게 확인한다.
+
+> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` → `/` 에 **프로젝트명만** 보인다 → 브라우저 콘솔에 404(지운 svg)와 hydration 경고가 없다 → `grep -rn "next.svg\|vercel.svg\|Create Next App\|globals.css\|page.module.css" src public` 이 비어 있다 → `ls -A public` 에 `.gitkeep` 만 있다.
 >
-> **테마는 배경색으로 확인한다.** 토글할 때 `<html>` 의 클래스만 바뀌고 배경이 그대로면 (b) 를 빠뜨린 것이다. **OS 를 다크로 둔 상태에서 light 로 토글**해 봐야 드러난다 — OS 가 라이트면 (b) 없이도 정상처럼 보인다. `pnpm build` 후 `grep -c prefers-color-scheme $(find .next -name '*.css' -not -path '*/cache/*')` 가 **0** 이어야 한다.
+> **테마는 `<html>` 의 `data-mantine-color-scheme` 과 배경색을 같이 본다.** 토글할 때 속성이 `light`↔`dark` 로 바뀌고 배경이 따라와야 하며, 새로고침해도 유지돼야 한다 (localStorage). **OS 를 다크로 둔 상태에서 light 로 토글**해 봐야 `globals.css` 잔재가 드러난다 — 속성은 `light` 인데 배경만 다크로 남으면 그 파일을 안 지운 것이다.
+>
+> **hydration 은 토글한 뒤 새로고침해서 확인한다.** 첫 방문은 저장된 값이 없어 통과하므로, `localStorage` 에 `light`/`dark` 가 들어간 상태로 다시 그려 봐야 스킴 분기 mismatch 가 드러난다. OS 와 반대 값을 저장해 두고 새로고침하는 게 가장 확실하다.
+>
+> **폰트는 Geist 여야 한다.** 렌더된 텍스트의 `font-family` 가 시스템 폰트로 나오면 `theme.ts` 를 `MantineProvider` 에 안 물린 것이다.
 
 ### 3. 레이어 뼈대 — Clean Architecture
 
@@ -231,31 +320,7 @@ export default defineConfig([...nextVitals, ...nextTs, layers, globalIgnores([/*
 
 `from` 한 배열에는 **디렉토리 경로만, 또는 glob 만** 담는다 — 섞으면 스키마에서 거부된다.
 
-**빌드 스크립트 승인 — `pnpm <script>` 가 전부 막히므로 여기서 처리한다.** pnpm 11 은 postinstall 빌드를 기본 차단하고, 미승인 상태에서 `ERR_PNPM_IGNORED_BUILDS` 로 **`pnpm install` 과 모든 `pnpm <script>` 를 exit 1** 로 떨어뜨린다 (스크립트 실행 전에 의존성 상태를 다시 확인하면서 내부적으로 `install` 을 돌린다). 그래서 `pnpm lint`·`pnpm test`·`pnpm build` 가 전부 같은 에러로 멈춘다:
-
-```bash
-pnpm approve-builds --all   # 대화형 프롬프트를 피하려고 --all
-```
-
-**막히는 건 정책 게이트 때문이고 네이티브 바이너리가 없어서가 아니다** — `unrs-resolver` 의 prebuilt `.node` 는 승인 없이도 설치돼 있고, 게이트를 우회하면 `eslint` 자체는 정상 동작한다. 그래서 "린트가 깨졌다"고 eslint 설정을 뒤지면 시간을 버린다.
-
-**대상은 두 개다 — `unrs-resolver` 와 `sharp`.** 전자는 `eslint-config-next` 의 TS 리졸버, 후자는 `next/image` 의 운영 이미지 최적화다. 하나만 승인하면 남은 하나로 다시 막힌다.
-
-**`pnpm-workspace.yaml` 은 스캐폴더가 이미 만들어 둔다** — `ignoredBuiltDependencies` 에 두 패키지를 넣은 상태다. `approve-builds` 는 거기에 `allowBuilds:` 를 **추가**하고 기존 키는 남긴다. 두 키가 공존하는 게 정상이며 그 상태로 install 이 통과한다:
-
-```yaml
-# pnpm-workspace.yaml — 워크스페이스를 안 써도 필요하다
-allowBuilds:
-  sharp: true
-  unrs-resolver: true
-ignoredBuiltDependencies:   # 스캐폴더가 넣은 것 — 지우지 않는다
-  - sharp
-  - unrs-resolver
-```
-
-**이 파일을 반드시 커밋한다.** 빠지면 CI 와 Docker 의 `pnpm install --frozen-lockfile` 이 **exit 1** 로 죽고, 그쪽에는 `approve-builds` 를 눌러 줄 사람이 없다. 7단계 Dockerfile 의 deps 스테이지에서도 `package.json`·lockfile 과 **함께 COPY** 해야 한다.
-
-한 가지 예외: `pnpm add` 는 같은 에러를 출력하지만 **exit 0** 이다. 그래서 2단계의 `pnpm add -D typescript@^6` 는 통과하고, 문제는 처음 `pnpm <script>` 를 부를 때 드러난다.
+**여기서 `pnpm lint` 가 `ERR_PNPM_IGNORED_BUILDS` 로 죽으면 2단계의 빌드 승인을 빠뜨린 것이다** — eslint 설정이 아니라 `pnpm-workspace.yaml` 의 `allowBuilds` 를 본다. pnpm 은 스크립트 실행 전에 의존성 상태를 다시 확인하므로 `pnpm lint`·`pnpm test`·`pnpm build` 가 전부 같은 에러로 멈춘다.
 
 > 검증: `src/domain/` 에 `import "@/infrastructure/dynamodb/client"` 한 임시 파일을 만들고 `pnpm lint` 가 위 message 로 에러를 내는지 확인 후 삭제. 통과해버리면 zones 가 아니라 `files` 패턴이나 cwd 를 의심한다.
 
@@ -420,7 +485,7 @@ export const auth = betterAuth({
 - 클라이언트: `src/lib/auth-client.ts` → `createAuthClient()` from `better-auth/react`
 - 서버 세션: `auth.api.getSession({ headers: await headers() })`
 - 보호 라우트: Next.js 16 은 `middleware.ts` 가 없다 → **`proxy.ts`**(아래 참조). 단, proxy 는 *낙관적 리다이렉트*용이고 **실질 인가 검사는 각 라우트·서버 액션에서 세션을 다시 확인**한다 (CVE-2025-29927 의 교훈)
-- **로그인 버튼**: 2단계에서 만든 `src/app/page.tsx` 의 자리표시자를 채운다. `"use client"` 컴포넌트에서 `authClient.signIn.social({ provider: "google" })` / `authClient.signOut()` 을 부르고, 세션 유무로 "Google 로그인" ↔ "로그아웃"을 바꾼다. `/` 화면의 요소는 **프로젝트명 + 테마 토글 + 로그인 버튼** 셋으로 끝난다 — 대시보드·프로필 같은 *새 화면*을 덧붙이지 않는다. 위 라우트 핸들러는 화면이 아니라 필수 배선이므로 이 제한과 무관하다
+- **로그인 버튼**: 2단계에서 만든 `src/app/page.tsx` 의 자리표시자를 채운다. `"use client"` 컴포넌트에서 Mantine `Button` 으로 `authClient.signIn.social({ provider: "google" })` / `authClient.signOut()` 을 부르고, 세션 유무로 "Google 로그인" ↔ "로그아웃"을 바꾼다. `/` 화면의 요소는 **프로젝트명 + 테마 토글 + 로그인 버튼** 셋으로 끝난다 — 대시보드·프로필 같은 *새 화면*을 덧붙이지 않는다. 위 라우트 핸들러는 화면이 아니라 필수 배선이므로 이 제한과 무관하다
 
 **`proxy.ts` 는 이 스캐폴드에서 만들지 않는다** — 보호할 라우트가 아직 없기 때문이다(페이지가 하나뿐이다). 나중에 추가할 때의 정본은 아래고, 파일 위치는 `--src-dir` 기준 **`src/proxy.ts`**(`app` 과 같은 높이), 함수는 default export 이거나 이름이 `proxy` 여야 한다:
 
@@ -594,6 +659,11 @@ export default async function () {
 
 **Server Component 는 대상에서 뺀다** — Next.js 공식 문서가 *"Since `async` Server Components are new to the React ecosystem, Vitest currently does not support them"* 이라고 명시한다. 동기 컴포넌트만 단위 테스트하고 async 는 E2E 로 미룬다.
 
+**Mantine 컴포넌트 테스트를 추가한다면 셋업이 두 가지 더 붙는다** — 위 표에 컴포넌트 테스트가 없으므로 *지금은 하지 않고*, 필요해질 때 이 두 개를 같이 넣는다. 빠뜨리면 첫 테스트가 렌더 단계에서 죽는다:
+
+1. **`MantineProvider theme={theme} env="test"` 로 감싸는 커스텀 `render` 헬퍼.** provider 없이 렌더하면 Mantine 컴포넌트가 테마를 못 찾는다. `env="test"` 는 전환 애니메이션을 끈다
+2. **jsdom 에 없는 브라우저 API 목** (`setupFiles`) — `window.matchMedia`, `ResizeObserver`, `HTMLElement.prototype.scrollIntoView`. Mantine 의 Vitest 가이드에 정본이 있다
+
 > 검증: `docker compose up -d dynamodb-test` → `pnpm test` 전부 통과. 접근 패턴 7개 테스트가 모두 존재해야 한다. 테스트 후 개발용 인스턴스의 데이터가 그대로 남아 있는지도 확인한다 (남지 않으면 두 인스턴스가 섞인 것이다).
 
 ### 7. Docker + ECR
@@ -607,7 +677,7 @@ export default async function () {
 - 비루트 실행 (`USER node`), `ENV HOSTNAME=0.0.0.0 PORT=3000`, `CMD ["node", "server.js"]`
 - `.dockerignore` 필수: `node_modules`, `.next`, `.git`, `.env*`
 
-**deps 스테이지에 `pnpm-workspace.yaml` 을 반드시 포함한다** — 빌드 승인(`allowBuilds`)이 그 파일에 있으므로, 빠지면 `pnpm install --frozen-lockfile` 이 `ERR_PNPM_IGNORED_BUILDS` 로 exit 1 한다 (3단계).
+**deps 스테이지에 `pnpm-workspace.yaml` 을 반드시 포함한다** — 빌드 승인(`allowBuilds`)이 그 파일에 있으므로, 빠지면 `pnpm install --frozen-lockfile` 이 `ERR_PNPM_IGNORED_BUILDS` 로 exit 1 한다 (2단계).
 
 **`public` COPY 는 저장소에 `public/` 이 있을 때만 성공한다** — `.next/standalone` 에는 `public/` 이 들어가지 않아서 이 COPY 가 필수인데, 2단계에서 svg 를 지우면 빈 디렉토리가 되고 git 이 추적하지 않는다. `public/.gitkeep` 이 그래서 있다. 로컬 `docker build` 는 빈 디렉토리가 남아 있어 통과하므로 **CI 에서만 실패한다** — `failed to compute cache key: ... "/public": not found`.
 
@@ -764,7 +834,7 @@ jobs:
 ## Next.js 프로젝트 생성 완료
 
 경로: <path>
-스택: Next.js 16 / React 19 / TS 6 strict / Tailwind v4 / Better Auth 1.6 / DynamoDB / Vitest 4
+스택: Next.js 16 / React 19 / TS 6 strict / Mantine 9 / Better Auth 1.6 / DynamoDB / Vitest 4
 
 검증:
 - pnpm lint + tsc --noEmit: PASS (레이어 zones 위반 시 에러 확인 포함)
@@ -792,9 +862,14 @@ jobs:
 - 반대로 데모 페이지·Vercel 에셋(`next.svg` 등 5개)·`"Create Next App"` metadata 를 남기지 않는다 — 2단계에서 지운다
 - **템플릿·샘플이 아닌 것을 지우지 않는다** — 인증 라우트·설정·레이아웃은 화면이 아니어도 필수다. "화면 1개"를 "파일 1개"로 읽지 않는다
 - 요청하지 않은 *화면*을 만들지 않는다 — `/` 의 요소는 프로젝트명·테마 토글·로그인 버튼 셋이다
-- `<html>` 에 `suppressHydrationWarning` 없이 next-themes 를 쓰지 않는다 — hydration 경고가 뜬다
-- Tailwind v4 에서 `@custom-variant dark` 없이 수동 테마 토글을 만들지 않는다 — `dark:` 가 OS 설정만 따라간다
-- `@custom-variant dark` 만 넣고 `globals.css` 의 `@media (prefers-color-scheme: dark)` 블록을 남기지 않는다 — 배경색이 토글을 안 따라온다. `.dark {}` 로 바꾼다
+- `styles.css` 와 `styles.layer.css` 를 동시에 import 하지 않는다 — 같은 스타일이 두 벌 들어간다. Next.js 에서는 `styles.layer.css` 쪽이다
+- `ColorSchemeScript` 를 빼지 않는다 — hydration 전에 색상 속성을 못 세워 새로고침마다 색이 번쩍인다
+- `mantineHtmlProps` 를 빼고 `suppressHydrationWarning` 만 손으로 붙이지 않는다 — 초기 색상 속성이 같이 오는 프롭이다
+- `defaultColorScheme` 을 `ColorSchemeScript` 와 `MantineProvider` 에 다르게 주지 않는다 — 첫 렌더에 색이 튄다
+- 컬러 스킴 값으로 **렌더 결과를 분기하지 않는다** — 서버는 localStorage 를 못 봐서 hydration mismatch 다. `getInitialValueInEffect: true` 로도 못 막는다 (그건 OS 미디어쿼리만 미룬다). 둘 다 렌더하고 CSS mixin 으로 가린다
+- hydration 검증을 첫 방문만으로 끝내지 않는다 — 스킴 분기 mismatch 는 **토글 후 새로고침**해야 드러난다
+- `globals.css` 를 남긴 채 Mantine 을 얹지 않는다 — `body` 배경·폰트를 양쪽이 칠하고 다크 모드가 토글이 아니라 OS 설정을 따라간다
+- Geist 를 `theme.fontFamily` 에 물리지 않은 채 두지 않는다 — 폰트를 받아만 놓고 안 쓴다
 - `public/` 을 빈 디렉토리로 남기지 않는다 — git 이 추적하지 않아 CI 의 `docker build` 가 `COPY public` 에서 죽는다. `.gitkeep` 을 둔다
 - `create-next-app` 이 만든 `AGENTS.md`·`AGENTS.md` 를 보일러플레이트로 오해해 지우지 않는다 — 설치된 Next.js 문서를 가리키는 포인터다
 - 레이어를 디렉토리로만 나누고 lint 강제를 생략하지 않는다 — 한 달이면 무너진다
@@ -806,7 +881,9 @@ jobs:
 - 게이트에 인자 없는 `vitest` 를 넣지 않는다 — watch 모드로 떠서 CI 가 끝나지 않는다
 - `globalSetup` 에서 `process.env` 를 세팅해 테스트에 넘기려 하지 않는다 — 워커 생성 *전* 다른 스코프라 닿지 않는다. `test.env` 를 쓴다
 - 테스트가 어느 인스턴스를 보는지 확인 없이 돌리지 않는다 — `globalSetup` 에서 8084 가 아니면 던진다. 조용히 8083 을 치면 개발 데이터가 날아간다
-- `pnpm-workspace.yaml`(`allowBuilds`)을 커밋이나 Dockerfile 의 deps COPY 에서 빠뜨리지 않는다 — CI·Docker 에는 `approve-builds` 를 눌러 줄 사람이 없다. 승인 대상은 `unrs-resolver` 와 `sharp` **둘 다**다
+- `pnpm-workspace.yaml`(`allowBuilds`)을 커밋이나 Dockerfile 의 deps COPY 에서 빠뜨리지 않는다 — CI·Docker 에는 승인을 눌러 줄 사람이 없다. 승인 대상은 `unrs-resolver` 와 `sharp` **둘 다**다
+- `create-next-app` 을 `--skip-install` 없이 돌리지 않는다 — 빌드 승인 전이라 install 이 exit 1 하고, 스캐폴딩이 `Aborting installation.` 으로 중단돼 반쪽 프로젝트가 남는다
+- 빌드 승인을 `pnpm approve-builds` 로 먼저 해결하려 하지 않는다 — `node_modules` 가 있어야 후보를 찾으므로 설치 전에는 아무것도 안 한다. `pnpm-workspace.yaml` 에 두 줄을 적는다
 - `test.env` 에 `AWS_REGION`·`DYNAMODB_TABLE_NAME` 을 빠뜨리지 않는다 — CI 에는 `.env.local` 이 없어 `Region is missing` 으로 죽는다
 - `globalSetup` 의 리전·자격증명을 테스트 워커와 다르게 두지 않는다 — CI 는 `-sharedDb` 없이 돌아 DB 가 갈린다. 로컬에서만 통과한다
 - `BETTER_AUTH_URL` 을 운영에서 localhost 로 두지 않는다 — OAuth 리다이렉트와 쿠키 도메인이 함께 깨진다
