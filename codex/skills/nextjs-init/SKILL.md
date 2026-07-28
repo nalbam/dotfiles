@@ -276,7 +276,7 @@ export const auth = betterAuth({
 **환경변수** — `.env.example` 은 커밋한다. **시크릿만 비우고, 비밀이 아닌 로컬 기본값은 채운다** — 받는 사람이 뭘 넣어야 할지 알 수 있어야 한다:
 
 ```
-BETTER_AUTH_SECRET=      # openssl rand -base64 32
+BETTER_AUTH_SECRET=      # openssl rand -hex 32
 BETTER_AUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
