@@ -20,9 +20,9 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 
 | 영역 | 선택 | 고정 사항 |
 |------|------|-----------|
-| Runtime | Node.js 22 (LTS), pnpm 11 | `package.json` 의 `packageManager` 필드로 고정, corepack 사용 |
+| Runtime | Node.js 24 (LTS), pnpm 11 | `package.json` 의 `packageManager` 필드로 고정, corepack 사용 |
 | Framework | Next.js 16 (App Router), React 19 | Turbopack 기본, `middleware.ts` 없음 → `proxy.ts` |
-| Language | TypeScript strict | `strict: true` 필수 |
+| Language | TypeScript 6 | `strict: true` 필수. `typescript@^6` 로 **핀한다** — 7.x 는 lint·build 를 깬다 (2단계) |
 | Style | Tailwind CSS v4 | `@import "tailwindcss"` + `@tailwindcss/postcss` (v3 의 `tailwind.config.js` 없음) |
 | Auth | Better Auth 1.6 + Google OAuth | 커스텀 DynamoDB 어댑터 |
 | Data | AWS DynamoDB Single Table Design | `@aws-sdk/lib-dynamodb` DocumentClient |
@@ -50,7 +50,7 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 ### 1. 사전 확인 — 환경과 대상 경로
 
 ```bash
-node -v            # v22.x 기대
+node -v            # v24.x 기대
 corepack enable && pnpm -v   # 11.x 기대
 aws sts get-caller-identity  # AWS 사용 시 (실패해도 진행 가능 — 배포 단계에서만 필요)
 ls -A <target-dir> 2>/dev/null
@@ -58,7 +58,7 @@ ls -A <target-dir> 2>/dev/null
 
 버전이 다르면 *멈추고 보고*한다 — 임의로 다운그레이드하지 않는다. 대상 디렉토리가 비어있지 않으면 사용자에게 확인한다.
 
-사용자에게 확인할 값: **프로젝트명**, **AWS 리전**, **DynamoDB 테이블명**, **ECR 리포지토리명**. 정해지지 않았으면 프로젝트명 기반 기본값을 제안하고 승인받는다.
+사용자에게 확인할 값: **프로젝트명**, **AWS 계정 ID**, **AWS 리전**, **DynamoDB 테이블명**, **ECR 리포지토리명**, **OIDC IAM 역할명**. 정해지지 않았으면 프로젝트명 기반 기본값을 제안하고 승인받는다 — 계정 ID·리전·역할명은 6단계 워크플로에 평문으로 박히므로 여기서 확정해야 한다.
 
 > 검증: 위 값이 모두 확정됨.
 
@@ -71,11 +71,19 @@ pnpm create next-app@latest <name> \
 ```
 
 이후:
+- **`pnpm add -D typescript@^6`** — 스캐폴더가 깐 TypeScript 를 되돌린다. 아래 이유를 읽고 넘어간다
 - `package.json` 에 `"packageManager": "pnpm@11.x.x"` 확인 (없으면 추가)
 - `next.config.ts` 에 `output: "standalone"` 추가 — Docker 이미지 최소화의 전제
 - `tsconfig.json` 의 `strict: true` 확인
 
-> 검증: `pnpm dev` 기동 후 `/` 200 응답. 확인 뒤 종료.
+**왜 TypeScript 를 핀하는가** — `create-next-app` 은 `typescript@latest` 를 설치하는데 현재 latest 는 **7.x** 다. TS 7(Project Corsa)은 Go 네이티브 재작성이면서 **JS Compiler API 를 패키지에서 제거했다** — 메인 엔트리가 버전 스텁이고 `./unstable/*` 서브패스만 남아 있다. 결과:
+
+- `next build` 의 타입체크가 그 API 를 쓴다 → 실패한다. Next.js 는 `tsc` CLI 를 직접 부르는 `experimental.useTypeScriptCli` 로 대응했지만 **16.3 preview 전용**이고 stable(16.2.x)엔 없다
+- `@typescript-eslint/parser` 도 그 API 로 `.ts` 를 파싱한다 → `eslint-config-next` 가 통째로 죽는다. typescript-eslint 는 canary 까지 peer 가 `>=4.8.4 <6.1.0` 이라 우회로가 없다
+
+즉 TS 7 은 3단계(레이어 강제)와 7단계(검증 게이트)를 동시에 무력화한다. `^6` 은 typescript-eslint 지원 상한이면서 strict 기본값이라 이 스킬과 결이 맞는다. **Next.js 16.3 이 stable 이 되면 그때 재검토한다** — 그 전엔 preview 채널 + 린터 교체(oxlint/Biome)가 딸려온다.
+
+> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` 기동 후 `/` 200 응답. 확인 뒤 종료.
 
 ### 3. 레이어 뼈대 — Clean Architecture
 
@@ -238,36 +246,89 @@ DYNAMODB_TABLE_NAME=
 
 **Dockerfile** — 멀티스테이지, standalone 출력:
 
-- `node:22-slim` 기준 (deps / builder / runner 3단계)
+- `node:24-slim` 기준 (deps / builder / runner 3단계)
 - deps: `corepack enable pnpm && pnpm install --frozen-lockfile`
 - builder: `pnpm build` (`output: "standalone"` 전제)
 - runner: `.next/standalone` → `./`, `.next/static` → `./.next/static`, `public` → `./public`
 - 비루트 실행 (`USER node`), `ENV HOSTNAME=0.0.0.0 PORT=3000`, `CMD ["node", "server.js"]`
 - `.dockerignore` 필수: `node_modules`, `.next`, `.git`, `.env*`
 
-**GitHub Actions** (`.github/workflows/ecr.yml`) — 장기 액세스 키 대신 **OIDC**:
+**GitHub Actions** (`.github/workflows/release.yml`) — 장기 액세스 키 대신 **OIDC**. 아래를 그대로 쓰고 `<...>` 만 1단계에서 확정한 값으로 채운다:
 
 ```yaml
+name: Release (ecr)
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
 permissions:
   id-token: write
   contents: read
-steps:
-  - uses: actions/checkout@v7
-  - uses: aws-actions/configure-aws-credentials@v6
-    with:
-      role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-      aws-region: ${{ vars.AWS_REGION }}
-  - uses: aws-actions/amazon-ecr-login@v2
-    id: ecr
-  - uses: docker/build-push-action@v7
-    with:
-      push: true
-      tags: ${{ steps.ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+
+env:
+  AWS_REGION: <region>
+  AWS_ROLE_ARN: arn:aws:iam::<account-id>:role/<role-name>
+  ECR_REPOSITORY: <account-id>.dkr.ecr.<region>.amazonaws.com/<repo>
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          sbom: false
+          tags: |
+            ${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
+            ${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 ```
 
-태그는 `latest` 가 아니라 **커밋 SHA**를 기본으로 한다 — 롤백 대상이 특정된다.
+**왜 이렇게 쓰는지 — 바꾸기 전에 읽을 것:**
 
-> 검증: `docker build` 성공 → `docker run -p 3000:3000` → `/` 200. CI 는 첫 푸시 후 Actions 로그로 확인.
+- **태그 푸시가 곧 릴리스다.** 브랜치 푸시로는 이미지가 나가지 않는다 — `git tag v0.1.0 && git push origin v0.1.0`. `workflow_dispatch` 는 같은 커밋 재빌드용이고, 이때 `github.ref_name` 은 태그가 아니라 *브랜치명*이 된다
+- **이미지 태그는 `github.ref_name`(= `v0.1.0`) + `latest`.** 버전 태그가 롤백 대상을 특정하고 `latest` 는 배포 편의용이다. 따라서 ECR 리포지토리의 tag mutability 는 **MUTABLE** 이어야 한다 — IMMUTABLE 이면 두 번째 릴리스의 `latest` 푸시가 실패한다
+- **역할 ARN·레지스트리 URI 는 시크릿이 아니다.** 식별자일 뿐이고 실제 접근은 OIDC 신뢰 정책이 통제하므로 `env:` 에 평문으로 둔다. 대신 신뢰 정책의 `sub` 조건을 저장소·ref 단위로 좁힌다 — `repo:<org>/<repo>:ref:refs/tags/*`. `repo:<org>/*` 같은 와일드카드는 조직 내 아무 저장소나 이 역할을 가져다 쓰게 만든다
+- **`docker/setup-buildx-action` 을 생략하지 않는다.** 기본 `docker` 드라이버는 캐시 export 를 지원하지 않아 `cache-to: type=gha` 가 그대로 실패한다
+- **`provenance: false`, `sbom: false`.** buildx 는 기본으로 attestation 을 붙여 결과를 OCI image index 로 만든다. ECR 콘솔과 일부 배포 대상이 이를 단일 이미지로 읽지 못한다
+- **`platforms: linux/amd64`.** 실행 대상이 arm64(Graviton)면 바꾼다. 멀티 아키텍처는 QEMU 에뮬레이션으로 빌드 시간이 몇 배가 되므로 실제로 두 아키텍처가 필요할 때만
+
+**IAM 신뢰 정책** — 역할 생성은 사용자가 한다. `sub` 조건이 이 구성의 유일한 접근 통제다:
+
+```json
+{
+  "Effect": "Allow",
+  "Principal": { "Federated": "arn:aws:iam::<account-id>:oidc-provider/token.actions.githubusercontent.com" },
+  "Action": "sts:AssumeRoleWithWebIdentity",
+  "Condition": {
+    "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
+    "StringLike": { "token.actions.githubusercontent.com:sub": "repo:<org>/<repo>:*" }
+  }
+}
+```
+
+> 검증: `docker build` 성공 → `docker run -p 3000:3000` → `/` 200. CI 는 첫 태그 푸시 후 Actions 로그와 `aws ecr describe-images --repository-name <repo> --region <region>` 로 확인.
 
 ### 7. 검증 게이트
 
@@ -292,21 +353,25 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm build
 
 사용자 후속 작업 (실행하지 않음):
 - [ ] DynamoDB 테이블 생성 — 명령 위 4단계 참조
-- [ ] ECR 리포지토리 생성 + OIDC IAM 역할
+- [ ] ECR 리포지토리 생성 (tag mutability: MUTABLE) + OIDC IAM 역할·신뢰 정책 — 6단계 참조
 - [ ] Google OAuth 클라이언트 발급 + 리다이렉트 URI 등록
 - [ ] .env.local 값 채우기
 - [ ] git init / 첫 커밋 (요청 시)
+- [ ] 첫 릴리스 — `git tag v0.1.0 && git push origin v0.1.0`
 ```
 
 ## Anti-Patterns
 
 - `create-next-app` 결과물을 즉시 재작성하지 않는다 — 필요한 것만 덧붙인다
 - 레이어를 디렉토리로만 나누고 lint 강제를 생략하지 않는다 — 한 달이면 무너진다
+- `create-next-app` 이 깐 `typescript@latest`(7.x)를 그대로 두지 않는다 — Compiler API 가 없어 lint·build 가 함께 죽는다
 - 어댑터에서 `Scan` 으로 폴백하지 않는다 — 지원 못 하는 쿼리는 던진다
 - GSI 를 나중에 붙이면 된다고 미루지 않는다 — 접근 패턴을 4단계에서 확정한다
 - `middleware.ts` 를 만들지 않는다 (Next.js 16 에 없다) — `proxy.ts` 이고, 인가는 라우트에서 다시 확인한다
 - proxy/middleware 만으로 인가를 끝내지 않는다
 - `nextCookies()` 를 plugins 배열 중간에 두지 않는다 — 마지막이어야 한다
+- OIDC 신뢰 정책의 `sub` 를 `repo:<org>/*` 로 열어두지 않는다 — 이 조건이 유일한 접근 통제다
+- `cache-to: type=gha` 를 쓰면서 `setup-buildx-action` 을 빼지 않는다 — 기본 드라이버는 캐시 export 를 못 한다
 - `.env.local` 을 커밋하거나 시크릿 값을 파일에 쓰지 않는다
 - 사용자 허가 없이 AWS 리소스를 만들거나 git commit 하지 않는다
 - 검증 없이 "완료"라고 보고하지 않는다
