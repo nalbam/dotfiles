@@ -149,9 +149,11 @@ touch public/.gitkeep   # 아래 "왜 .gitkeep 인가" 참조 — 빼면 CI 의 
 **Mantine 셋업**
 
 ```bash
-pnpm add @mantine/core @mantine/hooks
+pnpm add @mantine/core @mantine/hooks @tabler/icons-react
 pnpm add -D postcss postcss-preset-mantine postcss-simple-vars
 ```
+
+**아이콘은 `@tabler/icons-react` 다** — Mantine 은 아이콘을 함께 배포하지 않는다. 이게 Mantine 문서의 짝이고, **Next.js 의 기본 `optimizePackageImports` 목록에 이미 들어 있어서** 수천 개 export 를 가진 패키지인데도 설정 없이 트리셰이킹된다 (Mantine 자신은 그 목록에 없다 — 아래 참조).
 
 **`postcss.config.mjs` 를 새로 만든다** — `--no-tailwind` 스캐폴드에는 이 파일이 아예 없다:
 
@@ -192,6 +194,7 @@ export default config;
 
 ```tsx
 import { Stack, Title } from "@mantine/core";
+import { ThemeToggle } from "./theme-toggle";
 
 export default function Page() {
   return (
@@ -216,6 +219,7 @@ export default function Page() {
 "use client";
 
 import { ActionIcon, useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
+import { IconMoon, IconSun } from "@tabler/icons-react";
 import classes from "./theme-toggle.module.css";
 
 export function ThemeToggle() {
@@ -229,8 +233,8 @@ export function ThemeToggle() {
       onClick={() => setColorScheme(computed === "light" ? "dark" : "light")}
     >
       {/* 두 아이콘을 항상 렌더한다 — 분기는 아래 CSS 가 한다 */}
-      <SunIcon className={classes.light} />
-      <MoonIcon className={classes.dark} />
+      <IconSun className={classes.light} size={18} stroke={1.5} />
+      <IconMoon className={classes.dark} size={18} stroke={1.5} />
     </ActionIcon>
   );
 }
@@ -253,7 +257,7 @@ export function ThemeToggle() {
 
 Geist 폰트와 `favicon.ico` 는 브랜딩이 아니라 그대로 둔다. **단 Geist 는 `theme.ts` 로 연결해야 실제로 쓰인다** — 스캐폴더는 `next/font` 로 폰트를 받아 `<html>` 에 `--font-geist-sans` 를 심어줄 뿐이고, Mantine 은 그와 무관하게 자체 시스템 폰트 스택을 기본값으로 쓴다. 연결을 빠뜨리면 폰트를 다운로드해 놓고 안 쓴다. 바꾸고 싶으면 사용자에게 확인한다.
 
-> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` → `/` 에 **프로젝트명만** 보인다 → 브라우저 콘솔에 404(지운 svg)와 hydration 경고가 없다 → `grep -rn "next.svg\|vercel.svg\|Create Next App\|globals.css\|page.module.css" src public` 이 비어 있다 → `ls -A public` 에 `.gitkeep` 만 있다.
+> 검증: `pnpm exec tsc -v` 가 6.x → `pnpm dev` → `/` 에 **프로젝트명과 테마 토글만** 보인다 (데모 내용이 남아 있으면 교체가 덜 된 것) → 브라우저 콘솔에 404(지운 svg)와 hydration 경고가 없다 → `grep -rn "next.svg\|vercel.svg\|Create Next App\|globals.css\|page.module.css" src public` 이 비어 있다 → `ls -A public` 에 `.gitkeep` 만 있다.
 >
 > **테마는 `<html>` 의 `data-mantine-color-scheme` 과 배경색을 같이 본다.** 토글할 때 속성이 `light`↔`dark` 로 바뀌고 배경이 따라와야 하며, 새로고침해도 유지돼야 한다 (localStorage). **OS 를 다크로 둔 상태에서 light 로 토글**해 봐야 `globals.css` 잔재가 드러난다 — 속성은 `light` 인데 배경만 다크로 남으면 그 파일을 안 지운 것이다.
 >
@@ -673,7 +677,7 @@ export default async function () {
 
 - `node:24-slim` 기준 (deps / builder / runner 3단계)
 - deps: `COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./` → `corepack enable pnpm && pnpm install --frozen-lockfile`
-- builder: `pnpm build` (`output: "standalone"` 전제)
+- builder: 소스 전체를 COPY 한 뒤 `pnpm build` (`output: "standalone"` 전제). **`postcss.config.mjs` 가 반드시 이미지에 들어가야 한다** — 2단계에서 손으로 만든 파일이라 `.dockerignore` 를 넓게 쓰면 조용히 빠지고, 그러면 CSS 모듈의 Mantine mixin 이 컴파일되지 않는다
 - runner: `.next/standalone` → `./`, `.next/static` → `./.next/static`, `public` → `./public` — 셋 다 **`COPY --chown=node:node`**. 기본 COPY 는 root 소유로 남아서, `USER node` 로 돌면 `next/image` 가 `.next/cache` 에 최적화 캐시를 못 쓴다 — `sharp` 를 승인해 둔 의미가 사라진다
 - 비루트 실행 (`USER node`), `ENV HOSTNAME=0.0.0.0 PORT=3000`, `CMD ["node", "server.js"]`
 - `.dockerignore` 필수: `node_modules`, `.next`, `.git`, `.env*`
@@ -871,6 +875,8 @@ jobs:
 - hydration 검증을 첫 방문만으로 끝내지 않는다 — 스킴 분기 mismatch 는 **토글 후 새로고침**해야 드러난다
 - `globals.css` 를 남긴 채 Mantine 을 얹지 않는다 — `body` 배경·폰트를 양쪽이 칠하고 다크 모드가 토글이 아니라 OS 설정을 따라간다
 - Geist 를 `theme.fontFamily` 에 물리지 않은 채 두지 않는다 — 폰트를 받아만 놓고 안 쓴다
+- Mantine 이 아이콘을 함께 준다고 가정하지 않는다 — 안 준다. `@tabler/icons-react` 를 따로 깐다
+- `postcss.config.mjs` 를 Docker 이미지에서 빠뜨리지 않는다 — CSS 모듈의 mixin 이 컴파일되지 않는다
 - `public/` 을 빈 디렉토리로 남기지 않는다 — git 이 추적하지 않아 CI 의 `docker build` 가 `COPY public` 에서 죽는다. `.gitkeep` 을 둔다
 - `create-next-app` 이 만든 `AGENTS.md`·`CLAUDE.md` 를 보일러플레이트로 오해해 지우지 않는다 — 설치된 Next.js 문서를 가리키는 포인터다
 - 레이어를 디렉토리로만 나누고 lint 강제를 생략하지 않는다 — 한 달이면 무너진다
