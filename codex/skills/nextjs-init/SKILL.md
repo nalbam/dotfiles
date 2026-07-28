@@ -11,7 +11,7 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 
 ## Philosophy
 
-- **스캐폴더의 *설정*은 다시 만들지 않는다** — `tsconfig`·`eslint.config.mjs`·`postcss.config.mjs`·`next.config.ts` 는 손대지 않고 *비자명한 부분*(레이어 경계·키 설계·어댑터·배포)만 추가한다. **단 데모 페이지와 브랜딩 에셋은 예외다** — 남길 이유가 없으므로 2단계에서 걷어낸다
+- **스캐폴더의 *설정*은 다시 만들지 않는다** — `tsconfig`·`postcss.config.mjs`·`next.config.ts` 는 손대지 않고 *비자명한 부분*(레이어 경계·키 설계·어댑터·배포)만 추가한다. `eslint.config.mjs` 도 다시 쓰지 않고 3단계에서 배열에 객체 하나를 끼운다. **단 데모 페이지와 브랜딩 에셋은 예외다** — 남길 이유가 없으므로 2단계에서 걷어낸다
 - **경계가 곧 아키텍처다** — 디렉토리 이름이 아니라 *의존 방향*을 lint 로 강제해야 유지된다
 - **접근 패턴을 먼저 정하고 테이블을 만든다** — Single Table Design 은 나중에 GSI 를 붙여 고칠 수 없다
 - **단계마다 검증하고 넘어간다** — 각 단계에 종료 조건이 있다 (`skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`)
@@ -24,7 +24,7 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 | Framework | Next.js 16 (App Router), React 19 | Turbopack 기본, `middleware.ts` 없음 → `proxy.ts` |
 | Language | TypeScript 6 | `strict: true` 필수. `typescript@^6` 로 **핀한다** — 7.x 는 lint·build 를 깬다 (2단계) |
 | Style | Tailwind CSS v4 + next-themes | `@import "tailwindcss"` + `@tailwindcss/postcss` (v3 의 `tailwind.config.js` 없음). 수동 테마 토글은 `@custom-variant dark` |
-| UI | 프로젝트명 1페이지 | 데모 템플릿·Vercel 에셋 제거. 페이지 요소는 프로젝트명·테마 토글·로그인 버튼뿐 |
+| UI | 화면 1개 (`/`) | 템플릿·샘플만 제거. `/` 는 프로젝트명·테마 토글·로그인 버튼뿐이고, 인증은 화면이 아니라 API 라우트로 붙는다 |
 | Auth | Better Auth 1.6 + Google OAuth | 커스텀 DynamoDB 어댑터 |
 | Data | AWS DynamoDB Single Table Design | `@aws-sdk/lib-dynamodb` DocumentClient. 개발·테스트는 DynamoDB Local |
 | Structure | Clean Architecture | `domain` / `application` / `infrastructure` / `app` |
@@ -35,8 +35,9 @@ description: Scaffold a new Next.js 16 project — App Router, TypeScript strict
 
 ## Scope
 
-- **한다**: 프로젝트 생성, 보일러플레이트 제거 + 단일 페이지(프로젝트명·테마 토글·로그인), 레이어 뼈대, 인증 배선, DynamoDB 어댑터, 접근 패턴·어댑터 계약 테스트, Dockerfile, CI 워크플로, `.env.example`
-- **안 한다**: 도메인 비즈니스 로직, 그 외 화면·UI 디자인, AWS 리소스 *실제 생성*, git commit/push
+- **한다**: 프로젝트 생성, 템플릿·샘플 제거 + `/` 화면(프로젝트명·테마 토글·로그인), 레이어 뼈대, 인증 배선(API 라우트 포함), DynamoDB 어댑터, 접근 패턴·어댑터 계약 테스트, Dockerfile, CI 워크플로, `.env.example`
+- **안 한다**: 도메인 비즈니스 로직, 요청하지 않은 *화면*·UI 디자인, AWS 리소스 *실제 생성*, git commit/push
+- **지우지 않는다**: 동작에 필요한 파일 — 설정·인증 라우트·레이아웃. 삭제 대상은 템플릿·샘플뿐이다 (2단계 표)
 - **경계**: 기존 프로젝트 수정은 이 스킬 대상이 아니다. 검증은 `/validate`, 커밋은 `/commit`.
 
 ## Rules
@@ -73,27 +74,42 @@ pnpm create next-app@latest <name> \
 ```
 
 이후:
-- **`pnpm add -D typescript@^6`** — 스캐폴더가 깐 TypeScript 를 되돌린다. 아래 이유를 읽고 넘어간다
+- **`pnpm add -D typescript@^6`** — 스캐폴더는 `^5` 를 깐다. 아래 이유를 읽고 넘어간다
 - `package.json` 에 `"packageManager": "pnpm@11.x.x"` 확인 (없으면 추가)
 - `next.config.ts` 에 `output: "standalone"` 추가 — Docker 이미지 최소화의 전제
 - `tsconfig.json` 의 `strict: true` 확인
+- `--eslint` 는 `eslint@^9` + `eslint-config-next` 와 `"lint": "eslint"` 스크립트를 넣는다. **Next.js 16 에서 `next lint` 는 제거됐으므로** 8단계 게이트의 `pnpm lint` 는 ESLint CLI 를 부르는 것이다
 
-**왜 TypeScript 를 핀하는가** — `create-next-app` 은 `typescript@latest` 를 설치하는데 현재 latest 는 **7.x** 다. TS 7(Project Corsa)은 Go 네이티브 재작성이면서 **JS Compiler API 를 패키지에서 제거했다** — 메인 엔트리가 버전 스텁이고 `./unstable/*` 서브패스만 남아 있다. 결과:
+**왜 TypeScript 를 핀하는가** — `create-next-app` 이 넣는 범위는 `^5`(→ 5.9.x)라 저절로 7 로 가지는 않는다. 문제는 npm `latest` 가 이미 **7.x** 라는 것이다 — 나중에 누가 `pnpm add -D typescript` 를 한 번만 쳐도 그대로 올라간다. TS 7(Project Corsa)은 Go 네이티브 재작성이면서 **JS Compiler API 를 패키지에서 제거했다** — 메인 엔트리가 버전 스텁이고 `./unstable/*` 서브패스만 남아 있다. 결과:
 
 - `next build` 의 타입체크가 그 API 를 쓴다 → 실패한다. Next.js 는 `tsc` CLI 를 직접 부르는 `experimental.useTypeScriptCli` 로 대응했지만 **16.3 preview 전용**이고 stable(16.2.x)엔 없다
 - `@typescript-eslint/parser` 도 그 API 로 `.ts` 를 파싱한다 → `eslint-config-next` 가 통째로 죽는다. typescript-eslint 는 canary 까지 peer 가 `>=4.8.4 <6.1.0` 이라 우회로가 없다
 
-즉 TS 7 은 3단계(레이어 강제)와 8단계(검증 게이트)를 동시에 무력화한다. `^6` 은 typescript-eslint 지원 상한이면서 strict 기본값이라 이 스킬과 결이 맞는다. **Next.js 16.3 이 stable 이 되면 그때 재검토한다** — 그 전엔 preview 채널 + 린터 교체(oxlint/Biome)가 딸려온다.
+즉 TS 7 은 3단계(레이어 강제)와 8단계(검증 게이트)를 동시에 무력화한다. **실질 상한은 typescript-eslint 의 peer 인 `<6.1.0`** 이고 `^6` 이 그 안에서 가장 높으면서 strict 기본값이라 이 스킬과 결이 맞는다 — 스캐폴더의 `^5` 를 그대로 둬도 깨지진 않으니, 요점은 버전 자체가 아니라 **상한을 알고 범위를 닫아 두는 것**이다.
 
-**보일러플레이트 제거** — 데모 페이지와 Vercel 브랜딩 에셋은 남기지 않는다. 만드는 것은 **프로젝트명 하나를 띄우는 페이지**뿐이고, 여기에 테마 토글과 (5단계에서) 로그인 버튼만 붙는다.
+한 가지 더: `eslint-config-next` 가 끌어오는 `typescript-eslint` 는 `^8.46.0` 인데 **8.46.0 자체의 peer 는 `<6.0.0`** 이다. 새로 설치하면 캐럿이 최신 8.x(`<6.1.0`)를 잡아 문제가 없지만, 오래된 lockfile 을 재사용하면 TS 6 에서 peer 경고가 뜬다.
+
+**Next.js 16.3 이 stable 이 되면 그때 재검토한다** — 그 전엔 preview 채널 + 린터 교체(oxlint/Biome)가 딸려온다.
+
+**보일러플레이트 제거** — 지우는 대상은 **템플릿·샘플 산출물뿐이다.** 동작에 필요한 파일은 하나도 지우지 않는다.
+
+| | 대상 |
+|---|---|
+| **지운다** | `public/` 의 svg 5개 (`next`·`vercel`·`file`·`globe`·`window`), `src/app/page.tsx` 의 데모 내용, `layout.tsx` 의 `"Create Next App"` metadata, `create-next-app` 이 만든 README 본문 |
+| **남긴다** | `src/app/layout.tsx`·`globals.css`·`favicon.ico`, 설정 파일 전부(`tsconfig`·`eslint.config.mjs`·`postcss.config.mjs`·`next.config.ts`·`next-env.d.ts`) |
+| **뒤에서 만든다** | `src/app/api/auth/[...all]/route.ts` (5단계), `src/app/providers.tsx`, `src/lib/auth-client.ts` |
 
 ```bash
 rm public/next.svg public/vercel.svg public/file.svg public/globe.svg public/window.svg
 ```
 
-`app/page.tsx` 가 `/next.svg`·`/vercel.svg` 를 참조하므로 **에셋만 지우면 페이지가 깨진다** — 아래 페이지 교체와 같이 해야 한다.
+**"화면이 하나"라는 말은 라우트가 하나라는 뜻이 아니다.** 사람이 보는 화면은 `/` 하나지만, 인증은 **페이지가 아니라 API 라우트**로 동작한다 — `authClient.signIn.social()` 이 Google 로 보내고 돌아오는 곳이 `/api/auth/callback/google` 이며, 5단계의 catch-all 핸들러가 그걸 받는다. 그래서 이 구성에는 별도 로그인 페이지가 *필요 없을* 뿐이고, 나중에 이메일·비밀번호 로그인처럼 화면이 필요한 방식을 추가하면 그때는 만든다.
 
-**테마 토글** — Tailwind v4 의 `dark:` 는 기본이 `prefers-color-scheme` 라서 수동 토글을 하려면 변형을 재정의한다. `app/globals.css` 에 한 줄:
+`--src-dir` 로 만들었으므로 **코드는 `src/app/` 아래**고 `public/` 만 저장소 루트에 남는다 — 아래 경로는 전부 그 기준이다.
+
+`src/app/page.tsx` 가 `/next.svg`·`/vercel.svg` 를 참조하므로 **에셋만 지우면 페이지가 깨진다** — 아래 페이지 교체와 같이 해야 한다.
+
+**테마 토글** — Tailwind v4 의 `dark:` 는 기본이 `prefers-color-scheme` 라서 수동 토글을 하려면 변형을 재정의한다. `src/app/globals.css` 에 한 줄:
 
 ```css
 @custom-variant dark (&:where(.dark, .dark *));
@@ -107,9 +123,9 @@ next-themes 는 기본으로 `<html>` 에 `class="dark"` 를 붙이므로 위 �
 
 교체할 파일 3개:
 
-- **`app/layout.tsx`** — `metadata.title` 을 프로젝트명으로 (기본값 `"Create Next App"` 을 남기지 않는다). `<html lang="ko" suppressHydrationWarning>` — 테마는 클라이언트에서만 알 수 있어 서버 렌더 결과와 달라지고, 이게 없으면 hydration 경고가 뜬다. `<body>` 를 ThemeProvider 로 감싼다
-- **`app/providers.tsx`** — `"use client"` + `next-themes` 의 `ThemeProvider`(`attribute="class"`, `defaultTheme="system"`). **layout 은 Server Component 로 유지**하기 위해 분리한다
-- **`app/page.tsx`** — 아래로 전부 교체
+- **`src/app/layout.tsx`** — `metadata.title` 을 프로젝트명으로 (기본값 `"Create Next App"` 을 남기지 않는다). `<html lang="ko" suppressHydrationWarning>` — 테마는 클라이언트에서만 알 수 있어 서버 렌더 결과와 달라지고, 이게 없으면 hydration 경고가 뜬다. `<body>` 를 ThemeProvider 로 감싼다
+- **`src/app/providers.tsx`** — `"use client"` + `next-themes` 의 `ThemeProvider`(`attribute="class"`, `defaultTheme="system"`). **layout 은 Server Component 로 유지**하기 위해 분리한다
+- **`src/app/page.tsx`** — 아래로 전부 교체
 
 ```tsx
 export default function Page() {
@@ -138,22 +154,60 @@ src/
 ├── infrastructure/   # DynamoDB·Better Auth·외부 API 구현. domain 인터페이스를 구현
 │   ├── dynamodb/     #   client.ts, single-table 키 헬퍼, 리포지토리 구현
 │   └── auth/         #   better-auth 설정 + DynamoDB 어댑터
+├── lib/              # 프레임워크 글루 — auth-client 등. 그래프 밖이고 domain 만 못 쓴다
 └── app/              # Next.js App Router. application 호출 + infrastructure 조립(DI)
 ```
 
 **의존 방향**: `app` → `application` → `domain` ← `infrastructure`
 
-`domain` 은 어떤 레이어도 import 하지 않는다. `infrastructure` 는 `domain` 의 인터페이스만 구현하고 `application` 을 모른다.
+`domain` 은 어떤 레이어도 import 하지 않는다. `infrastructure` 는 `domain` 의 인터페이스만 구현하고 `application` 을 모른다. `lib` 은 어느 레이어도 아닌 글루라 나머지 셋은 쓸 수 있고 `domain` 만 못 쓴다 — `domain` 의 "외부 의존 0" 을 깨는 가장 흔한 경로가 여기다.
 
-디렉토리만 나누면 반드시 무너진다 — **ESLint 로 강제한다**. `eslint-plugin-import` 의 `import/no-restricted-paths` zones 로 금지 방향을 선언한다:
+디렉토리만 나누면 반드시 무너진다 — **ESLint 로 강제한다**. `import/no-restricted-paths` zones 로 금지 방향을 선언한다:
 
 | from | 금지 target |
 |------|-------------|
-| `src/domain` | `src/application`, `src/infrastructure`, `src/app` |
+| `src/domain` | `src/application`, `src/infrastructure`, `src/app`, `src/lib` |
 | `src/application` | `src/infrastructure`, `src/app` |
 | `src/infrastructure` | `src/application`, `src/app` |
 
-> 검증: 금지 방향으로 import 한 임시 파일이 lint 에러를 내는지 확인 후 삭제.
+**플러그인은 따로 깔지 않는다** — `eslint-config-next` 가 `eslint-plugin-import` 를 의존성으로 갖고, flat config 에서 `import` 플러그인과 TS 리졸버(`import/resolver.typescript`)까지 이미 등록해 둔다. 같은 이름으로 다시 등록하면 인스턴스가 갈릴 때 `Cannot redefine plugin "import"` 로 죽는다. **규칙만 얹는다** — 2단계에서 생성된 `eslint.config.mjs` 의 배열에 객체 하나를 끼워 넣는다:
+
+```js
+// eslint.config.mjs — nextVitals·nextTs·globalIgnores 는 스캐폴더가 만든 그대로 둔다
+const layers = {
+  files: ["src/**/*.{ts,tsx}"],
+  rules: {
+    "import/no-restricted-paths": ["error", {
+      // basePath 기본값은 cwd — 저장소 루트에서 `pnpm lint` 를 도는 전제다
+      zones: [
+        {
+          target: "./src/domain",
+          from: ["./src/application", "./src/infrastructure", "./src/app", "./src/lib"],
+          message: "domain 은 어떤 레이어도 import 하지 않는다.",
+        },
+        {
+          target: "./src/application",
+          from: ["./src/infrastructure", "./src/app"],
+          message: "application 은 domain 인터페이스만 의존한다 — 구현은 주입받는다.",
+        },
+        {
+          target: "./src/infrastructure",
+          from: ["./src/application", "./src/app"],
+          message: "infrastructure 는 domain 인터페이스만 구현한다.",
+        },
+      ],
+    }],
+  },
+};
+
+export default defineConfig([...nextVitals, ...nextTs, layers, globalIgnores([/* 그대로 */])]);
+```
+
+`from` 한 배열에는 **디렉토리 경로만, 또는 glob 만** 담는다 — 섞으면 스키마에서 거부된다.
+
+`pnpm lint` 가 `ERR_PNPM_IGNORED_BUILDS`(`unrs-resolver`)로 막히면 `pnpm approve-builds` 로 승인한다 — pnpm 11 은 postinstall 빌드를 기본 차단하고, 승인 전까지 *스크립트 실행 자체*를 거부한다. `eslint-config-next` 가 끌어오는 TS 리졸버의 네이티브 의존이라 이 스택에선 항상 걸린다.
+
+> 검증: `src/domain/` 에 `import "@/infrastructure/dynamodb/client"` 한 임시 파일을 만들고 `pnpm lint` 가 위 message 로 에러를 내는지 확인 후 삭제. 통과해버리면 zones 가 아니라 `files` 패턴이나 cwd 를 의심한다.
 
 ### 4. DynamoDB Single Table Design
 
@@ -310,8 +364,30 @@ export const auth = betterAuth({
 - 라우트 핸들러: `src/app/api/auth/[...all]/route.ts` → `export const { GET, POST } = toNextJsHandler(auth)`
 - 클라이언트: `src/lib/auth-client.ts` → `createAuthClient()` from `better-auth/react`
 - 서버 세션: `auth.api.getSession({ headers: await headers() })`
-- 보호 라우트: Next.js 16 은 `middleware.ts` 가 없다 → **`proxy.ts`** 사용. 단, proxy 는 *낙관적 리다이렉트*용이고 **실질 인가 검사는 각 라우트·서버 액션에서 세션을 다시 확인**한다 (CVE-2025-29927 의 교훈)
-- **로그인 버튼**: 2단계에서 만든 `app/page.tsx` 의 자리표시자를 채운다. `"use client"` 컴포넌트에서 `authClient.signIn.social({ provider: "google" })` / `authClient.signOut()` 을 부르고, 세션 유무로 "Google 로그인" ↔ "로그아웃"을 바꾼다. 페이지는 여전히 **프로젝트명 + 테마 토글 + 로그인 버튼** 셋뿐이다 — 대시보드·프로필 화면 같은 걸 덧붙이지 않는다
+- 보호 라우트: Next.js 16 은 `middleware.ts` 가 없다 → **`proxy.ts`**(아래 참조). 단, proxy 는 *낙관적 리다이렉트*용이고 **실질 인가 검사는 각 라우트·서버 액션에서 세션을 다시 확인**한다 (CVE-2025-29927 의 교훈)
+- **로그인 버튼**: 2단계에서 만든 `src/app/page.tsx` 의 자리표시자를 채운다. `"use client"` 컴포넌트에서 `authClient.signIn.social({ provider: "google" })` / `authClient.signOut()` 을 부르고, 세션 유무로 "Google 로그인" ↔ "로그아웃"을 바꾼다. `/` 화면의 요소는 **프로젝트명 + 테마 토글 + 로그인 버튼** 셋으로 끝난다 — 대시보드·프로필 같은 *새 화면*을 덧붙이지 않는다. 위 라우트 핸들러는 화면이 아니라 필수 배선이므로 이 제한과 무관하다
+
+**`proxy.ts` 는 이 스캐폴드에서 만들지 않는다** — 보호할 라우트가 아직 없기 때문이다(페이지가 하나뿐이다). 나중에 추가할 때의 정본은 아래고, 파일 위치는 `--src-dir` 기준 **`src/proxy.ts`**(`app` 과 같은 높이), 함수는 default export 이거나 이름이 `proxy` 여야 한다:
+
+```ts
+// src/proxy.ts
+import { getSessionCookie } from "better-auth/cookies";
+import { NextResponse, type NextRequest } from "next/server";
+
+export function proxy(request: NextRequest) {
+  // 쿠키의 *존재*만 본다 — 검증이 아니다. 손으로 만든 쿠키도 여기는 통과한다
+  if (!getSessionCookie(request)) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*"], // 보호할 경로만
+};
+```
+
+`matcher` 를 생략하면 `_next/static`·`public` 까지 **모든 요청이** proxy 를 타서 CSS·이미지가 리다이렉트에 걸린다. 그리고 **서버 액션은 별도 라우트가 아니라 그 액션이 놓인 라우트로 가는 POST** 다 — matcher 를 좁히거나 액션을 다른 라우트로 옮기는 순간 커버리지가 조용히 사라진다. 그래서 인가는 라우트·액션 안에서 `auth.api.getSession` 으로 다시 확인한다.
 
 **Google Cloud Console 리다이렉트 URI** (사용자가 등록):
 - `http://localhost:3000/api/auth/callback/google`
@@ -360,7 +436,7 @@ export const docClient = DynamoDBDocumentClient.from(
 pnpm add -D vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom vite-tsconfig-paths
 ```
 
-`vitest.config.mts` — Next.js 공식 구성 그대로:
+`vitest.config.mts` — Next.js 공식 구성에 `env`·`globalSetup` 두 줄만 더한다:
 
 ```ts
 import { defineConfig } from "vitest/config";
@@ -369,7 +445,11 @@ import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
   plugins: [tsconfigPaths(), react()],
-  test: { environment: "jsdom" },
+  test: {
+    environment: "jsdom",
+    env: { DYNAMODB_ENDPOINT: "http://localhost:8084" }, // 테스트 워커로 전달 — 아래 참조
+    globalSetup: ["./vitest.globalSetup.ts"],            // 테이블 생성
+  },
 });
 ```
 
@@ -388,13 +468,15 @@ glob 으로 환경을 나누는 `environmentMatchGlobs` 는 현행 Vitest 문서
 테스트 인스턴스는 `-inMemory` 라 기동할 때마다 비어 있으므로 **테이블 생성을 `globalSetup` 에 둔다**. 4단계의 스키마를 **SDK `CreateTableCommand` 로** 만든다 — AWS CLI 를 호출하지 않는다. 테스트가 CLI 설치 여부에 의존하면 CI 에서 깨진다.
 
 ```ts
-// vitest.globalSetup.ts — vitest.config.mts 의 test.globalSetup 에 등록
+// vitest.globalSetup.ts — 테이블 생성만 한다
 export default async function () {
-  process.env.DYNAMODB_ENDPOINT = "http://localhost:8084";  // 5단계 클라이언트를 그대로 재사용
-  // new DynamoDBClient({...}).send(new CreateTableCommand({ /* 4단계 키 레이아웃 */ }))
+  // new DynamoDBClient({ endpoint: "http://localhost:8084", ... })
+  //   .send(new CreateTableCommand({ /* 4단계 키 레이아웃 */ }))
   // 이미 존재하면 ResourceInUseException — 무시한다 (멱등)
 }
 ```
+
+**엔드포인트는 `globalSetup` 이 아니라 `test.env` 로 넘긴다.** Vitest 문서가 못박는다 — *"the global setup is running in a different global scope before test workers are even created, so your tests don't have access to global variables defined here."* 여기서 `process.env` 를 건드려도 **테스트 워커에는 닿지 않는다.** globalSetup 은 컨테이너에 테이블을 만드는 부수효과만 맡고, 테스트가 읽을 값은 `test.env` 로 준다. 그러면 5단계의 클라이언트가 `DYNAMODB_ENDPOINT` 를 그대로 집어 8084 를 본다.
 
 **무엇을 테스트하는가** — 4·5단계에서 표로만 적어둔 것을 실행 가능하게 만든다:
 
@@ -514,6 +596,43 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build
 
 전부 통과해야 완료다. 실패는 `/validate` 절차로 근본원인을 고친다.
 
+**같은 게이트를 CI 에도 둔다** (`.github/workflows/ci.yml`) — 7단계의 릴리스 워크플로는 태그에서만 돌기 때문에 PR 을 막아주지 못한다:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      dynamodb:
+        image: amazon/dynamodb-local:3.3.0
+        ports: ["8084:8000"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6      # version 생략 = packageManager 필드를 따른다
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm test
+      - run: pnpm build
+```
+
+**서비스 컨테이너에는 커맨드 인자를 넘길 수 없다** — `services:` 가 받는 건 `image`·`env`·`ports`·`volumes`·`options` 뿐이고, `options` 로 entrypoint 는 바꿔도 그 뒤 인자는 못 준다. 그래서 compose 의 `-sharedDb -inMemory` 가 여기엔 없는데, **CI 에서는 둘 다 필요가 없다** — 잡마다 새 컨테이너라 이미 비어 있고(`-inMemory`), 자격증명·리전이 한 잡 안에서 하나뿐이라 DB 가 갈릴 일도 없다(`-sharedDb`). 대신 **호스트 포트를 8084 로 맞추는 건 필수다** — 6단계 `globalSetup` 이 그 주소를 박아 두기 때문이다.
+
+`pnpm/action-setup` 을 `setup-node` **앞에** 둔다 — `cache: pnpm` 이 pnpm 바이너리를 먼저 찾는다.
+
 ## 완료 보고
 
 ```
@@ -523,6 +642,7 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build
 스택: Next.js 16 / React 19 / TS 6 strict / Tailwind v4 / Better Auth 1.6 / DynamoDB / Vitest 4
 
 검증:
+- pnpm lint + tsc --noEmit: PASS (레이어 zones 위반 시 에러 확인 포함)
 - pnpm test: PASS (접근 패턴 7/7, 어댑터 계약 5/5)
 - pnpm build: PASS
 - Google 로그인 플로우: PASS (또는 SKIP + 사유 — OAuth 클라이언트 미발급 등)
@@ -544,15 +664,19 @@ pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build
 
 - `create-next-app` 의 *설정 파일*을 재작성하지 않는다 — 필요한 것만 덧붙인다
 - 반대로 데모 페이지·Vercel 에셋(`next.svg` 등 5개)·`"Create Next App"` metadata 를 남기지 않는다 — 2단계에서 지운다
-- 요청하지 않은 화면을 만들지 않는다 — 페이지는 프로젝트명·테마 토글·로그인 버튼 셋뿐이다
+- **템플릿·샘플이 아닌 것을 지우지 않는다** — 인증 라우트·설정·레이아웃은 화면이 아니어도 필수다. "화면 1개"를 "파일 1개"로 읽지 않는다
+- 요청하지 않은 *화면*을 만들지 않는다 — `/` 의 요소는 프로젝트명·테마 토글·로그인 버튼 셋이다
 - `<html>` 에 `suppressHydrationWarning` 없이 next-themes 를 쓰지 않는다 — hydration 경고가 뜬다
 - Tailwind v4 에서 `@custom-variant dark` 없이 수동 테마 토글을 만들지 않는다 — `dark:` 가 OS 설정만 따라간다
 - 레이어를 디렉토리로만 나누고 lint 강제를 생략하지 않는다 — 한 달이면 무너진다
-- `create-next-app` 이 깐 `typescript@latest`(7.x)를 그대로 두지 않는다 — Compiler API 가 없어 lint·build 가 함께 죽는다
+- `eslint.config.mjs` 에 `import` 플러그인을 다시 등록하지 않는다 — `eslint-config-next` 가 이미 등록한다. 규칙만 얹는다
+- `typescript` 를 `@latest`(7.x)로 올리지 않는다 — Compiler API 가 없어 lint·build 가 함께 죽는다. 상한은 `<6.1.0`
 - 어댑터에서 `Scan` 으로 폴백하지 않는다 — 지원 못 하는 쿼리는 던진다
 - 게이트에 인자 없는 `vitest` 를 넣지 않는다 — watch 모드로 떠서 CI 가 끝나지 않는다
+- `globalSetup` 에서 `process.env` 를 세팅해 테스트에 넘기려 하지 않는다 — 워커 생성 *전* 다른 스코프라 닿지 않는다. `test.env` 를 쓴다
 - DynamoDB Local 을 `-sharedDb` 없이 띄우지 않는다 — 자격증명·리전이 다르면 다른 DB 를 본다
 - 개발과 테스트가 같은 DynamoDB Local 인스턴스를 쓰지 않는다 — `-sharedDb` 라 테스트가 개발 데이터를 지운다
+- CI 의 `services:` 로 DynamoDB Local 에 `-sharedDb` 같은 인자를 넘기려 하지 않는다 — 넘길 방법이 없다. 대신 호스트 포트를 8084 로 맞춘다
 - 로컬 개발을 실제 AWS DynamoDB 로 하지 않는다 — 비용·오염·오프라인 불가. `DYNAMODB_ENDPOINT` 로 가른다
 - `DYNAMODB_ENDPOINT` 를 운영 환경에 남기지 않는다 — 앱이 localhost:8083 을 치며 죽는다
 - 쓰기 직후 GSI 읽기를 강일관으로 가정하지 않는다 — 로컬에서만 통과하고 운영에서 깨진다
