@@ -60,6 +60,7 @@ cask "font-dejavu-sans-mono-nerd-font"
 cask "ghostty" # "iterm2"
 cask "google-drive"
 cask "visual-studio-code"
+cask "orbstack"
 
 tap "opspresso/tap"
 cask "opspresso/tap/toast"
