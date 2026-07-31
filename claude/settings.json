@@ -67,7 +67,6 @@
   },
   "enabledPlugins": {
     "codex@openai-codex": true,
-    "context7@claude-plugins-official": false,
     "frontend-design@claude-plugins-official": true,
     "karrot-self-review@karrot-hr": false,
     "linear@claude-plugins-official": false,

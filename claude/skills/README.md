@@ -22,7 +22,7 @@
 | `coding-style` | Core Principles · Surgical Changes |
 | `problem-solving` | Before Changing Code · Problem Solving · Goal-Driven Execution |
 | `testing-rules` | Testing |
-| `claude-code-usage` | Claude Code Usage (plan mode·서브에이전트·병렬 호출·Context7) |
+| `claude-code-usage` | Claude Code Usage (plan mode·서브에이전트·병렬 호출) |
 | `anti-patterns` | 전 주제의 안티패턴 카탈로그 + Working If 자가 점검 |
 
 ## 단계별 매핑

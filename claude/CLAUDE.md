@@ -170,7 +170,6 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 - **Skill**: 사용자가 `/<name>` 을 타이핑하면 *반드시* Skill 도구로 호출. 없는 스킬 추측 금지.
 - **Task Tracking**: 3단계 이상 작업은 `TaskCreate` 로 추적. 시작 *직전* `in_progress`, 완료 *즉시* `completed`.
 - **병렬 도구 호출**: 독립적인 Bash·Read·Grep 호출은 한 메시지에 동시 배치. 의존 관계가 있을 때만 순차.
-- **최신 문서 확인**: 라이브러리·SDK·CLI 문서는 훈련 데이터 대신 Context7 우선.
 - **위험 행동 확인**: `rm -rf`, `git push --force`, PR/이슈 작성 등 외부 가시·되돌리기 어려운 작업은 사용자 확인 후 실행.
 - **Context Window**: 마지막 ~20% 에서 대규모 리팩토링 회피, 대형 탐색은 subagent 위임.
 

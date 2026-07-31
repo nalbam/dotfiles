@@ -1,13 +1,13 @@
 ---
 name: claude-code-usage
-description: Claude Code 도구 사용 규약 상세 — plan mode 진입 기준, 서브에이전트·오케스트레이션, Task 추적, 병렬 호출, Context7, 위험 행동 확인, 컨텍스트 관리. Detailed Claude Code feature-usage conventions.
+description: Claude Code 도구 사용 규약 상세 — plan mode 진입 기준, 서브에이전트·오케스트레이션, Task 추적, 병렬 호출, 위험 행동 확인, 컨텍스트 관리. Detailed Claude Code feature-usage conventions.
 ---
 
 # Claude Code Usage
 
 Claude Code 고유 기능의 *유일한 상세 source*. AGENTS.md `## Claude Code Usage` 는 이 파일의 한 줄 요약이다.
 
-전제: `settings.json`에서 활성화된 기능(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`, `ENABLE_TOOL_SEARCH`, `context7` 플러그인 등)과 `claude/agents/`, `claude/skills/`에 배치된 자산.
+전제: `settings.json`에서 활성화된 기능(`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS`, `ENABLE_TOOL_SEARCH` 등)과 `claude/agents/`, `claude/skills/`에 배치된 자산.
 
 ## Plan Mode / 계획 모드
 
@@ -107,15 +107,6 @@ Claude Code 고유 기능의 *유일한 상세 source*. AGENTS.md `## Claude Cod
 - 예: 여러 파일 동시 Read
 - 의존 관계가 있으면(이전 결과가 다음 입력) 순차 유지
 - 서브에이전트도 독립적이면 병렬 spawn
-
-## Context7 MCP
-
-라이브러리·프레임워크·SDK·CLI·클라우드 서비스 문서는 훈련 데이터 대신 Context7 을 우선한다.
-
-- 익숙한 라이브러리(React, Next.js, Prisma, Express, Django 등)도 대상
-- 호출 순서: `resolve-library-id` → `query-docs`
-- 사용자가 `/org/project` 형식으로 ID를 직접 제공하면 resolve 생략
-- *제외*: 리팩토링, 스크립트 작성, 비즈니스 로직 디버깅, 코드 리뷰, 일반 프로그래밍 개념
 
 ## 위험 행동 확인
 
