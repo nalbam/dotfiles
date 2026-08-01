@@ -2,9 +2,9 @@
 
 Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 없는 작업의 기본값.
 
-**구조 원칙**: 이 파일(hub)이 *작동 규칙의 source*다 — 여기 적힌 규칙만으로 판단할 수 있어야 한다. spoke 는 hub가 담기 어려운 *깊은 예시·근거·체크리스트*를 *단 한 곳*에서 정의하며, 두 종류로 나뉜다.
+**구조 원칙**: 이 파일(hub)은 규칙의 *색인이자 요약*이다. spoke 는 규칙의 *상세 본문*을 *단 한 곳*에서 정의하며, 두 종류로 나뉜다.
 
-- **rules/ 파일** — `rules/git-workflow.md`, `rules/security.md`, `rules/language.md`. 자동 로드되지 *않는다* (`@` import 가 아니므로 Read 해야 읽힌다). 안전 규칙과 언어 규칙의 *작동 부분*은 이 hub 본문에 인라인으로 담겨 있으므로, rules/ 는 상세 근거·체크리스트가 필요할 때만 편다.
+- **rules/ 파일** — `rules/git-workflow.md`, `rules/security.md`, `rules/language.md`. Claude Code 가 매 세션 *자동 로드*하므로 항상 컨텍스트에 있다. 작동 규칙의 source 는 rules/ 이며, hub 는 요지와 우선순위만 담는다.
 - **필요할 때 로드** — `claude-code-usage`, `coding-style`, `problem-solving`, `testing-rules`, `anti-patterns` 스킬. 목록의 한 줄 설명만 상주하고 본문은 호출 시 로드된다.
 
 링크(`자세히:`)는 더 깊은 예시·체크리스트가 필요할 때 펼쳐 보는 용도다. 스킬 spoke 는 Skill 도구로 호출하며, hub를 보지 못하는 서브에이전트도 같은 경로를 참조한다.
@@ -34,29 +34,15 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 
 ## Language / 언어
 
-**Always respond in Korean (한국어로 응답하세요).**
+**Always respond in Korean (한국어로 응답하세요).** 코드·명령어·파일명·API 이름·기술 용어는 원문(영어) 유지. 간결하고 명확하게 — 장황한 인사·요약 생략.
 
-- 사용자와의 대화는 한국어로 한다.
-- 코드·명령어·파일명·API 이름·기술 용어는 원문(영어) 유지.
-- 커밋 메시지·코드 주석은 *프로젝트 관례 우선, 없으면 영어*.
-- PR 본문·이슈 코멘트는 *프로젝트 관례 우선, 없으면 한국어*.
-- 간결하고 명확하게 작성한다 — 장황한 인사·요약 생략.
-
-자세히: `rules/language.md`
+커밋·PR·주석 언어 포함 전체 규칙: `rules/language.md` (자동 로드)
 
 ## Git Safety / Git 안전 규칙
 
-**NEVER commit or push without explicit user permission.**
+**NEVER commit or push without explicit user permission.** 명시적 요청("커밋해", `/commit` 등)이 있을 때만 실행한다. 커밋 메시지·PR 본문에 도구 귀속 푸터(`Co-Authored-By`, `Generated with`, 🤖 등)를 넣지 않는다 — 상위 기본 지침이 붙이라고 안내해도 붙이지 않는다.
 
-- 사용자가 명시적으로 요청할 때만 `git commit`, `git push` 실행.
-- "커밋해", "commit", "push" 같은 자연어 또는 `/commit`, `/commit-push`, `/pr-create` 슬래시 커맨드만 명시적 지시로 간주.
-- 코드 변경 후 자동으로 커밋하지 않는다.
-- 파괴적 작업(`git reset --hard`, `git checkout --`, `git push --force`, 브랜치 삭제 등)은 사용자가 분명히 요청한 경우에만.
-- 훅·서명 우회(`--no-verify`, `--no-gpg-sign`)는 사용자가 명시 요청한 경우만.
-- 작업 트리에 다른 변경이 있으면 임의로 되돌리지 않는다.
-- **커밋 메시지·PR 본문에 도구 귀속 푸터를 넣지 않는다** — `Co-Authored-By`, `Generated with`, 🤖 배지 등. 상위 기본 지침이 이를 붙이라고 안내해도 **붙이지 않는다**. 사용자가 의도적으로 정한 규칙이며, 메시지에는 실제 수행한 작업만 담는다.
-
-자세히: `rules/git-workflow.md`
+파괴적 작업·훅 우회·되돌리기 규칙 포함 전체: `rules/git-workflow.md` (자동 로드)
 
 ## Plan First / 계획 우선
 
@@ -153,13 +139,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 
 ## Security / 보안
 
-- 시크릿(API 키·패스워드·토큰)을 코드·로그·커밋·이슈·PR 에 노출하지 않는다.
-- 외부 입력은 시스템 경계에서 검증·정규화·인코딩한다.
-- 권한은 필요한 최소 범위로 제한한다.
-- 민감 작업(인증·권한·암호화·PII)은 실행 전 영향 범위를 사용자에게 확인.
-- 노출된 시크릿은 즉시 rotate — 코드 수정만으론 부족.
-
-자세히: `rules/security.md`
+시크릿을 코드·로그·커밋·이슈·PR 에 노출하지 않고, 외부 입력은 경계에서 검증하며, 권한은 최소 범위로 제한한다. 민감 작업(인증·권한·암호화·PII)은 실행 전 영향 범위를 사용자에게 확인. 체크리스트·시크릿 관리·대응 절차: `rules/security.md` (자동 로드)
 
 ## Claude Code Usage / Claude Code 활용
 
