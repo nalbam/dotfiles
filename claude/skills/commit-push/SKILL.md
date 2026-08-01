@@ -48,7 +48,10 @@ git branch --show-current
 ### Phase 3: Push
 
 ```bash
-# Push to remote (set upstream if new branch)
+# Push to remote (upstream 이 이미 설정된 브랜치)
+git push
+
+# 신규 브랜치 첫 push 에만 -u 로 upstream 설정
 git push -u origin $(git branch --show-current)
 ```
 

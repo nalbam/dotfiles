@@ -65,10 +65,7 @@ PR 생성은 `/pr-create` 스킬이 처리한다. 수동 작성 시:
 - One feature per PR
 - 새 브랜치 첫 푸시는 `-u` 플래그
 - *전체 커밋 이력*을 분석한다 — 최신 커밋만 보지 말 것. `git diff <base>...HEAD` 로 전체 확인.
-- 본문 구성:
-  1. **Summary** — 1~3 bullet, "왜" 중심
-  2. **Test plan** — 체크리스트로 검증 단계
-  3. **Screenshots** — UI 변경 시
+- 본문 구성(템플릿)은 `/pr-create` 스킬의 PR body 템플릿이 source — Summary / Changes / Breaking Changes / Test Plan / Screenshots(UI 변경 시)
 - 본문 끝에 `🤖 Generated with ...` 류 푸터를 넣지 않는다 (위 *트레일러·푸터 금지*)
 
 ## Implementation Workflow

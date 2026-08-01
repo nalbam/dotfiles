@@ -105,6 +105,9 @@ gh pr create --title "<type>(<scope>): <subject>" --body "$(cat <<'EOF'
 ## Test Plan
 - [ ] How to verify changes work
 - [ ] Edge cases to test
+
+## Screenshots
+- (UI 변경 시에만) before/after 캡처. UI 변경 없으면 섹션 생략.
 EOF
 )"
 ```
@@ -128,6 +131,8 @@ EOF
 - `refactor`: Code refactoring
 - `test`: Adding tests
 - `chore`: Maintenance
+- `perf`: Performance improvement
+- `ci`: CI configuration
 
 **Examples:**
 ```
