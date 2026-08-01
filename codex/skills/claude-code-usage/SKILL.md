@@ -1,6 +1,6 @@
 ---
 name: claude-code-usage
-description: Claude Code 도구 사용 규약 상세 — plan mode 진입 기준, 서브에이전트·오케스트레이션, Task 추적, 병렬 호출, 위험 행동 확인, 컨텍스트 관리. Detailed Claude Code feature-usage conventions.
+description: Claude Code 도구 사용 규약 — plan mode, 서브에이전트, Task 추적, 병렬 호출, 컨텍스트 관리. Claude Code feature-usage conventions.
 ---
 
 # Claude Code Usage
@@ -52,9 +52,9 @@ Claude Code 고유 기능의 *유일한 상세 source*. AGENTS.md `## Claude Cod
 | `Explore` | 3개 이상 쿼리가 필요한 코드베이스 탐색 |
 | `Plan` | 구현 전략 설계 (Plan Mode 내부) |
 | `general-purpose` | 다단계 리서치, 불확실한 탐색 |
-| `debugger` | 에러·테스트 실패 디버깅 |
-| `code-reviewer` | 품질·보안 리뷰 |
-| `planner` / `architect` / `refactorer` / `builder` / `test-writer` / `doc-writer` | 명시된 역할에 매칭 |
+| `debugger` | 에러·테스트/빌드 실패·의존성 충돌 근본 원인 디버깅 |
+| `code-reviewer` | 품질·보안 리뷰 (`/code-audit` 이 디스패치) |
+| `architect` | 설계·트레이드오프·ADR 분석 (계획 합의는 네이티브 plan mode) |
 
 ### 원칙
 
@@ -143,7 +143,7 @@ git 관련 규약은 AGENTS.md 의 Git Safety 가 source.
 
 ## Build / Validation 실패
 
-빌드·테스트 실패는 `/validate` 스킬 또는 `builder` 서브에이전트로 처리한다.
+빌드·테스트 실패는 `/validate` 스킬 또는 `debugger` 서브에이전트로 처리한다.
 
 1. 에러 메시지 정독 (보통 원인이 직접 담겨 있음)
 2. 점진 수정 (한 번에 여러 변경 묶지 말 것)

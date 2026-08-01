@@ -29,13 +29,13 @@
 
 | 단계 | Skill | 작업 수행 (Agent) |
 |------|-------|-------------------|
-| **0. 부트스트랩** | `/nextjs-init` | `architect` |
-| **1. 목표** | — | `planner`, `architect` |
-| **2. 스펙** | — | `architect`, `doc-writer` |
-| **3. 구현** | `/commit`, `/commit-push` | `builder`, `refactorer`, `debugger` |
-| **4. 테스트** | `/validate` | `test-writer`, `code-reviewer`, `debugger` |
-| **5. 릴리즈** | `/pr-create`, `/pr-summary`, `/resolve-coderabbit`, `/docs-sync` | `code-reviewer`, `doc-writer` |
-| **6. 유지보수** | `/code-audit`, `/docs-sync` | `code-reviewer`, `refactorer` |
+| **0. 부트스트랩** | `/nextjs-init` | — |
+| **1. 목표** | — | `architect` (계획 합의는 네이티브 plan mode) |
+| **2. 스펙** | — | `architect` |
+| **3. 구현** | `/commit`, `/commit-push` | Claude 본체, `debugger` |
+| **4. 테스트** | `/validate` | `code-reviewer`, `debugger` |
+| **5. 릴리즈** | `/pr-create`, `/pr-summary`, `/resolve-coderabbit`, `/docs-sync` | `code-reviewer` |
+| **6. 유지보수** | `/code-audit`, `/docs-sync` | `code-reviewer` |
 
 > `/validate` 는 특정 단계 전용이 아니라 **구현~릴리즈 전 구간의 공통 게이트**다. `/commit`·`/pr-create` 직전에도 먼저 실행한다.
 >
@@ -49,21 +49,21 @@
 - `/nextjs-init` — Next.js 16 프로젝트 생성 (App Router · TS strict · Mantine 9 · Better Auth + Google OAuth on DynamoDB · Clean Architecture · Docker/ECR)
 
 ### 1. 목표
-계획 수립 단계. 전용 스킬은 없고 `planner`·`architect` agent 가 요구 분석·접근 설계를 담당한다.
+계획 수립 단계. 전용 스킬은 없다 — 네이티브 plan mode 로 사용자와 계획을 합의하고, 설계 분석·트레이드오프 비교는 `architect` agent 에 위임한다.
 
 ### 2. 스펙
-설계·명세 작성 단계. `architect`(구조 결정)·`doc-writer`(명세 문서) agent 가 담당한다. `/docs-sync` 는 *코드가 이미 있는* 상태에서 문서를 맞추는 스킬이라 이 단계에는 쓰지 않는다.
+설계·명세 작성 단계. `architect` agent(구조 결정·ADR)가 담당한다. `/docs-sync` 는 *코드가 이미 있는* 상태에서 문서를 맞추는 스킬이라 이 단계에는 쓰지 않는다.
 
 ### 3. 구현
 - `/commit` — 변경의 *의미*를 이해한 뒤 conventional 형식으로 커밋
 - `/commit-push` — `/commit` 절차 + 원격 push (push 전 추가 점검)
 
-실제 코드 작성·리팩토링·디버깅은 `builder`·`refactorer`·`debugger` agent 와 Claude 본체가 수행한다.
+실제 코드 작성·리팩토링은 Claude 본체가 수행하고(기준: `coding-style`), 복합·빌드 실패 디버깅은 `debugger` agent 에 위임한다.
 
 ### 4. 테스트
 - `/validate` — lint·typecheck·test 실행 후 **근본원인 수정**, 전부 통과까지 반복 (수정 불가 실패는 멈추고 보고)
 
-테스트 작성은 `test-writer`, 품질·보안 리뷰는 `code-reviewer`, 실패 디버깅은 `debugger` agent.
+테스트 작성은 Claude 본체(기준: `testing-rules`), 품질·보안 리뷰는 `code-reviewer`, 실패 디버깅은 `debugger` agent.
 
 ### 5. 릴리즈
 - `/pr-create` — 전체 diff 분석 후 PR 생성 (Summary / Changes / Breaking / Test Plan)
@@ -94,6 +94,7 @@
 
 - 각 스킬의 세부 절차는 `<name>/SKILL.md` 가 단일 source.
 - 공통 규칙은 `../rules/*.md` 참조 (git 안전·언어·외과적 변경 등).
+- 문서 본문의 `skills/...`·`rules/...` 경로는 배포 루트(`~/.claude/`) 기준 표기다. 이 README 의 `../` 상대 경로만 예외.
 - 파괴적·외부 가시 작업(push, PR publish, thread resolve)은 스킬이 후보만 제시하고 **사용자가 확인**한다.
 - 같은 내용을 두 스킬에 쓰지 않는다 — 한쪽을 source 로 선언하고 다른 쪽은 `skills/<name>/SKILL.md#anchor` 로 참조한다 (예: Exclude Patterns → `code-audit`, package manager 감지 → `validate`, PR body 형식 → `pr-create`).
 - Codex 미러(`codex/skills/*/SKILL.md`)는 이 디렉토리에서 생성된다 — 스킬 수정 후 `python3 scripts/gen-codex-skills.py` 실행 (직접 편집 금지).

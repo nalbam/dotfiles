@@ -63,10 +63,10 @@ graph TD
 ├── claude/                # Claude Code settings (synced to ~/.claude/)
 │   ├── CLAUDE.md          # Global Claude Code instructions
 │   ├── settings.json      # Permissions, hooks, plugins
-│   ├── agents/            # Specialized agents (8)
+│   ├── agents/            # Specialized agents (3)
 │   ├── hooks/             # memory-sync.sh (cross-machine auto-memory sync)
-│   ├── rules/             # Always-loaded rules (8)
-│   └── skills/            # User-invocable skills (9)
+│   ├── rules/             # Always-loaded rules (3)
+│   └── skills/            # Skills (10 task + 5 reference)
 ├── codex/                 # Codex settings (synced to ~/.codex/)
 │   ├── AGENTS.md          # Global Codex instructions
 │   ├── config.toml        # Feature flags
