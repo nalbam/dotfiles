@@ -6,7 +6,6 @@
   },
   "permissions": {
     "allow": [
-      "Bash(*)",
       "Skill(*)",
       "WebFetch",
       "WebSearch"
@@ -70,7 +69,7 @@
     "frontend-design@claude-plugins-official": true,
     "karrot-self-review@karrot-hr": false,
     "linear@claude-plugins-official": false,
-    "notion@claude-plugins-official": true,
+    "notion@claude-plugins-official": false,
     "playwright@claude-plugins-official": false,
     "slack@claude-plugins-official": true
   },
