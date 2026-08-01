@@ -1,6 +1,6 @@
 ---
 name: nextjs-init
-description: Scaffold a new Next.js 16 project — App Router, TypeScript strict, Mantine 9, Better Auth + Google OAuth on DynamoDB, Clean Architecture, ECR push. 새 Next.js 프로젝트 생성, 초기 셋업, 보일러플레이트 구성.
+description: Scaffold a new Next.js project with the opinionated stack (Mantine, Better Auth, DynamoDB). 새 Next.js 프로젝트 생성·초기 셋업·보일러플레이트.
 ---
 
 # Next.js Project Init

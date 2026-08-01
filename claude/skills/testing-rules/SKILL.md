@@ -1,6 +1,6 @@
 ---
 name: testing-rules
-description: 테스트 전략 상세 — 목표 기반 테스트 시작점, 품질 기준, 커버리지·유형 선택, 실패 분류. Detailed testing strategy and failure triage.
+description: 테스트 전략 상세 — 품질 기준, 커버리지·유형 선택, 실패 분류. Testing strategy and failure triage.
 ---
 
 # Testing

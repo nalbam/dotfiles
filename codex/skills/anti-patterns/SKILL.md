@@ -1,6 +1,6 @@
 ---
 name: anti-patterns
-description: 자주 빠지는 함정 전체 카탈로그와 'Working If' 자가 점검 척도. PR·커밋 전 자가 리뷰에 사용. Full anti-pattern catalog and self-check scale.
+description: 자주 빠지는 함정 카탈로그와 'Working If' 자가 점검 척도 — PR·커밋 전 자가 리뷰용. Anti-pattern catalog and self-check scale.
 ---
 
 # Anti-Patterns
@@ -25,13 +25,7 @@ description: 자주 빠지는 함정 전체 카탈로그와 'Working If' 자가 
 
 ## Surgical / 외과적 변경 위반
 
-- 요청 범위를 넘어선 인접 코드 "개선" (drive-by refactoring)
-- 기존 스타일을 본인 선호로 변경 (따옴표 통일, 들여쓰기·줄바꿈, import 정렬)
-- 요청에 없는 타입 힌트·docstring·주석 추가
-- 사용자가 묻지 않은 새 추상화·플래그·설정 옵션 추가
-- 무관한 dead code 함께 삭제 (발견했다면 *언급만* 하고 별도 작업으로 분리)
-- 한 PR/커밋에 두 가지 이상 목적 혼합
-- "겸사겸사 정리했어요" 류의 변경
+금지 목록·체크리스트는 AGENTS.md 의 Surgical Changes 가 source — 대표 신호: drive-by refactoring, 스타일 임의 변경, 요청에 없는 주석·추상화 추가, 한 PR/커밋에 복수 목적, "겸사겸사 정리했어요" 류의 변경.
 
 ## Think Before Coding
 
@@ -84,7 +78,7 @@ description: 자주 빠지는 함정 전체 카탈로그와 'Working If' 자가 
 - 불확실한 내용을 질문 없이 추측으로 작성
 - 긴 요약·장황한 설명 남발 (사용자는 diff 를 볼 수 있다)
 - 없는 Skill·Agent 를 추측해서 호출
-- 훈련 데이터를 맹신하고 최신 문서 확인 생략
+- 훈련 데이터를 맹신하고 최신 공식 문서 확인 생략
 
 ## Claude Code 고유
 

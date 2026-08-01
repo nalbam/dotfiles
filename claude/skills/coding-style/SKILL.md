@@ -1,6 +1,6 @@
 ---
 name: coding-style
-description: 코딩 스타일 상세 — surgical changes 금지/필수 목록과 검증 체크리스트, 불변성, 에러 처리, 파일·함수 크기, 문서화 규칙. Detailed coding style and surgical-change checklist.
+description: 코딩 스타일 상세 — surgical changes 체크리스트, 불변성, 에러 처리, 문서화 규칙. Coding style and surgical-change details.
 ---
 
 # Coding Style
@@ -129,6 +129,11 @@ const validated = schema.parse(input)
 - 동작 변경·기능 추가 시 문서 동시 갱신
 - 오래된 주석은 수정이 아닌 삭제 (틀린 주석은 없는 주석보다 해롭다)
 
+### 문서 위치 규칙
+
+- 루트에는 `README.md` 와 `CLAUDE.md` 만 — 그 외 모든 문서는 `docs/` 아래에 둔다.
+- 새 문서 생성보다 기존 문서 갱신을 우선한다.
+
 ### 현재 상태만 기록한다
 
 **문서와 주석은 *지금 코드가 어떻게 동작하는지* 만 정확하게 기록한다.** 과거 상태·시행착오·번복 이력은 남기지 않는다.
@@ -154,4 +159,4 @@ const validated = schema.parse(input)
 
 ## Anti-Patterns
 
-이 주제 안티패턴은 `skills/anti-patterns/SKILL.md#code-quality`, `skills/anti-patterns/SKILL.md#surgical--외과적-변경-위반` 이 source.
+이 주제 안티패턴은 `skills/anti-patterns/SKILL.md#code-quality` 가 source. 외과적 변경 위반은 위 `#surgical-changes--외과적-변경` 섹션이 source.

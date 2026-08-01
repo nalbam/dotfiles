@@ -1,6 +1,6 @@
 ---
 name: code-audit
-description: Deep read-only audit of an entire codebase — issues, root causes, severity-ranked report. 저장소 전체 코드 심층 감사 — 문제점·근본원인·개선사항 분석 후 보고 (코드는 수정하지 않음). 변경분·PR 리뷰는 review, 검사 실행·수정은 validate.
+description: Deep read-only audit of an entire codebase — severity-ranked report, no code changes. 저장소 전체 심층 감사(수정 없음) — 변경분·PR 리뷰는 /review, 검사 실행·수정은 /validate.
 allowed-tools: Read, Bash, Grep, Glob, Agent
 ---
 

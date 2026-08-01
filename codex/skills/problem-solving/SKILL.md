@@ -1,6 +1,6 @@
 ---
 name: problem-solving
-description: 문제 해결 상세 — think before coding, goal-driven execution 변환 규칙, 근본 원인 조사 5단계. Root-cause analysis and goal-driven execution rules.
+description: 문제 해결 상세 — 코딩 전 사고, 목표 기반 실행, 근본 원인 조사. Root-cause analysis and goal-driven execution.
 ---
 
 # Problem Solving & Root Cause Analysis
