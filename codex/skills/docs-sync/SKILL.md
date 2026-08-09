@@ -29,6 +29,7 @@ description: Verify docs against code and fix gaps. 코드↔문서 정합 검�
 - **새 문서 파일은 명시 요청 시에만 생성** — 담을 곳 없는 항목은 Gap Report 에 제안으로만 남긴다
 - **문서 구조는 프로젝트 관례 우선** — 루트 vs `docs/` 배치를 임의로 재편하지 않는다 (재배치는 요청 시에만)
 - Single source of truth — 같은 내용을 두 곳에 쓰지 않고 링크한다
+- **한국어 문서는 해라체 로 쓴다** — `skills/coding-style/SKILL.md#documentation`
 - Exclude patterns 적용 후 스캔
 
 ## Exclude Patterns

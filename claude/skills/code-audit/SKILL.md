@@ -55,7 +55,7 @@ allowed-tools: Read, Bash, Grep, Glob, Agent
 
 ### Phase 1: Reconnaissance — 프로젝트 전체 파악
 
-프로젝트의 전체 구조, 기술 스택, 아키텍처를 파악합니다.
+프로젝트의 전체 구조, 기술 스택, 아키텍처를 파악한다.
 
 ```bash
 # Project type detection

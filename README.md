@@ -1,8 +1,8 @@
 # dotfiles
 
-개인 개발 환경을 macOS, Linux, Windows에서 일관되게 자동으로 구성하는 스크립트 모음입니다.
+개인 개발 환경을 macOS, Linux, Windows에서 일관되게 자동으로 구성하는 스크립트 모음이다.
 
-한 번의 명령으로 shell, git, SSH, 패키지 매니저, 개발 도구, AI 도구 설정까지 동기화합니다.
+한 번의 명령으로 shell, git, SSH, 패키지 매니저, 개발 도구, AI 도구 설정까지 동기화한다.
 
 ## Supported Platforms
 
@@ -44,7 +44,7 @@ cd ~/.dotfiles
 
 ## What Gets Installed
 
-설치 스크립트는 다음을 자동으로 구성합니다.
+설치 스크립트는 다음을 자동으로 구성한다.
 
 - **Shell**: ZSH + Oh My ZSH, Dracula 테마, 자동 완성/구문 강조 플러그인
 - **Terminal**: iTerm2, Ghostty, tmux (시스템 메트릭 상태바 포함)
@@ -53,7 +53,7 @@ cd ~/.dotfiles
 - **Editors/Apps** (macOS): VS Code, iTerm2, Ghostty, 1Password, Google Drive
 - **Fonts**: D2Coding, DejaVu Sans Mono Nerd Font
 
-전체 패키지 목록은 `darwin/Brewfile`, `linux/Brewfile`을 참고하세요.
+전체 패키지 목록은 `darwin/Brewfile`, `linux/Brewfile`을 참고하라.
 
 ## Repository Layout
 
@@ -79,7 +79,7 @@ cd ~/.dotfiles
 
 ## Key Commands & Aliases
 
-설치 후 사용 가능한 주요 단축 명령입니다. 전체 목록은 [`aliases`](./aliases) 파일을 참고하세요.
+설치 후 사용 가능한 주요 단축 명령이다. 전체 목록은 [`aliases`](./aliases) 파일을 참고하라.
 
 | Alias | Description |
 |-------|-------------|
@@ -96,7 +96,7 @@ cd ~/.dotfiles
 
 ## AI Tools Sync
 
-Claude Code, Codex, Kiro의 에이전트·훅·규칙·스킬을 저장소에 버전 관리하고 여러 머신에 배포합니다.
+Claude Code, Codex, Kiro의 에이전트·훅·규칙·스킬을 저장소에 버전 관리하고 여러 머신에 배포한다.
 
 ```bash
 ~/.dotfiles/run.sh --vibe  # AI 도구 설정만 빠르게 동기화
@@ -107,7 +107,7 @@ Claude Code, Codex, Kiro의 에이전트·훅·규칙·스킬을 저장소에 �
 - `codex/skills/` → `~/.agents/skills/` (Codex가 스캔하는 skills 경로)
 - `kiro/` → `~/.kiro/`
 
-변경된 파일만 MD5로 비교해 부분 동기화하고, repo에서 삭제된 파일은 배포본에서도 제거합니다 (manifest 기반 — 사용자가 직접 설치한 파일은 건드리지 않음).
+변경된 파일만 MD5로 비교해 부분 동기화하고, repo에서 삭제된 파일은 배포본에서도 제거한다 (manifest 기반 — 사용자가 직접 설치한 파일은 건드리지 않음).
 
 ## Security
 

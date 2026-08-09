@@ -34,7 +34,7 @@ Claude Code(claude.ai/code)를 위한 전역 지침. 프로젝트별 지침이 �
 
 ## Language / 언어
 
-**Always respond in Korean (한국어로 응답하세요).** 코드·명령어·파일명·API 이름·기술 용어는 원문(영어) 유지. 간결하고 명확하게 — 장황한 인사·요약 생략.
+**Always respond in Korean (한국어로 응답하라).** 모든 한국어 문장은 해라체 로 쓴다 — 응답·문서 공통. 코드·명령어·파일명·API 이름·기술 용어는 원문(영어) 유지. 간결하고 명확하게 — 장황한 인사·요약 생략.
 
 커밋·PR·주석 언어 포함 전체 규칙: `rules/language.md` (자동 로드)
 
