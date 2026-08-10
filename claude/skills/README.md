@@ -97,7 +97,7 @@
 - 문서 본문의 `skills/...`·`rules/...` 경로는 배포 루트(`~/.claude/`) 기준 표기다. 이 README 의 `../` 상대 경로만 예외.
 - 파괴적·외부 가시 작업(push, PR publish, thread resolve)은 스킬이 후보만 제시하고 **사용자가 확인**한다.
 - 같은 내용을 두 스킬에 쓰지 않는다 — 한쪽을 source 로 선언하고 다른 쪽은 `skills/<name>/SKILL.md#anchor` 로 참조한다 (예: Exclude Patterns → `code-audit`, package manager 감지 → `validate`, PR body 형식 → `pr-create`).
-- Codex 미러(`codex/skills/*/SKILL.md`)는 이 디렉토리에서 생성된다 — 스킬 수정 후 `python3 scripts/gen-codex-skills.py` 실행 (직접 편집 금지).
+- Codex 미러(`codex/skills/` 의 SKILL.md 와 `references/*.md`)는 이 디렉토리에서 생성된다 — 스킬 수정 후 `python3 scripts/gen-codex-skills.py` 실행 (직접 편집 금지).
 
 ### frontmatter
 
@@ -109,7 +109,7 @@ disable-model-invocation: true   # 아래 조건일 때만
 argument-hint: [pr-number]       # 인자를 받을 때만
 ```
 
-- **description 은 모델이 호출 여부를 판단하는 유일한 근거다.** *무엇을* 하는지에 더해 *언제* 쓰는지, 그리고 헷갈리는 이웃 스킬과의 경계를 넣는다 — `docs-read` ↔ `docs-sync`, `code-audit` ↔ `/review` ↔ `/validate` 처럼.
+- **description 은 모델이 호출 여부를 판단하는 유일한 근거다.** *무엇을* 하는지에 더해 *언제* 쓰는지, 그리고 헷갈리는 이웃 스킬과의 경계를 넣는다 — `docs-read` ↔ `docs-sync`, `code-audit` ↔ `/code-review` ↔ `/validate` 처럼.
 - **한국어·영어를 함께 적는다.** 사용자는 한국어로 요청하고 스킬 목록은 영어로 검색된다.
 - **`allowed-tools` 로 경계를 강제한다.** "읽기 전용" 이라고 본문에 쓰는 것보다 `Write`·`Edit` 를 빼는 쪽이 확실하다 (`docs-read`, `code-audit`).
 - **`disable-model-invocation: true` 는 git·GitHub 상태를 바꾸는 스킬에만 붙인다** — `commit`, `commit-push`, `pr-create`, `pr-summary`, `resolve-coderabbit`. 이들은 명시적 사용자 지시가 곧 실행 허가이므로 모델이 스스로 부르면 안 된다 (`../rules/git-workflow.md`).
@@ -117,5 +117,7 @@ argument-hint: [pr-number]       # 인자를 받을 때만
 ### 본문
 
 실행 스킬은 `Philosophy → Scope/Rules → Process(또는 Workflow) → Anti-Patterns` 순서를 따른다. 각 단계에는 *다음 단계로 넘어가도 되는지 판단할 종료 조건*을 붙인다 (`problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`).
+
+대형 실행 스킬은 SKILL.md 를 개요·단계 색인까지만 유지하고, 단계 상세는 스킬 디렉토리의 `references/*.md` 로 분리한다 — 호출 시 로드되는 것은 SKILL.md 뿐이므로 상세는 해당 단계에서 Read 로 읽는다 (예: `nextjs-init`).
 
 서브에이전트를 스폰하는 스킬은 **서브에이전트가 SKILL.md 를 보지 못한다**는 점을 전제로 프롬프트에 기준·제외 패턴·산출물 형식을 직접 실어 보낸다.

@@ -4,8 +4,9 @@
 claude/skills is the single source of truth. This script applies the
 Claude -> Codex transformations (frontmatter fields, rules/*.md -> AGENTS.md
 references, Team mode -> generic multi-agent) and writes the results to
-codex/skills. Files other than SKILL.md (e.g. agents/openai.yaml) are
-preserved as-is.
+codex/skills. Skill-local reference docs (*.md next to SKILL.md, e.g.
+references/) are mirrored with the same body transformations. Codex-only
+files (e.g. agents/openai.yaml) are preserved as-is.
 
 Usage:
     python3 scripts/gen-codex-skills.py          # regenerate codex/skills
@@ -139,6 +140,14 @@ def remove_region(text, start_marker, end_marker, occurrence=1):
     return "\n".join(lines[:start] + lines[end + 1:])
 
 
+def replacements_for(name):
+    """nextjs-init mentions CLAUDE.md as a *scaffolded project file* (kept alongside
+    AGENTS.md), not as the global instruction file — exempt it from the rename."""
+    if name == "nextjs-init":
+        return [(old, new) for old, new in REPLACEMENTS if old != "CLAUDE.md"]
+    return REPLACEMENTS
+
+
 def transform(name, text):
     text = strip_claude_frontmatter(text)
     if name == "code-audit":
@@ -146,7 +155,7 @@ def transform(name, text):
         text = remove_region(text, TEAM_SHUTDOWN_START, TEAM_SHUTDOWN_END, occurrence=2)
         for n in range(1, 5):
             text = text.replace(f"#### Agent {n}:", f"#### Analysis {n}:")
-    for old, new in REPLACEMENTS:
+    for old, new in replacements_for(name):
         text = text.replace(old, new)
     return text
 
@@ -161,19 +170,25 @@ def main():
     failed = []
     for skill_dir in skill_dirs:
         name = skill_dir.name
-        generated = transform(name, (skill_dir / "SKILL.md").read_text(encoding="utf-8"))
-        dst = CODEX_SKILLS / name / "SKILL.md"
-        if check_mode:
-            current = dst.read_text(encoding="utf-8") if dst.is_file() else None
-            if current != generated:
-                failed.append(name)
-                print(f"MISMATCH: {dst.relative_to(REPO_ROOT)}")
+        sources = [skill_dir / "SKILL.md"] + sorted(
+            p for p in skill_dir.rglob("*.md") if p != skill_dir / "SKILL.md"
+        )
+        for src in sources:
+            rel = src.relative_to(skill_dir)
+            label = name if str(rel) == "SKILL.md" else f"{name}/{rel}"
+            generated = transform(name, src.read_text(encoding="utf-8"))
+            dst = CODEX_SKILLS / name / rel
+            if check_mode:
+                current = dst.read_text(encoding="utf-8") if dst.is_file() else None
+                if current != generated:
+                    failed.append(label)
+                    print(f"MISMATCH: {dst.relative_to(REPO_ROOT)}")
+                else:
+                    print(f"OK: {label}")
             else:
-                print(f"OK: {name}")
-        else:
-            dst.parent.mkdir(parents=True, exist_ok=True)
-            dst.write_text(generated, encoding="utf-8")
-            print(f"generated: {dst.relative_to(REPO_ROOT)}")
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                dst.write_text(generated, encoding="utf-8")
+                print(f"generated: {dst.relative_to(REPO_ROOT)}")
 
     # codex-only skill dirs are suspicious (claude/skills is the source of truth)
     for d in sorted(CODEX_SKILLS.iterdir()):
