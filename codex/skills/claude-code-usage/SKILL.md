@@ -80,7 +80,7 @@ Claude Code 고유 기능의 *유일한 상세 source*. AGENTS.md `## Claude Cod
 - available-skills 리스트에 없는 스킬은 추측 호출 금지
 - 이미 실행 중인 스킬을 재호출하지 않는다
 
-이 저장소가 배치하는 스킬: `/nextjs-init`, `/docs-read`, `/commit`, `/commit-push`, `/validate`, `/pr-create`, `/pr-summary`, `/resolve-coderabbit`, `/code-audit`, `/docs-sync` (단계별 매핑은 `skills/README.md`). 그 외 `/review`, `/security-review`, `/init` 은 Claude Code 기본 제공.
+이 저장소가 배치하는 스킬: `/nextjs-init`, `/docs-read`, `/commit`, `/commit-push`, `/validate`, `/pr-create`, `/pr-summary`, `/resolve-coderabbit`, `/code-audit`, `/docs-sync` (단계별 매핑은 `skills/README.md`). 그 외 `/code-review`, `/security-review`, `/init` 은 Claude Code 기본 제공.
 
 ## Tasks / 작업 추적
 
@@ -137,9 +137,9 @@ git 관련 규약은 AGENTS.md 의 Git Safety 가 source.
 
 | 등급 | 사용 시점 |
 |------|----------|
-| **Opus (최상위)** | 복잡 아키텍처 결정, 다단계 추론, 어려운 디버깅, 에이전트 워크플로우, 분석·연구 |
-| **Sonnet (코딩 특화)** | 빠른 코드 생성, 단순 수정, 워크플로우 오케스트레이션 |
-| **Haiku (경량)** | 짧은 유틸·문서 갱신·간단한 질의·대량 정형 작업 |
+| **최상위** (예: Fable, Opus) | 복잡 아키텍처 결정, 다단계 추론, 어려운 디버깅, 에이전트 워크플로우, 분석·연구 |
+| **코딩 특화** (예: Sonnet) | 빠른 코드 생성, 단순 수정, 워크플로우 오케스트레이션 |
+| **경량** (예: Haiku) | 짧은 유틸·문서 갱신·간단한 질의·대량 정형 작업 |
 
 ## Build / Validation 실패
 

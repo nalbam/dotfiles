@@ -74,6 +74,9 @@ pylint **/*.py
 # Go
 golangci-lint run
 go vet ./...
+
+# Rust
+cargo clippy
 ```
 
 On failure — **Root Cause Analysis:**
@@ -99,6 +102,9 @@ pyright
 
 # Go (built-in)
 go build ./...
+
+# Rust
+cargo check
 ```
 
 On failure — **Root Cause Analysis:**
@@ -125,6 +131,9 @@ pytest
 
 # Go
 go test ./...
+
+# Rust
+cargo test
 ```
 
 On failure — **Root Cause Analysis:**

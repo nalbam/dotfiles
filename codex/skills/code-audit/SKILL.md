@@ -1,6 +1,6 @@
 ---
 name: code-audit
-description: Deep read-only audit of an entire codebase — severity-ranked report, no code changes. 저장소 전체 심층 감사(수정 없음) — 변경분·PR 리뷰는 /review, 검사 실행·수정은 /validate.
+description: Deep read-only audit of an entire codebase — severity-ranked report, no code changes. 저장소 전체 심층 감사(수정 없음) — 변경분·PR 리뷰는 /code-review, 검사 실행·수정은 /validate.
 ---
 
 # Code Audit
@@ -15,7 +15,7 @@ description: Deep read-only audit of an entire codebase — severity-ranked repo
 
 - **대상**: 저장소 전체 구현 코드 (Exclude Patterns 적용 후)
 - **읽기 전용** — 이 스킬은 코드를 수정하지 않는다. 발견 사항은 보고까지이며, 수정은 사용자 승인 후 별도 작업이다
-- **경계**: 변경분·PR 리뷰는 `/review`, lint·typecheck·test 실행과 수정은 `/validate`, 코드↔문서 정합은 `/docs-sync`. 이 스킬은 *현재 코드 전체의 상태* 만 다룬다
+- **경계**: 변경분·PR 리뷰는 `/code-review`, lint·typecheck·test 실행과 수정은 `/validate`, 코드↔문서 정합은 `/docs-sync`. 이 스킬은 *현재 코드 전체의 상태* 만 다룬다
 
 ## Philosophy
 
