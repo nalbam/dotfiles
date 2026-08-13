@@ -1060,14 +1060,13 @@ if command -v npm >/dev/null; then
       _info "Skipping NPM package install/update."
     fi
 
-    if [ "$NPM_OK" = true ]; then
-      # npm 자체는 nvm 의 node 가 관리하므로 self-update 시도하지 않음
-      _install_npm_package "corepack" "corepack"
-      _install_npm_package "serverless" "serverless"
-      _install_npm_package "ccusage" "ccusage"
-
-      date +%s > "$NPM_TIMESTAMP_FILE"
-    fi
+    # if [ "$NPM_OK" = true ]; then
+    #   # npm 자체는 nvm 의 node 가 관리하므로 self-update 시도하지 않음
+    #   _install_npm_package "corepack" "corepack"
+    #   _install_npm_package "serverless" "serverless"
+    #   _install_npm_package "ccusage" "ccusage"
+    #   date +%s > "$NPM_TIMESTAMP_FILE"
+    # fi
   else
     _skip "NPM packages update (last update was less than 6 hours ago)"
   fi
