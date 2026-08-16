@@ -35,6 +35,11 @@ alias ccc='claude --permission-mode auto --continue'
 alias ccp='claude --permission-mode auto --prompt'
 alias ccu='ccusage'
 
+# Codex CLI shortcuts
+alias cx='codex'
+alias cxc='codex --continue'
+alias cxp='codex --prompt'
+
 # tmux
 tm() {
   # Interactive tmux session manager; pass args to tmux directly if provided

@@ -260,10 +260,10 @@ _cleanup_legacy_vibe() {
 }
 
 # Codex config.toml은 project trust·hooks.state·tui 등 대부분을 codex 런타임이 직접 채워
-# 넣는 상태 파일이라, dotfiles가 관리하는 [table] 헤더·key만 없을 때 채워 넣는다. 없는
+# 넣는 상태 파일이라, dotfiles가 관리하는 최상위 key와 [table]/key만 없을 때 채워 넣는다. 없는
 # 테이블은 통째로 추가하고, 있는 테이블은 그 안에 없는 key만 삽입 — 기존 값은 절대 덮어쓰지
-# 않는다. 단순 "[table]\nkey = value" 형태만 지원 (중첩 테이블·배열·멀티라인 값·테이블 밖
-# 최상위 key는 다루지 않음).
+# 않는다. 단순 "key = value"와 "[table]\nkey = value" 형태만 지원한다
+# (중첩 테이블·배열·멀티라인 값은 다루지 않음).
 _sync_toml_fill_missing() {
   local src_file="$1"
   local dst_file="$2"
@@ -278,10 +278,11 @@ _sync_toml_fill_missing() {
     return 2
   fi
 
-  # src를 "table<TAB>key<TAB>전체라인"으로 평탄화 ([table] 밖의 key는 무시)
+  # src를 "table<TAB>key<TAB>전체라인"으로 평탄화 (최상위 key는 __ROOT__ table로 표시)
   awk '
+    BEGIN { table = "__ROOT__" }
     /^\[[^]]*\]$/ { table = $0; next }
-    table != "" && /^[^#[:space:]][^=]*=/ {
+    /^[^#[:space:]][^=]*=/ {
       key = $0
       sub(/[ \t]*=.*/, "", key)
       print table "\t" key "\t" $0
@@ -295,6 +296,23 @@ _sync_toml_fill_missing() {
 
   local table key line
   while IFS=$'\t' read -r table key line; do
+    if [ "$table" = "__ROOT__" ]; then
+      if ! awk -v key="$key" '
+        function linekey(s,   k) { k = s; sub(/[ \t]*=.*/, "", k); return k }
+        /^\[/ { exit found ? 0 : 1 }
+        $0 ~ /=/ && linekey($0) == key { found = 1 }
+        END { exit found ? 0 : 1 }
+      ' "$tmp_file"; then
+        awk -v newline="$line" '
+          /^\[/ && !done { print newline "\n"; done = 1 }
+          { print }
+          END { if (!done) print newline }
+        ' "$tmp_file" > "$swap_file"
+        mv "$swap_file" "$tmp_file"
+      fi
+      continue
+    fi
+
     if ! grep -Fxq "$table" "$tmp_file"; then
       printf '\n%s\n' "$table" >> "$tmp_file"
     fi
@@ -510,7 +528,7 @@ _sync_vibe() {
       mkdir -p "$(dirname "$dst_file")"
 
       # Codex config.toml은 project trust·hooks.state·tui 등 대부분을 codex 런타임이 직접
-      # 채우므로, dotfiles가 관리하는 [table]/key만 없을 때 채워 넣는다.
+      # 채우므로, dotfiles가 관리하는 최상위 key와 [table]/key만 없을 때 채워 넣는다.
       if [ "$src_subdir" = "codex" ] && [ "$rel_path" = "config.toml" ]; then
         _sync_toml_fill_missing "$src_file" "$dst_file"
         case "$?" in
