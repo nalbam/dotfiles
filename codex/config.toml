@@ -1,13 +1,19 @@
 approval_policy = "on-request"
-sandbox_mode = "workspace-write"
+default_permissions = "git-write"
 
 web_search = "live"
 
 model_reasoning_effort = "high"
 model_verbosity = "low"
 
-[sandbox_workspace_write]
-network_access = true
+[permissions.git-write]
+extends = ":workspace"
+
+[permissions.git-write.filesystem.":workspace_roots"]
+".git" = "write"
+
+[permissions.git-write.network]
+enabled = true
 
 [features]
 hooks = true
