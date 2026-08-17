@@ -1,5 +1,7 @@
 # zshrc
 
+export LANG="${LANG:-en_US.UTF-8}"
+
 export ZSH="$HOME/.oh-my-zsh"
 
 export ZSH_THEME="dracula"
