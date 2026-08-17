@@ -21,10 +21,6 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
-if [ -f ~/.claude/.env.local ]; then
-  source ~/.claude/.env.local
-fi
-
 # vscode
 [[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path bash)"
 
