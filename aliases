@@ -40,6 +40,9 @@ alias cx='codex'
 alias cxc='codex --continue'
 alias cxp='codex --prompt'
 
+# Neovim
+alias nv='nvim'
+
 # tmux
 tm() {
   # Interactive tmux session manager; pass args to tmux directly if provided
