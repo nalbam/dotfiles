@@ -1,3 +1,8 @@
+# locale: unset or invalid (e.g. Termius sets en_KR.UTF-8) falls back to ASCII and breaks unicode prompts
+if [ "$(locale charmap 2>/dev/null)" != "UTF-8" ]; then
+  export LANG="en_US.UTF-8"
+fi
+
 if [ -d "$HOME/.local/bin" ]; then
   PATH="$HOME/.local/bin:${PATH+:$PATH}"
 fi
