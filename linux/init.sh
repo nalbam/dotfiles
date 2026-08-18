@@ -18,3 +18,6 @@ systemctl enable --now docker fail2ban fstrim.timer
 systemctl restart docker
 apt-get autoremove -y
 apt-get clean
+# for ubuntu user
+install -m 0600 -D /root/.ssh/authorized_keys /home/ubuntu/.ssh/authorized_keys
+chown -R ubuntu:ubuntu /home/ubuntu/.ssh/authorized_keys
