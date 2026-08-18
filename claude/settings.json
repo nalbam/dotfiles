@@ -67,19 +67,12 @@
   "enabledPlugins": {
     "codex@openai-codex": true,
     "frontend-design@claude-plugins-official": true,
-    "karrot-self-review@karrot-hr": false,
     "linear@claude-plugins-official": false,
     "notion@claude-plugins-official": false,
     "playwright@claude-plugins-official": false,
     "slack@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
-    "karrot-hr": {
-      "source": {
-        "source": "git",
-        "url": "git@github.com:karrot-emu/karrot-self-review.git"
-      }
-    },
     "openai-codex": {
       "source": {
         "source": "github",
