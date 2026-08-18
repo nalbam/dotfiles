@@ -29,16 +29,19 @@ alias a='aws'
 alias k='kubectl'
 alias h='helm'
 
-# Claude CLI shortcuts
+# Claude Code
 alias cc='claude --permission-mode auto'
 alias ccc='claude --permission-mode auto --continue'
 alias ccp='claude --permission-mode auto --prompt'
 alias ccu='ccusage'
 
-# Codex CLI shortcuts
+# Codex
 alias cx='codex'
 alias cxc='codex --continue'
 alias cxp='codex --prompt'
+
+# Herdr
+alias hd='herdr'
 
 # Neovim
 alias nv='nvim'
