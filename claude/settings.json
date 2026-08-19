@@ -35,7 +35,8 @@
       "Bash(systemctl halt:*)",
       "Bash(systemctl poweroff:*)",
       "Bash(systemctl reboot:*)",
-      "Bash(systemctl stop:*)"
+      "Bash(systemctl stop:*)",
+      "Bash(terraform *)"
     ],
     "defaultMode": "auto"
   },
