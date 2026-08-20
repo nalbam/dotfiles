@@ -81,6 +81,7 @@
     }
   },
   "effortLevel": "xhigh",
+  "outputStyle": "Concise",
   "tui": "fullscreen",
   "theme": "auto",
   "skillOverrides": {
