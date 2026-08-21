@@ -150,6 +150,9 @@ alias tma='tmux attach -t'
 alias tmk='tmux kill-session -t'
 alias tmka='tmux kill-server'
 
+# AWS SSO login helper
+alias asl='aws sso login --profile'
+
 # AWS Vault helper function
 av() {
   if [ $# -eq 0 ]; then
