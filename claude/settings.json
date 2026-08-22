@@ -47,8 +47,7 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/memory-sync.sh start",
-            "timeout": 30,
-            "async": true
+            "timeout": 5
           }
         ]
       }
@@ -59,7 +58,7 @@
           {
             "type": "command",
             "command": "bash ~/.claude/hooks/memory-sync.sh end",
-            "timeout": 30
+            "timeout": 5
           }
         ]
       }
