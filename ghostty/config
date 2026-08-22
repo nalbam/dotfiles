@@ -17,3 +17,5 @@ keybind = shift+enter=text:\x1b\r
 copy-on-select = clipboard
 
 confirm-close-surface = false
+
+shell-integration-features = ssh-env,ssh-terminfo
