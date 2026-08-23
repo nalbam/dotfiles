@@ -19,7 +19,7 @@ export DEBIAN_FRONTEND=noninteractive
 timedatectl set-timezone Asia/Seoul
 apt-get update
 apt-get upgrade -y
-apt-get install -y ca-certificates curl gnupg unzip git jq htop fail2ban python3
+apt-get install -y ca-certificates curl gnupg unzip git jq htop fail2ban python3 gh libatomic1
 
 # docker
 install -m 0755 -d /etc/apt/keyrings
