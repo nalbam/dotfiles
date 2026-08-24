@@ -1,6 +1,6 @@
 ---
 name: docs-read
-description: Read README, CLAUDE.md, and docs/ to understand a project. Read-only onboarding. 프로젝트 문서 읽고 파악, 온보딩, 구조 이해. 문서를 고치려면 docs-sync.
+description: Read project documentation for explicit onboarding or a project-overview request. Read-only. 프로젝트 온보딩·전체 구조 파악을 명시적으로 요청할 때 사용. 일반 구현의 관련 문서 확인이나 문서 수정은 대상 아님.
 allowed-tools: Read, Bash, Grep, Glob
 ---
 
@@ -8,19 +8,20 @@ allowed-tools: Read, Bash, Grep, Glob
 
 **한국어로 응답. 코드·명령어는 원문 유지** (`rules/language.md`).
 
-프로젝트의 `README.md`, `CLAUDE.md`, `docs/` 를 체계적으로 읽고 프로젝트의 목적·구조·관례를 빠르게 파악한다. **읽기 전용** — 문서를 수정하지 않는다. 작업 시작 전 온보딩·컨텍스트 확보가 목적이다.
+프로젝트의 안내 문서를 체계적으로 읽고 목적·구조·관례를 빠르게 파악한다. **읽기 전용** — 문서를 수정하지 않는다. 사용자가 온보딩, 프로젝트 전체 설명, 문서 기반 구조 파악을 요청했을 때 사용한다. 일반 구현에서 관련 문서 몇 개를 확인하는 행위는 이 스킬을 호출할 이유가 아니다.
 
 ## Philosophy
 
-- **문서부터 읽는다** — 코드를 뒤지기 전에 프로젝트가 스스로 설명한 진실을 먼저 흡수한다
+- **문서부터 읽는다** — 온보딩 범위에서는 코드를 뒤지기 전에 프로젝트가 스스로 설명한 진실을 먼저 흡수한다
 - **전체 그림을 먼저 그린다** — 개별 파일이 아닌 목적·경계·진입점·관례를 파악한다
 - **문서를 맹신하지 않는다** — 문서가 코드와 다를 수 있음을 인지하되, 검증·수정은 `/docs-sync` 의 몫이다
 - **읽고 멈춘다** — 이 스킬은 이해·요약까지만. 변경은 별도 작업이다
 
 ## Scope
 
-- **읽는 대상**: 프로젝트 루트 `README.md`·`CLAUDE.md`, `docs/` 디렉토리 전체, `AGENTS.md`·`CONTRIBUTING.md` 등 루트의 안내 문서
+- **읽는 대상**: 프로젝트 루트 `README.md`·`CLAUDE.md`·`AGENTS.md`·`CONTRIBUTING.md`와 문서 인덱스가 현재 질문에 연결하는 `docs/` 문서
 - **읽지 않는 대상**: 구현 소스 코드 (필요하면 진입점만 확인). 전체 코드 분석은 `/code-audit`, 코드↔문서 정합은 `/docs-sync`
+- **호출하지 않는 경우**: 일반 구현·버그 수정 중 관련 설계 문서만 확인하면 되는 경우. 그 문서를 직접 읽고 작업을 계속한다
 
 ## Exclude Patterns
 
@@ -33,12 +34,14 @@ allowed-tools: Read, Bash, Grep, Glob
 - `docs/` 디렉토리 트리 스캔 (exclude 패턴 적용)
 - 문서 목록과 구조를 파악
 
-### 2. Read — 우선순위대로 읽기
+### 2. Route — 질문에 필요한 문서 선택
 1. **`README.md`** — 프로젝트 목적·설치·사용·아키텍처 개요
 2. **`CLAUDE.md` / `AGENTS.md`** — AI 에이전트용 작업 지침·관례·gotcha
 3. **`docs/README.md`** (있으면) — 문서 인덱스로 활용
-4. **`docs/*.md`** — 아키텍처·API·가이드 등 세부 문서
-5. **진입점 확인** — 문서가 가리키는 핵심 파일(예: `run.sh`, `main.go`)의 *존재와 역할*만 확인 (전체 정독 X)
+4. 인덱스와 제목을 기준으로 현재 질문에 관련된 `docs/*.md` 를 선택한다
+5. **진입점 확인** — 선택한 문서가 가리키는 핵심 파일(예: `run.sh`, `main.go`)의 *존재와 역할*만 확인한다 (전체 정독 X)
+
+`docs/` 전체를 기계적으로 읽지 않는다. 문서 인덱스가 없으면 파일명과 헤딩을 먼저 훑고 관련 문서만 정독한다.
 
 ### 3. Synthesize — 이해 종합
 읽은 내용에서 다음을 추출한다:

@@ -5,6 +5,7 @@ web_search = "live"
 
 model_reasoning_effort = "high"
 model_verbosity = "low"
+project_doc_max_bytes = 131072
 
 [permissions.git-write]
 extends = ":workspace"

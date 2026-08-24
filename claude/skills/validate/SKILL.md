@@ -63,7 +63,19 @@ fi
 
 Use the detected `$PM` for all subsequent commands.
 
-### 3. Run Lint
+### 3. Preflight the Toolchain
+
+검증 명령이 프로젝트 상태를 바꾸지 않는지 먼저 확인한다.
+
+1. manifest의 runtime·package manager 요구사항(`engines`, `packageManager`, toolchain 파일)을 현재 환경과 비교한다
+2. `package.json`의 실제 scripts를 읽고 설정된 검사만 실행한다
+3. lockfile과 기존 dependency 설치 상태를 확인한다
+4. package manager가 의존성 설치·삭제·lockfile 변경을 요구하면 자동 진행하지 않는다. 검증과 dependency mutation은 별도 작업이다
+5. 요구 toolchain이 없으면 임의의 global 버전이나 다운로드형 fallback으로 결과를 왜곡하지 말고 `BLOCKED`로 보고한다
+
+검증 전 `git status --short`를 기록하고, 검증 후 의도하지 않은 파일 변경이 없는지 다시 확인한다.
+
+### 4. Run Lint
 ```bash
 # Node.js — use detected package manager
 $PM run lint
@@ -90,12 +102,12 @@ On failure — **Root Cause Analysis:**
 4. Fix with minimal changes
 5. Re-run lint
 
-### 4. Run Typecheck
+### 5. Run Typecheck
 ```bash
 # Node.js (TypeScript) — use detected package manager
 $PM run typecheck
-# Fallback if no typecheck script
-npx tsc --noEmit
+# Fallback only when an existing local binary is available
+./node_modules/.bin/tsc --noEmit
 
 # Python
 mypy .
@@ -120,7 +132,7 @@ On failure — **Root Cause Analysis:**
 5. Do NOT use `any` or `@ts-ignore` to silence errors — fix the actual type
 6. Re-run typecheck
 
-### 5. Run Tests
+### 6. Run Tests
 ```bash
 # Node.js — use detected package manager
 $PM test
@@ -153,7 +165,7 @@ On failure — **Root Cause Analysis:**
 4. Fix the root cause (update test if spec changed, fix code if regression)
 5. Re-run tests
 
-### 6. Identify Cascading Failures
+### 7. Identify Cascading Failures
 
 **Before fixing each failure individually, look for patterns:**
 
@@ -163,7 +175,7 @@ On failure — **Root Cause Analysis:**
 
 **Fix the root cause first**, then re-run to see how many other failures resolve automatically.
 
-### 7. Final Validation
+### 8. Final Validation
 Re-run all checks in sequence:
 1. Lint
 2. Typecheck
@@ -171,7 +183,7 @@ Re-run all checks in sequence:
 
 All must pass before completion.
 
-### 8. Report Summary
+### 9. Report Summary
 ```
 ## Validation Summary
 
