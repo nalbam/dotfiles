@@ -34,12 +34,12 @@
 | **2. 스펙** | — | `architect` |
 | **3. 구현** | `/commit`, `/commit-push` | Claude 본체, `debugger` |
 | **4. 테스트** | `/validate` | `code-reviewer`, `debugger` |
-| **5. 릴리즈** | `/pr-create`, `/pr-summary`, `/resolve-coderabbit`, `/docs-sync` | `code-reviewer` |
+| **5. 릴리즈** | `/code-review`, `/pr-create`, `/pr-summary`, `/resolve-coderabbit`, `/docs-sync` | `code-reviewer` |
 | **6. 유지보수** | `/code-audit`, `/docs-sync` | `code-reviewer` |
 
 > `/validate` 는 특정 단계 전용이 아니라 **구현~릴리즈 전 구간의 공통 게이트**다. `/commit`·`/pr-create` 직전에도 먼저 실행한다.
 >
-> `/docs-read` 는 특정 단계 전용이 아니라 **작업 시작 전 공통 온보딩**이다. 낯선 저장소에서 코드를 건드리기 전에 문서로 프로젝트를 파악한다 (읽기 전용 — 수정은 `/docs-sync`).
+> `/docs-read` 는 특정 단계 전용이 아니라 **명시적인 온보딩·프로젝트 개요 요청**에 사용한다. 일반 구현은 관련 문서만 직접 읽는다 (읽기 전용 — 수정은 `/docs-sync`).
 
 ## 단계별 상세
 
@@ -66,6 +66,7 @@
 테스트 작성은 Claude 본체(기준: `testing-rules`), 품질·보안 리뷰는 `code-reviewer`, 실패 디버깅은 `debugger` agent.
 
 ### 5. 릴리즈
+- `/code-review` — 현재 변경분 또는 PR diff를 심각도 우선으로 리뷰 (읽기 전용, 발견 사항부터 보고)
 - `/pr-create` — 전체 diff 분석 후 PR 생성 (Summary / Changes / Breaking / Test Plan)
 - `/pr-summary` — 기존 PR 설명을 실제 변경에 맞게 갱신
 - `/resolve-coderabbit` — CodeRabbit 리뷰 코멘트를 평가(ACCEPT/REJECT/SKIP)·수정·resolve
@@ -84,6 +85,7 @@
 | 변경 커밋 | `/commit` |
 | 커밋 후 푸시 | `/commit-push` |
 | lint·타입·테스트 검증·수정 | `/validate` |
+| 현재 변경분·PR 리뷰 | `/code-review` |
 | PR 생성 | `/pr-create` |
 | PR 설명 갱신 | `/pr-summary` |
 | CodeRabbit 리뷰 정리 | `/resolve-coderabbit` |

@@ -43,7 +43,8 @@ BASE_BRANCH=$(gh pr view {PR_NUMBER} --json baseRefName -q '.baseRefName')
 
 gh pr view {PR_NUMBER} --json commits -q '.commits[] | "\(.oid[:7]) \(.messageHeadline)"'
 
-gh pr diff {PR_NUMBER} --stat
+gh pr view {PR_NUMBER} --json additions,deletions,changedFiles \
+  -q '"files=\(.changedFiles) +\(.additions)/-\(.deletions)"'
 gh pr diff {PR_NUMBER}
 ```
 
