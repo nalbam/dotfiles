@@ -70,7 +70,7 @@
     "gopls-lsp@claude-plugins-official": true,
     "linear@claude-plugins-official": false,
     "notion@claude-plugins-official": false,
-    "slack@claude-plugins-official": true,
+    "slack@claude-plugins-official": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
