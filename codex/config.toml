@@ -5,6 +5,8 @@ web_search = "live"
 
 model_reasoning_effort = "high"
 model_verbosity = "low"
+model_context_window = 1000000
+
 project_doc_max_bytes = 131072
 
 [permissions.git-write]
