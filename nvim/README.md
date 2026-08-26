@@ -45,6 +45,8 @@ LazyVim leader key is `Space`.
 - `Space /` — grep project
 - `Space e` — explorer
 - `Space gg` — Lazygit
+- `Space gv` — Git diff view with changed files on the left
+- `Space gV` — close Git diff view
 - `Space w` — save
 - `Space q` — quit
 - `gd` — go to definition
