@@ -1020,21 +1020,25 @@ fi
 # brew 의 nvm formula 는 ~/.nvm 을 만들지 않고 node 도 딸려오지 않는다 (brew deps nvm 이 비어 있음).
 # zshrc 는 ~/.nvm 존재를 조건으로 nvm 을 로드하므로, 여기서 만들어주지 않으면 신규 머신에서
 # node/npm 이 영원히 없고 아래 NPM 패키지 설치가 통째로 skip 된다.
-# 업데이트 스로틀 바깥에 둔다 — 부트스트랩은 1회성이고 node 존재 여부로 가드된다.
+# 업데이트 스로틀 바깥에 둔다 — 부트스트랩은 1회성이고 Node.js 24 설치 여부로 가드된다.
 NVM_SH="$(brew --prefix nvm 2>/dev/null)/nvm.sh"
 if [ -s "$NVM_SH" ]; then
   export NVM_DIR="$HOME/.nvm"
   [ -d "$NVM_DIR" ] || mkdir -p "$NVM_DIR"
   . "$NVM_SH"
 
-  if ! command -v node >/dev/null 2>&1; then
+  if [ "$(nvm version 24)" = "N/A" ]; then
     # stderr 는 가리지 않는다 — 프리빌트 바이너리가 없는 아키텍처(예: armv7l)에서는 nvm 이
     # 소스 컴파일로 넘어가 수 시간이 걸릴 수 있고, 조용히 멈춘 것처럼 보이면 안 된다.
-    _run "Installing Node.js LTS via nvm (this may take a while on ARM)"
-    if nvm install --lts >/dev/null && nvm alias default 'lts/*' >/dev/null 2>&1; then
-      _ok "Node.js $(node -v) installed"
+    _run "Installing Node.js 24 via nvm (this may take a while on ARM)"
+    nvm install 24 >/dev/null || _warn "nvm install 24 failed"
+  fi
+
+  if [ "$(nvm version 24)" != "N/A" ]; then
+    if nvm alias default 24 >/dev/null 2>&1 && nvm use default >/dev/null 2>&1; then
+      _ok "Node.js $(node -v) configured as default"
     else
-      _warn "nvm install --lts failed — NPM packages will be skipped"
+      _warn "Failed to configure Node.js 24 as default"
     fi
   fi
 fi
