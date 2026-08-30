@@ -38,4 +38,5 @@ brew "zsh"
 brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 
+cask "font-d2coding-nerd-font"
 cask "font-dejavu-sans-mono-nerd-font"
