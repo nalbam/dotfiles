@@ -67,7 +67,7 @@ cask "google-drive"
 cask "microsoft-office"
 cask "visual-studio-code"
 cask "orbstack"
-# cask "termius"
+cask "tailscale-app"
 
 tap "opspresso/tap"
 cask "opspresso/tap/toast"

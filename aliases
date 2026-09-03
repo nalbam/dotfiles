@@ -49,6 +49,9 @@ alias hd='herdr'
 # Neovim
 alias nv='nvim'
 
+# Tailscale shortcut
+alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+
 # tmux
 tm() {
   # Interactive tmux session manager; pass args to tmux directly if provided
