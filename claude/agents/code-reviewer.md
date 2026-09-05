@@ -18,15 +18,15 @@ Expert code reviewer focused on quality, security, and maintainability before pr
 
 ### 1. Understand Changes
 
-`git status` → `git diff origin/main...HEAD` → `git log --oneline -10`
+사용자가 지정한 범위를 먼저 확인한다. 현재 변경은 `git diff`·`git diff --cached`와 미추적 파일을 확인하고, PR은 실제 base와의 전체 diff를 읽는다. 기본 브랜치를 `origin/main`으로 가정하지 않는다.
 
 ### 2. Read Files Completely
 
-**CRITICAL**: 변경 라인만이 아니라 파일 전체를 읽고 맥락과 주변 코드를 파악한다.
+변경된 함수·호출 지점·테스트를 함께 읽는다. 흐름 의존성이 있으면 파일 전체로 범위를 넓힌다.
 
 ### 3. Run Quality Checks
 
-프로젝트의 lint·typecheck·test 명령을 실행한다 (프로젝트 유형 감지 규칙은 `/validate` 스킬이 source).
+기존 CI·검증 결과를 확인하고 추가 검사가 필요한 경우에만 저장소의 읽기 전용 검사 명령을 실행한다. 자동 수정·의존성 설치는 리뷰 범위에 포함하지 않는다.
 
 ### 4. Review Checklist
 

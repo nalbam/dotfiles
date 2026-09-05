@@ -16,13 +16,13 @@ CLAUDE.md `## Git Safety` 의 *유일한 상세 source*. 모든 git 관련 규�
 - 코드 변경 후 자동 커밋
 - 사용자 허가 없는 `git push`
 - 메인/마스터 브랜치에 force push
-- 시크릿(`.env`, API 키, 토큰)·바이너리·생성 파일 커밋
+- 시크릿(`.env`, API 키, 토큰) 커밋. 바이너리·생성 파일은 저장소가 추적하는 배포 자산인지 확인한다.
 - 훅·서명 우회 (`--no-verify`, `--no-gpg-sign`, `--no-signoff`)
 - 작업 트리의 다른 변경을 임의로 되돌리기
 
 ## 파괴적·되돌릴 수 없는 작업
 
-다음은 사용자가 *분명히* 요청한 경우에만 실행한다. 작업 전 영향 범위를 짧게 보고하고 확인을 받는다.
+다음은 사용자가 *분명히* 요청한 경우에만 실행한다. 작업 전 영향 범위를 짧게 보고한다. 해당 작업과 범위를 이미 명시적으로 허가받았다면 같은 확인을 반복하지 않는다.
 
 - `git reset --hard`, `git checkout -- <path>`, `git restore --`
 - `git push --force`, `git push --force-with-lease`
@@ -56,7 +56,7 @@ CLAUDE.md `## Git Safety` 의 *유일한 상세 source*. 모든 git 관련 규�
 
 - main에서 단명(short-lived) feature 브랜치
 - 접두사 권장: `feat/`, `fix/`, `refactor/`, `docs/`
-- 머지 후 삭제
+- 머지 후 브랜치 삭제는 사용자 요청 시에만 수행한다.
 
 ## Pull Requests
 

@@ -7,7 +7,7 @@ description: Deep read-only audit of an entire codebase — severity-ranked repo
 
 **한국어로 응답. 코드·명령어는 원문 유지** (AGENTS.md 의 Language).
 
-프로젝트의 전체 구현 코드를 심층 분석하여 문제점·근본원인·개선사항을 도출한다. 평가 기준은 AGENTS.md 의 Coding / Testing / Security 원칙과 일관해야 한다 — *수치 강제 없음*, 프로젝트 관례 우선.
+프로젝트의 전체 구현 코드를 심층 분석하여 문제점·근본원인·개선사항을 도출한다. 평가 기준은 AGENTS.md 의 Core Principles / Testing / Security 원칙과 일관해야 한다 — *수치 강제 없음*, 프로젝트 관례 우선.
 
 이 파일의 *Exclude Patterns* 표는 다른 skill (예: `docs-sync`) 이 참조하는 단일 source 다.
 
@@ -271,7 +271,7 @@ Classify each finding:
 | Code duplication | {n} spots | minimal | {status} |
 ```
 
-> **수치 기준 안내**: Test Coverage / 함수·파일 크기 등은 *프로젝트 관례*에 맞춰 평가한다. 강제 임계값은 두지 않는다 (AGENTS.md 의 Testing / Coding 원칙).
+> **수치 기준 안내**: Test Coverage / 함수·파일 크기 등은 *프로젝트 관례*에 맞춰 평가한다. 강제 임계값은 두지 않는다 (AGENTS.md 의 Testing / Core Principles 원칙).
 
 ## Audit Dimensions Checklist
 

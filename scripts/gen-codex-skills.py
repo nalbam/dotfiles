@@ -31,11 +31,11 @@ REPLACEMENTS = [
     # code-audit: combined rules reference
     (
         "`skills/coding-style/SKILL.md`, `skills/testing-rules/SKILL.md`, `rules/security.md` 와 일관해야 한다",
-        "AGENTS.md 의 Coding / Testing / Security 원칙과 일관해야 한다",
+        "AGENTS.md 의 Core Principles / Testing / Security 원칙과 일관해야 한다",
     ),
     (
         "(`skills/testing-rules/SKILL.md`, `skills/coding-style/SKILL.md#file--function-organization`)",
-        "(AGENTS.md 의 Testing / Coding 원칙)",
+        "(AGENTS.md 의 Testing / Core Principles 원칙)",
     ),
     ("— `skills/testing-rules/SKILL.md`)", "— AGENTS.md 의 Testing 원칙)"),
     # surgical changes (particle variants)
@@ -102,6 +102,7 @@ def strip_claude_frontmatter(text):
         return text
     out = [lines[0]]
     in_frontmatter = True
+    skipping = False
     for line in lines[1:]:
         if in_frontmatter:
             if line == "---":
@@ -109,7 +110,11 @@ def strip_claude_frontmatter(text):
                 out.append(line)
                 continue
             if line.startswith(CLAUDE_ONLY_FRONTMATTER):
+                skipping = True
                 continue
+            if skipping and (not line.strip() or line.startswith((" ", "\t"))):
+                continue
+            skipping = False
         out.append(line)
     return "\n".join(out)
 
@@ -141,15 +146,25 @@ def remove_region(text, start_marker, end_marker, occurrence=1):
 
 
 def replacements_for(name):
-    """nextjs-init mentions CLAUDE.md as a *scaffolded project file* (kept alongside
-    AGENTS.md), not as the global instruction file — exempt it from the rename."""
-    if name == "nextjs-init":
+    """Keep project instruction filenames in scaffolding and documentation inventory."""
+    if name in ("nextjs-init", "docs-read"):
         return [(old, new) for old, new in REPLACEMENTS if old != "CLAUDE.md"]
     return REPLACEMENTS
 
 
 def transform(name, text):
     text = strip_claude_frontmatter(text)
+    if name == "claude-code-usage":
+        text = replace_region(text, "## Claude Code", "## Codex", "## Codex")
+        text = text.replace(
+            "description: Claude Code 도구 사용 규약 — 계획 모드, 서브에이전트, 작업 추적, 병렬 호출. Claude Code feature-usage conventions.",
+            "description: Codex 도구 사용 규약 — 계획, 스킬 로딩, 서브에이전트, 작업 추적, 병렬 호출. Codex feature-usage conventions.",
+        )
+    if name == "anti-patterns":
+        text = replace_region(
+            text, "## Claude Code 고유", "## Working If / 잘 작동하고 있다는 신호",
+            "## Working If / 잘 작동하고 있다는 신호",
+        )
     if name == "code-audit":
         text = replace_region(text, TEAM_INTRO_START, TEAM_INTRO_END, TEAM_INTRO_REPLACEMENT)
         text = remove_region(text, TEAM_SHUTDOWN_START, TEAM_SHUTDOWN_END, occurrence=2)
@@ -168,6 +183,7 @@ def main():
         return 1
 
     failed = []
+    expected = set()
     for skill_dir in skill_dirs:
         name = skill_dir.name
         sources = [skill_dir / "SKILL.md"] + sorted(
@@ -178,6 +194,7 @@ def main():
             label = name if str(rel) == "SKILL.md" else f"{name}/{rel}"
             generated = transform(name, src.read_text(encoding="utf-8"))
             dst = CODEX_SKILLS / name / rel
+            expected.add(dst)
             if check_mode:
                 current = dst.read_text(encoding="utf-8") if dst.is_file() else None
                 if current != generated:
@@ -187,13 +204,20 @@ def main():
                     print(f"OK: {label}")
             else:
                 dst.parent.mkdir(parents=True, exist_ok=True)
-                dst.write_text(generated, encoding="utf-8")
+                if not dst.is_file() or dst.read_text(encoding="utf-8") != generated:
+                    dst.write_text(generated, encoding="utf-8")
                 print(f"generated: {dst.relative_to(REPO_ROOT)}")
 
-    # codex-only skill dirs are suspicious (claude/skills is the source of truth)
-    for d in sorted(CODEX_SKILLS.iterdir()):
-        if d.is_dir() and not (CLAUDE_SKILLS / d.name / "SKILL.md").is_file():
-            print(f"WARNING: {d.relative_to(REPO_ROOT)} has no claude/skills counterpart", file=sys.stderr)
+    # Markdown under each skill is generated; Codex-only metadata is preserved.
+    for stale in sorted(path for path in CODEX_SKILLS.rglob("*.md")
+                        if len(path.relative_to(CODEX_SKILLS).parts) > 1):
+        if stale not in expected:
+            if check_mode:
+                failed.append(str(stale.relative_to(CODEX_SKILLS)))
+                print(f"STALE: {stale.relative_to(REPO_ROOT)}")
+            else:
+                stale.unlink()
+                print(f"removed: {stale.relative_to(REPO_ROOT)}")
 
     if check_mode and failed:
         print(f"\n{len(failed)} skill(s) out of date — run: python3 scripts/gen-codex-skills.py", file=sys.stderr)

@@ -18,7 +18,7 @@ description: Read project documentation for explicit onboarding or a project-ove
 
 ## Scope
 
-- **읽는 대상**: 프로젝트 루트 `README.md`·`AGENTS.md`·`AGENTS.md`·`CONTRIBUTING.md`와 문서 인덱스가 현재 질문에 연결하는 `docs/` 문서
+- **읽는 대상**: 프로젝트 루트 `README.md`·`CLAUDE.md`·`AGENTS.md`·`CONTRIBUTING.md`와 문서 인덱스가 현재 질문에 연결하는 `docs/` 문서
 - **읽지 않는 대상**: 구현 소스 코드 (필요하면 진입점만 확인). 전체 코드 분석은 `/code-audit`, 코드↔문서 정합은 `/docs-sync`
 - **호출하지 않는 경우**: 일반 구현·버그 수정 중 관련 설계 문서만 확인하면 되는 경우. 그 문서를 직접 읽고 작업을 계속한다
 
@@ -29,13 +29,13 @@ description: Read project documentation for explicit onboarding or a project-ove
 ## Process
 
 ### 1. Discover — 문서 인벤토리
-- 루트의 `README.md`·`AGENTS.md`·`AGENTS.md`·`CONTRIBUTING.md` 존재 확인
+- 루트의 `README.md`·`CLAUDE.md`·`AGENTS.md`·`CONTRIBUTING.md` 존재 확인
 - `docs/` 디렉토리 트리 스캔 (exclude 패턴 적용)
 - 문서 목록과 구조를 파악
 
 ### 2. Route — 질문에 필요한 문서 선택
 1. **`README.md`** — 프로젝트 목적·설치·사용·아키텍처 개요
-2. **`AGENTS.md` / `AGENTS.md`** — AI 에이전트용 작업 지침·관례·gotcha
+2. **`CLAUDE.md` / `AGENTS.md`** — AI 에이전트용 작업 지침·관례·gotcha
 3. **`docs/README.md`** (있으면) — 문서 인덱스로 활용
 4. 인덱스와 제목을 기준으로 현재 질문에 관련된 `docs/*.md` 를 선택한다
 5. **진입점 확인** — 선택한 문서가 가리키는 핵심 파일(예: `run.sh`, `main.go`)의 *존재와 역할*만 확인한다 (전체 정독 X)

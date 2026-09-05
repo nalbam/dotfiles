@@ -34,6 +34,7 @@ graph TD
 
 ```
 .
+├── AGENTS.md              # Project-specific Codex instructions
 ├── CLAUDE.md              # Project-specific Claude Code instructions
 ├── README.md              # Project overview and installation guide
 ├── run.sh                 # Main installation script (11-step process)
@@ -66,7 +67,7 @@ graph TD
 │   ├── agents/            # Specialized agents (3)
 │   ├── hooks/             # memory-sync.sh (cross-machine auto-memory sync)
 │   ├── rules/             # Always-loaded rules (3)
-│   └── skills/            # Skills (10 task + 5 reference)
+│   └── skills/            # Shared workflow and reference skill sources
 ├── codex/                 # Codex settings (synced to ~/.codex/)
 │   ├── AGENTS.md          # Global Codex instructions
 │   ├── config.toml        # Feature flags
@@ -85,8 +86,10 @@ graph TD
 │   ├── zprofile.aarch64.sh  # Raspberry Pi 64-bit profile
 │   ├── zprofile.armv7l.sh   # Raspberry Pi 32-bit profile
 │   └── zprofile.x86_64.sh   # WSL/Ubuntu profile
-├── scripts/               # Dev-time tools (not part of install flow)
-│   └── gen-codex-skills.py  # claude/skills → codex/skills mirror generator
+├── scripts/               # Python standard-library tooling
+│   ├── gen-codex-skills.py # claude/skills → codex/skills mirror generator
+│   ├── sync-ai-tools.py   # Validated AI settings deployment (Python 3.11+)
+│   └── test_ai_tools.py   # Offline deployment, generator, and memory-hook tests
 └── ssh/                   # SSH configuration templates
     └── config             # SSH config template
 ```
@@ -127,7 +130,9 @@ graph TD
    - Codex settings synced from `codex/` to `~/.codex/` (AGENTS.md, config.toml, hooks.json, rules); Codex skills synced from `codex/skills/` to `~/.agents/skills/` (the directory Codex scans)
    - Kiro settings synced from `kiro/` to `~/.kiro/` (agents)
    - MD5-based incremental sync (only changed files updated)
-   - Manifest-based prune (`~/.toast/vibe_manifest_*`): files removed from the repo are removed from deploy targets; user-installed files are never touched
+   - Manifest-based prune (`~/.toast/vibe_manifest_*`): only previously deployed files are removed, after a secure backup. Unmanaged files are preserved; see [AI Tools Sync](../README.md#ai-tools-sync).
+   - Codex config and hooks fill missing keys only; command rules update only the managed block. Existing local values can differ across machines.
+   - Python 3.11+ validates all merge results before writing. Atomic file replacement, a process lock, and success-only manifest updates protect retries; failures return a nonzero status.
    - Standalone sync via `run.sh --vibe`
 
 ## Installation Flow

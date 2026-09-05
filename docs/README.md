@@ -12,6 +12,7 @@ This directory contains the technical documentation for the dotfiles project.
 
 - [aliases](../aliases) - Complete shell alias and helper function definitions
 - [CLAUDE.md](../CLAUDE.md) - Claude Code AI instructions and advanced development features
+- [AGENTS.md](../AGENTS.md) - Codex repository instructions
 - [Main README](../README.md) - Project overview, installation guide, and feature list
 - [zshrc](../zshrc) - ZSH configuration and environment setup
 
@@ -35,4 +36,4 @@ This directory contains the technical documentation for the dotfiles project.
 - `linux/zprofile.*.sh` - Linux architecture-specific profiles
 
 ### AI Tools Integration
-Claude Code, Codex, and Kiro settings are managed in this repository under `claude/`, `codex/`, and `kiro/` directories, synced to `~/.claude/`, `~/.codex/`, and `~/.kiro/` respectively.
+See [AI Tools Sync](../README.md#ai-tools-sync) for instruction sources, generated Codex skills, deployment targets, local-state preservation, and verification across machines.

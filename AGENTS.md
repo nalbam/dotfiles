@@ -6,14 +6,14 @@ Guidance for Codex (and other AI agents) working in this repository. For a human
 
 Cross-platform dotfiles installer. A single shell script (`run.sh`) detects the OS/architecture and provisions a consistent dev environment: SSH keys, Git config, package managers, shell, terminals, and AI tool settings.
 
-The installer (`run.sh`) is plain bash; files sourced by interactive shells (`aliases`, `zshrc`/`bashrc`, `zprofile.*`) stay POSIX-compatible so both bash and zsh can source them. **No build step, no package graph**. Changes land by editing scripts/config files and re-running `run.sh` (or `run.sh --vibe` for AI settings only).
+The installer (`run.sh`) is plain bash; AI settings sync uses Python 3.11+ standard libraries in `scripts/sync-ai-tools.py`. Files sourced by interactive shells (`aliases`, `zshrc`/`bashrc`, `zprofile.*`) stay POSIX-compatible so both bash and zsh can source them. **No build step, no package graph**.
 
 ## Entry points
 
 | File | Role |
 |------|------|
-| `run.sh` | Main installer — 11 ordered steps (see §Installation flow). Source of truth for what gets installed and in what order. |
-| `run.ps1` | Windows PowerShell equivalent. |
+| `run.sh` | Main installer — 11 ordered steps (see [Installation Flow](./docs/ARCHITECTURE.md#installation-flow)). Source of truth for what gets installed and in what order. |
+| `run.ps1` | Windows PowerShell setup for Git/Vim links and basic packages; does not sync AI settings. |
 | `aliases` | All shell aliases and helper functions. Sourced from `zshrc`/`bashrc`. |
 | `darwin/Brewfile`, `linux/Brewfile` | Declarative package lists (read these — do not enumerate packages here). |
 
@@ -41,8 +41,8 @@ When editing `gitconfig*`, check all three files stay consistent. A wrong email 
 
 ## Resilience contracts (keep these when editing run.sh)
 
-- Network calls: exponential backoff, max 3 retries (5s → 10s → 20s).
-- Update throttling: APT / Homebrew / NPM / PIP / Codex update once per 6 h; timestamps in `~/.toast/last_update_*`. Brewfile changes bypass the throttle (`brew bundle` runs whenever the Brewfile differs from the last successfully bundled copy at `~/.Brewfile`).
+- `_retry` network calls: at most 3 attempts, with 5s and 10s waits between attempts.
+- Update throttling: 6 h timestamps in `~/.toast/last_update_*`; Claude Code advances its marker only after a successful update. Brewfile changes bypass the throttle (`brew bundle` runs whenever the Brewfile differs from the last successfully bundled copy at `~/.Brewfile`).
 - File ops: MD5 check before overwrite; sensitive files (`~/.ssh/*`, `~/.aws/*`, `*.backup`) get `chmod 600`.
 - PIP fallback chain: `pip install` → `--user` → `--break-system-packages --user` → `sudo` (for PEP 668 systems).
 - Backup-before-overwrite on user config files.
@@ -56,29 +56,31 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 - Put them in `aliases` (not `zshrc`), grouped by tool.
 - Keep functions small; prefer POSIX-compatible syntax so `bashrc` can source them too.
 - Toast CLI is the central workspace manager — `c`, `x`, `d`, `e`, `g`, `r`, `p`, `ssm` route through `toast`. Separately: `m` runs `aws sts get-caller-identity`, `tu` updates toast-cli itself, `tt` re-runs the dotfiles installer.
-- Codex CLI shortcuts (`cc`, `ccc`, `ccp`, `ccu`) live near the top of `aliases`.
+- Claude Code shortcuts (`cc`, `ccc`, `ccp`, `ccu`) and Codex shortcuts (`cx`, `cxc`, `cxp`) live near the top of `aliases`; prompts are positional arguments.
 - Korean keyboard aliases exist (`ㅊ`→`c`, `ㅊㅇ`→`cd`, `ㅅㅅ`→`tt`, `ㅊㅊ`→`cc`) — preserve them when refactoring.
 
-## AI tool settings (Codex/, codex/, kiro/)
+## AI tool settings (claude/, codex/, kiro/)
 
-These directories are the **source**; `~/.Codex/`, `~/.codex/`, `~/.agents/skills/` (Codex skills), and `~/.kiro/` are deployment targets. Never edit the deployed copies and expect them to persist — the next `run.sh --vibe` overwrites changed files (MD5-compared) and **prunes files removed from the repo** (tracked per-target in `~/.toast/vibe_manifest_*`; files the sync never deployed, e.g. user-installed skills, are untouched).
+Edit repository sources, not deployed copies. `run.sh --vibe` reads from `~/.dotfiles`, even when invoked from another checkout. See [AI Tools Sync](./README.md#ai-tools-sync) for targets, local-state exceptions, and deployment checks.
 
-**Auto-memory sync**: `Codex/hooks/memory-sync.sh` (registered as SessionStart/SessionEnd hooks in `Codex/settings.json`) syncs Codex auto-memory (`~/.Codex/projects/<slug>/memory/`) across machines via the private `nalbam/Codex-memory` repo. The repo is cloned at `~/.Codex-memory`, keyed by HOME-relative project path, and each project's `memory` dir is a symlink into it — the slug embeds the machine-specific home prefix (`/Users` vs `/home`), which the symlink layer absorbs. Transcripts (`*.jsonl`) are never synced.
+The root `AGENTS.md` guides work on this repository. `codex/AGENTS.md` is the global template deployed to `~/.codex/AGENTS.md`; keep it independent of machine paths and project-specific commands.
 
-**`codex/skills/*/SKILL.md` and mirrored `references/*.md` are generated — do not edit directly.** `Codex/skills/` is the single source; regenerate with `python3 scripts/gen-codex-skills.py` (verify with `--check`). Codex-only files like `agents/openai.yaml` are hand-maintained and preserved by the generator.
+Auto-memory sync belongs to Claude Code: see `claude/hooks/memory-sync.sh` and its registration in `claude/settings.json`. Do not treat these as Codex hooks or transcript sync.
 
-When adding a new Codex agent/skill/rule:
+**`codex/skills/*/SKILL.md` and mirrored Markdown references are generated — do not edit directly.** `claude/skills/` is the single source; regenerate with `python3 scripts/gen-codex-skills.py` (verify with `--check`). Codex-only files like `agents/openai.yaml` are hand-maintained and preserved by the generator. Tool-specific instructions must be adapted by the generator, not copied into the other tool's workflow.
 
-1. Create the file under `Codex/agents/` · `Codex/skills/<name>/` · `Codex/rules/`.
-2. If it needs permissions or hooks, edit `Codex/settings.json`.
-3. For skills, run `python3 scripts/gen-codex-skills.py` to refresh the Codex mirror.
-4. Run `run.sh --vibe` to deploy. No installer re-run needed.
+For Codex instruction changes:
+
+1. Edit global instructions in `codex/AGENTS.md`, shared skills in `claude/skills/`, and Codex configuration in `codex/`.
+2. Regenerate changed skills and run `python3 scripts/gen-codex-skills.py --check`.
+3. Run `python3 scripts/test_ai_tools.py`, `bash -n run.sh claude/hooks/memory-sync.sh`, and `git diff --check`. Tests use temporary homes and fake Git commands; no live deployment or remote push is required. Check referenced paths, instruction sections, and tool compatibility.
+4. Deploy using the README procedure when deployment is in scope. Do not run the installer merely to validate documentation.
 
 ## Working rules for agents
 
 - **Do not commit or push without explicit user instruction.** Global rule, but especially important here — this repo drives the user's entire environment.
 - **Shell changes are live the next time `run.sh` runs on any machine.** Test locally before recommending risky changes.
-- **Read the whole file before editing** (`run.sh` is ~600 lines but tightly sequenced).
+- **Read the whole file before editing** (`run.sh` is tightly sequenced).
 - **Check both `darwin/` and `linux/` paths** when touching platform logic — one branch is easy to miss.
 - **Prefer editing `aliases` or `Brewfile` over adding logic to `run.sh`.** The installer should stay declarative.
 - **POSIX-compatible in files sourced by both bash and zsh** (`aliases`, `zshrc`, `bashrc`, `zprofile.*`): no `[[ ]]`, no arrays, no bash-only expansions there. `run.sh` itself is bash and may use bash features.

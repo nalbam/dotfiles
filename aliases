@@ -35,13 +35,13 @@ alias h='helm'
 # Claude Code
 alias cc='claude --permission-mode auto'
 alias ccc='claude --permission-mode auto --continue'
-alias ccp='claude --permission-mode auto --prompt'
+alias ccp='claude --permission-mode auto'
 alias ccu='ccusage'
 
 # Codex
 alias cx='codex'
-alias cxc='codex --continue'
-alias cxp='codex --prompt'
+alias cxc='codex resume --last'
+alias cxp='codex'
 
 # Herdr
 alias hd='herdr'
