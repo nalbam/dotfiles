@@ -2,7 +2,3 @@ Host github.com
   HostName github.com
   User git
   IdentityFile ~/.ssh/id_ed25519
-Host gitlab.clush.net
-  HostName 110.45.156.168
-  Port 30022
-  User git
