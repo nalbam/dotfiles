@@ -107,7 +107,7 @@ docker compose up -d dynamodb-test
 pnpm lint && pnpm exec tsc --noEmit && pnpm test && pnpm build
 ```
 
-전부 통과해야 완료다. 실패는 `/validate` 절차로 근본원인을 고친다.
+전부 통과해야 완료다. 실패는 `$validate` 절차로 근본원인을 고친다.
 
 게이트 통과 후 **README 를 쓴다** — 2단계에서 비운 자리를 실제 내용으로 채운다. 최소 구성: 프로젝트 한 줄 소개, 로컬 셋업(`.env.example` → `.env.local` 복사 + Google 값 2개 채우기, `docker compose up -d dynamodb`, `pnpm dev`), 테스트(`docker compose up -d dynamodb-test && pnpm test`), 릴리스(`git tag v* && git push origin v*`). 이 스킬이 만든 것만 적고 도메인 설명을 지어내지 않는다.
 

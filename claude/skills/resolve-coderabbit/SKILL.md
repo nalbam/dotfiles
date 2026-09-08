@@ -12,21 +12,11 @@ argument-hint: [pr-number]
 
 Fetch CodeRabbit inline review comments from a PR, technically evaluate each one, fix valid issues, and resolve completed threads. 수정 자체는 `skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 을 따른다.
 
-## Philosophy
-
-- **리뷰 제안을 맹목적으로 수용하지 않는다** — 각 제안을 코드베이스의 현실과 대조하여 기술적으로 평가한다
-- **YAGNI를 존중한다** — 현재 필요하지 않은 추상화나 복잡성을 거부할 용기를 가진다
-- **근본원인을 고친다** — 제안이 증상을 가리키면, 그 아래의 진짜 문제를 찾는다
-
 ## Rules
 
-- Read files completely before making changes
-- Fix root causes, not symptoms
-- Make minimal, focused changes
-- Test after each fix
-- NEVER blindly implement suggestions — verify against codebase reality first
-- REJECT suggestions that violate YAGNI, project architecture, or CLAUDE.md conventions
-- Do NOT resolve REJECT items — leave for human judgment
+- 제안을 현재 코드·PR 범위·기존 계약과 대조한 뒤 판단한다.
+- 수정은 검증하고, REJECT 항목은 resolve하지 않는다.
+- 커밋·푸시 권한은 `rules/git-workflow.md`를 따른다.
 
 ## Process
 
@@ -115,7 +105,7 @@ For each unresolved CodeRabbit comment, evaluate against the codebase:
 
 | Decision | Criteria | Action |
 |----------|----------|--------|
-| **SKIP** | Already fixed in current code, or comment is on deleted/moved code | Resolve only |
+| **SKIP** | 문제가 PR의 현재 원격 코드에서 해결됐음을 확인함 | Resolve only |
 | **ACCEPT** | Technically valid, improves code quality, aligns with project conventions | Fix then resolve |
 | **REJECT** | YAGNI, technically incorrect, conflicts with architecture, reviewer lacks context | Do NOT resolve |
 
@@ -127,7 +117,7 @@ For each unresolved CodeRabbit comment, evaluate against the codebase:
 | MEDIUM | Missing error handling, type safety gaps, logic improvements |
 | LOW | Style suggestions, minor readability improvements, naming |
 
-**Present classification table to user before proceeding:**
+**분류와 근거를 짧게 공유하고 승인된 범위의 수정을 진행한다:**
 
 ```
 ## CodeRabbit Review Analysis
@@ -143,23 +133,11 @@ For each unresolved CodeRabbit comment, evaluate against the codebase:
 
 For ACCEPT items, fix in severity order (HIGH → MEDIUM → LOW).
 
-프로젝트 타입·package manager 감지 로직은 `validate` 스킬을 *유일한 source* 로 하여 동일 로직을 재실행한다 (스킬 간 셸 변수는 공유되지 않음). 검증 명령은 감지된 프로젝트 타입에 맞춘다 — Node: `$PM run typecheck` / `$PM test`, Python: `mypy` / `pytest`, Go: `go build ./...` / `go test ./...`, Rust: `cargo check` / `cargo test`.
-
-```
-FOR each ACCEPT item (by severity):
-  1. Read the full target file
-  2. Understand surrounding context
-  3. Make minimal, focused fix (skills/coding-style/SKILL.md#surgical-changes--외과적-변경)
-  4. Run typecheck (project-type detected command)
-  5. Run tests (project-type detected command)
-  6. If tests fail, fix or rollback
-```
-
-**Never batch fixes** — one at a time, verify each.
+관련 파일·호출자·테스트를 읽고 수정한다. 같은 근본 원인의 항목은 함께 처리할 수 있으며 관련 검사는 `skills/validate/SKILL.md`에 따라 실행한다. 실패하면 원인을 조사하고 사용자 변경을 임의로 되돌리지 않는다.
 
 ### Step 6: Resolve Threads
 
-Resolve threads for SKIP and successfully-fixed ACCEPT items:
+SKIP은 원격 PR에서 이미 해결된 항목만 resolve한다. ACCEPT는 수정·검증 후 원격 PR에도 반영됐을 때 resolve한다. 로컬에서만 수정됐거나 별도 push 권한이 없으면 미해결로 남기고 보고한다. 코드가 삭제·이동됐다는 이유만으로 해결로 간주하지 않는다.
 
 ```bash
 gh api graphql -f query='
@@ -175,71 +153,4 @@ gh api graphql -f query='
 
 ### Step 7: Final Summary
 
-```
-## Resolve Summary
-
-### Statistics
-- Total CodeRabbit comments: {N}
-- Already resolved: {N}
-- ACCEPT (fixed & resolved): {N}
-- SKIP (resolved): {N}
-- REJECT (not resolved): {N}
-
-### ACCEPT — Fixed
-| # | File | Change | Status |
-|---|------|--------|--------|
-| 1 | src/foo.ts:42 | Added null check | Resolved |
-
-### REJECT — Requires Human Review
-| # | File | Suggestion | Reason for Rejection |
-|---|------|-----------|---------------------|
-| 1 | src/bar.ts:15 | Extract interface | YAGNI — only one implementation exists |
-
-### Verification
-- Typecheck: PASS
-- Tests: PASS
-```
-
-## Technical Evaluation Guidelines
-
-### When to REJECT
-
-- **YAGNI**: Suggestion adds unused abstraction, interface, or feature
-  - Grep codebase for actual usage before implementing
-- **Architecture conflict**: Violates CLAUDE.md conventions or project patterns
-  - e.g., "1 interface per file" when project groups related types
-- **Context gap**: Reviewer doesn't understand full picture
-  - e.g., Suggesting removal of code that handles edge cases
-- **Scope creep**: Beyond PR's intent
-  - e.g., Suggesting broad refactoring when PR is a focused bug fix
-- **Already handled**: Logic exists elsewhere that reviewer didn't see
-- **Premature abstraction**: Suggesting patterns for single-use code
-- **Style-only with tradeoffs**: Cosmetic changes that reduce readability in context
-
-### When to ACCEPT
-
-- Security vulnerabilities or bug fixes
-- Missing error handling on external boundaries
-- Type safety improvements that prevent runtime errors
-- Genuine readability improvements aligned with project style
-- Performance issues with measurable impact
-- Missing validation on user input
-
-### REJECT Response Pattern
-
-Do not resolve. Report to user with technical reasoning:
-
-```
-REJECT: {file}:{line} — {summary}
-Reason: {technical explanation referencing codebase evidence}
-```
-
-## Anti-Patterns
-
-- Do NOT blindly accept all CodeRabbit suggestions
-- Do NOT resolve threads without verifying the fix works
-- Do NOT batch multiple fixes without testing between each
-- Do NOT implement suggestions that conflict with CLAUDE.md
-- Do NOT resolve REJECT items — human decides
-- Do NOT skip reading files before making changes
-- Do NOT add `any` types or `@ts-ignore` to satisfy suggestions
+항목별 ACCEPT·SKIP·REJECT와 근거, 수정·원격 반영·resolve 상태, 검증 결과를 보고한다. resolve 후 반환된 `isResolved`를 확인한다. 요청에 포함되지 않은 답글·리뷰 메시지는 게시하지 않는다.

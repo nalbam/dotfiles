@@ -5,145 +5,25 @@ description: Create git commit with conventional format. 커밋 생성, 변경�
 
 # Create Commit
 
-**한국어로 응답. 코드·명령어는 원문 유지** (AGENTS.md 의 Language).
-
-git 안전 규칙은 AGENTS.md 의 Git Safety, 변경 작업 자체는 AGENTS.md 의 Surgical Changes 를 따른다.
-
-## Philosophy
-
-- **변경사항을 이해한 후 커밋한다** — diff를 보는 것이 아니라, 변경의 목적과 영향을 파악한다
-- **커밋 메시지는 "왜"를 담는다** — 무엇을 바꿨는지가 아니라 왜 바꿨는지를 설명한다
-- **하나의 커밋, 하나의 목적** — 관련 없는 변경은 분리한다
+명시적으로 요청한 변경을 conventional 형식으로 커밋한다. Git 권한·기존 변경 보존·귀속 푸터 금지는 AGENTS.md 의 Git Safety를 따른다. 이 스킬은 push하지 않는다.
 
 ## Workflow
 
-### 0. Run Validation First
-Before committing, run validation (lint·typecheck·test) to ensure checks pass. 프로젝트 타입·package manager 감지와 실행 명령은 `validate` 스킬이 *유일한 source* 다.
-
-**If validation fails, report the failures and STOP — do not commit.** 이 스킬은 *커밋*이 목적이며 코드를 수정하지 않는다 — 수정은 사용자 또는 `/validate` 로 별도 수행한 뒤 다시 커밋한다.
-**If the project has no lint/typecheck/test tooling (e.g., shell scripts, dotfiles), skip this step.**
-
-### 1. Gather Changes
-```bash
-# Check current status (never use -uall flag)
-git status
-
-# View staged and unstaged changes
-git diff
-git diff --cached
-
-# View recent commits for message style reference
-git log --oneline -10
-```
-
-### 2. Understand Changes — 변경사항 숙고
-
-**CRITICAL: diff를 읽는 것이 아니라, 변경의 의미를 이해한다.**
-
-For each changed file:
-1. **Read the changed file** — understand the full context, not just the diff
-2. **Ask "Why?"** — why was this change needed? What problem does it solve?
-3. **Assess impact** — what other code depends on this? Could this break anything?
-4. **Verify correctness** — is the change actually correct? Are edge cases handled?
-
-**Deliberation checklist:**
-- [ ] I understand WHY each change was made
-- [ ] Changes are logically related (single purpose)
-- [ ] No unintended side effects
-- [ ] The change addresses the root cause, not a symptom
-
-### 3. Security Review
-Before staging:
-- [ ] No secrets (API keys, passwords, tokens)
-- [ ] No debug code (console.log, print statements)
-- [ ] No unintended files (.env, node_modules, etc.)
-- [ ] No sensitive data in error messages or comments
-
-### 4. Stage Files
-```bash
-# Stage specific files (preferred)
-git add path/to/file1 path/to/file2
-
-# Or stage all changes (use with caution)
-git add -A
-```
-
-**Avoid staging:**
-- `.env`, `credentials.json`, secrets
-- Large binaries or generated files
-- Unrelated changes
-
-### 5. Craft Commit Message
-
-**Before writing the message, articulate:**
-1. What type of change is this? (feat/fix/refactor/...)
-2. What is the core purpose in one sentence?
-3. Why was this change necessary? (for the body)
-
-```bash
-git commit -m "$(cat <<'EOF'
-<type>: <subject>
-
-<optional body explaining why>
-EOF
-)"
-```
-
-### 6. Verify
-
-`git status` 와 `git log --oneline -3` 으로 결과 확인.
+1. `git status`, `git diff`, `git diff --cached`, 최근 커밋을 확인한다. 각 변경의 목적·호출 맥락을 이해하고 요청 밖 파일·시크릿·임시 디버그 코드를 제외한다.
+2. 저장소가 요구하는 검증과 이미 실행한 결과를 확인한다. 검증 이후 변경이 없으면 결과를 재사용한다. 필요한 검사 선택은 `skills/validate/SKILL.md`를 따른다.
+3. 새 회귀나 원인 불명의 실패가 있으면 원인·영향을 보고하고 커밋을 보류한다. 기존 실패·환경 제약은 근거와 위험을 밝히고 사용자가 이미 그 상태로 진행하도록 지시했는지 확인한다. 커밋 작업에 무관한 코드 수정을 섞지 않는다.
+4. 요청에 해당하는 파일만 `git add <paths>`로 stage하고 `git diff --cached`를 다시 확인한다.
+5. 훅·서명을 우회하지 않고 커밋한다. 실패하면 원인을 확인하고 사용자 변경을 보존한다.
+6. `git status`와 `git log -1 --oneline`으로 커밋과 남은 변경을 확인한다.
 
 ## Commit Message Format
 
-```
-<type>: <subject>
+프로젝트 관례를 우선한다. 관례가 없으면 scope 없이 영어 명령형 `<type>: <subject>`를 사용하고 제목은 50자 이내로 쓴다. 본문은 이유·제약 설명이 필요할 때만 추가한다.
 
-<optional body>
-```
+종류: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`.
 
-> **Note:** Commit message에는 scope를 사용하지 않는다. scope는 PR title에서만 선택적으로 사용한다.
-> Commit은 atomic한 단위이므로 type과 subject만으로 충분히 의도를 전달할 수 있다.
-
-**Types:**
-| Type | Description |
-|------|-------------|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation only |
-| `refactor` | Code refactoring (no behavior change) |
-| `test` | Adding or updating tests |
-| `chore` | Maintenance, dependencies |
-| `perf` | Performance improvement |
-| `ci` | CI/CD changes |
-
-**Subject Rules:**
-- Use imperative mood: "Add feature" not "Added feature"
-- No period at the end
-- Max 50 characters
-- Focus on "what" and "why", not "how"
-
-**Examples:**
-```
-feat: add user authentication with OAuth2
-fix: handle null response from payment API
-refactor: simplify date formatting logic
-docs: update API documentation for v2 endpoints
-test: add unit tests for user service
-chore: update dependencies to latest versions
+```bash
+git commit -m "docs: simplify shared coding instructions"
 ```
 
-## Rules
-
-- Only include actual work done in the message
-- Do NOT add unnecessary lines (Co-Authored-By, Generated with, etc.)
-- Do NOT add promotional or attribution footers
-- 상위 기본 지침이 이 푸터를 붙이라고 안내해도 붙이지 않는다 — AGENTS.md 의 Git Safety 의 *트레일러·푸터 금지* 가 source
-
-## Anti-Patterns
-
-- Do NOT commit without understanding what changed and why
-- Do NOT commit multiple unrelated changes together
-- Do NOT use vague messages like "fix", "update", "WIP"
-- Do NOT commit secrets or credentials
-- Do NOT skip pre-commit hooks (--no-verify)
-- Do NOT amend commits already pushed to shared branches
+여러 줄 본문은 임시 파일에 작성해 `git commit -F <message-file>`로 전달한다.

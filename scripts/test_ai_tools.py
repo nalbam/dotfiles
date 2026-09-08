@@ -260,6 +260,8 @@ class GeneratorTests(unittest.TestCase):
         self.assertIn("## Codex", result)
         self.assertIn("## Subagents", result)
         self.assertEqual(transform("docs-read", "CLAUDE.md / AGENTS.md"), "CLAUDE.md / AGENTS.md")
+        self.assertEqual(transform("coding-style", "`rules/language.md`"), "AGENTS.md 의 Language")
+        self.assertEqual(transform("nextjs-init", "`/validate` · `/commit`"), "`$validate` · `$commit`")
 
     def test_stale_references_and_deleted_skills(self):
         with tempfile.TemporaryDirectory(prefix="dotfiles-generator-") as tmp:

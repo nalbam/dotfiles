@@ -10,12 +10,11 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 새 Next.js 프로젝트를 정해진 스택으로 부트스트랩한다. 시크릿 취급은 `rules/security.md`, 커밋은 `rules/git-workflow.md` 를 따른다 — **이 스킬은 커밋하지 않는다**.
 
-## Philosophy
+## 기본 원칙
 
-- **스캐폴더의 *설정*은 다시 만들지 않는다** — `tsconfig`·`next.config.ts` 는 손대지 않고 *비자명한 부분*(레이어 경계·키 설계·어댑터·배포)만 추가한다. `eslint.config.mjs` 도 다시 쓰지 않고 3단계에서 배열에 객체 하나를 끼운다. **PostCSS 설정은 이 규칙 밖이다** — `--no-tailwind` 로 만들면 `postcss.config.mjs` 가 *아예 생기지 않으므로* 2단계에서 Mantine 용으로 새로 만드는 것이다. **데모 페이지·스타일시트·브랜딩 에셋도 예외다** — 남길 이유가 없으므로 2단계에서 걷어낸다
-- **경계가 곧 아키텍처다** — 디렉토리 이름이 아니라 *의존 방향*을 lint 로 강제해야 유지된다
-- **접근 패턴을 먼저 정하고 테이블을 만든다** — Single Table Design 은 나중에 GSI 를 붙여 고칠 수 없다
-- **단계마다 검증하고 넘어간다** — 각 단계에 종료 조건이 있다 (`skills/problem-solving/SKILL.md#goal-driven-execution--목표-기반-실행`)
+- 스캐폴더의 설정을 유지하고 필요한 Mantine·레이어·인증·배포 설정만 추가한다. 샘플 제거 범위는 `references/setup.md`를 따른다.
+- DynamoDB 접근 패턴과 어댑터 계약을 먼저 정하고 테스트로 확인한다.
+- 아래 버전·API 예시는 기본 구성이다. 실제 설치 버전과 공식 문서를 확인하고 사용자가 정한 구성을 우선한다.
 
 ## Stack
 
@@ -69,31 +68,9 @@ allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 
 ## 완료 보고
 
-```
-## Next.js 프로젝트 생성 완료
+프로젝트 경로·실제 스택, lint·타입 검사·테스트·빌드·브라우저·Docker 검증 결과를 보고한다. Google OAuth 등 사용자 계정 작업으로 확인하지 못한 항목은 사유를 명시한다.
 
-경로: <path>
-스택: Next.js 16 / React 19 / TS 6 strict / Mantine 9 / Better Auth 1.6 / DynamoDB / Vitest 4
-
-검증:
-- pnpm lint + tsc --noEmit: PASS (레이어 zones 위반 시 에러 확인 포함)
-- pnpm test: PASS (접근 패턴 7/7, 어댑터 계약 5/5)
-- pnpm build: PASS
-- Google 로그인 플로우: PASS (또는 SKIP + 사유 — OAuth 클라이언트 미발급 등)
-- docker build: PASS (또는 SKIP + 사유)
-
-로컬에 이미 만들어 둔 것:
-- 로컬 DynamoDB 2개 (dev :8083 / test :8084 — 다른 프로젝트가 이미 띄워 뒀으면 재사용) + dev 테이블 `<table>`
-
-사용자 후속 작업 (실행하지 않음):
-- [ ] **AWS** DynamoDB 테이블 생성 — 4단계 명령에서 `--endpoint-url` 만 빼면 된다 (로컬은 완료됨)
-- [ ] ECR 리포지토리 생성 (tag mutability: MUTABLE) + IAM OIDC identity provider 등록(계정에 처음이면) + OIDC IAM 역할·신뢰 정책 — 7단계 참조
-- [ ] Google OAuth 클라이언트 발급 + 리다이렉트 URI 등록
-- [ ] `.env.local` 의 `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET` 채우기 (나머지는 생성됨)
-- [ ] 배포 시 `BETTER_AUTH_URL` 을 실제 오리진으로, `DYNAMODB_ENDPOINT` 를 빈 값으로
-- [ ] git init / 첫 커밋 (요청 시)
-- [ ] 첫 릴리스 — `git tag v0.1.0 && git push origin v0.1.0`
-```
+생성한 로컬 자원과 사용자가 준비할 AWS 자원·OAuth 설정·운영 환경변수를 구분한다. commit·push·릴리스는 명시 요청이 있을 때만 수행한다.
 
 ## Anti-Patterns
 

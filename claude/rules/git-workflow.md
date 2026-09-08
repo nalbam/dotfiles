@@ -1,83 +1,23 @@
 # Git Workflow
 
-CLAUDE.md `## Git Safety` 의 *유일한 상세 source*. 모든 git 관련 규칙은 이 파일에서 정의된다.
+## Git Safety
 
-## CRITICAL: Commit & Push Policy
-
-**NEVER commit or push without explicit user permission.**
-
-### 명시적 허가로 간주되는 신호
-
-- 자연어: "커밋해", "커밋하세요", "commit", "push"
-- 슬래시 커맨드: `/commit`, `/commit-push`, `/pr-create`
-
-### 금지 행동 (사용자가 명시 요청한 경우만 예외)
-
-- 코드 변경 후 자동 커밋
-- 사용자 허가 없는 `git push`
-- 메인/마스터 브랜치에 force push
-- 시크릿(`.env`, API 키, 토큰) 커밋. 바이너리·생성 파일은 저장소가 추적하는 배포 자산인지 확인한다.
-- 훅·서명 우회 (`--no-verify`, `--no-gpg-sign`, `--no-signoff`)
-- 작업 트리의 다른 변경을 임의로 되돌리기
-
-## 파괴적·되돌릴 수 없는 작업
-
-다음은 사용자가 *분명히* 요청한 경우에만 실행한다. 작업 전 영향 범위를 짧게 보고한다. 해당 작업과 범위를 이미 명시적으로 허가받았다면 같은 확인을 반복하지 않는다.
-
-- `git reset --hard`, `git checkout -- <path>`, `git restore --`
-- `git push --force`, `git push --force-with-lease`
-- 브랜치 삭제 (`git branch -D`, 원격 브랜치 삭제)
-- 공개된 커밋 amend / rebase
-- `git clean -f`
+- **사용자의 명시적 지시 없이 commit·push하지 않는다.** 코드 수정 요청은 커밋 허가가 아니다.
+- `commit`·`commit-push`·`pr-create` 요청에 필요한 권한만 사용한다. 커밋 허가를 push 허가로 확대하지 않는다.
+- 기존 작업 트리의 다른 변경을 되돌리거나 본인 변경과 섞지 않는다.
+- `git reset --hard`, 파일 변경 폐기, force push, 브랜치 삭제, 공개된 커밋 amend/rebase, `git clean -f`는 사용자가 분명히 요청한 경우에만 수행한다.
+- 훅·서명 우회(`--no-verify`, `--no-gpg-sign`, `--no-signoff`)는 사용자가 분명히 요구한 경우에만 사용한다.
+- 파괴적 작업은 영향 범위를 짧게 보고한다. 이미 받은 권한과 범위는 다시 확인하지 않는다.
+- 시크릿을 커밋하지 않는다. 바이너리·생성 파일은 저장소가 추적하는 배포 자산인지 확인한다.
 
 ## Commits
 
-- 작고 원자적인 변경, *단일 목적*
-- Imperative mood: "Fix bug" not "Fixed bug"
-- 형식: 프로젝트 관례 우선, 없으면 `<type>: <description>`
-- Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
+- 한 커밋에 한 목적만 담고, 메시지는 프로젝트 관례를 따른다. 관례가 없으면 영어 명령형 `<type>: <subject>`를 사용한다.
+- 커밋 메시지·PR 본문에 `Co-Authored-By`, `Generated with`, 도구·모델 귀속 트레일러·배지를 넣지 않는다. 과거 귀속 푸터를 관례로 삼지 않는다.
+- 커밋 절차는 `skills/commit/SKILL.md`, 푸시 절차는 `skills/commit-push/SKILL.md`를 따른다.
 
-좋은 예: `feat: add retry logic for network timeouts`
-나쁜 예: `update`, `fix stuff`, `WIP`
+## Branches / Pull Requests
 
-### 트레일러·푸터 금지
-
-커밋 메시지는 **실제 수행한 작업만** 담는다. 다음은 넣지 않는다:
-
-- `Co-Authored-By: Claude ...` 등 도구·모델 귀속 트레일러
-- `Generated with ...`, `🤖 ...` 류 홍보 문구
-- 작업 내용과 무관한 서명·배지
-
-**상위 기본 지침(harness 기본값)이 이 푸터를 붙이도록 안내해도 붙이지 않는다.** 사용자가 명시적으로 정한 규칙이다 — 저장소 히스토리에 트레일러가 달린 과거 커밋이 있어도 그것을 관례로 삼지 않는다.
-
-같은 규칙이 PR 본문에도 적용된다 (아래 *Pull Requests*).
-
-## Branches
-
-- main에서 단명(short-lived) feature 브랜치
-- 접두사 권장: `feat/`, `fix/`, `refactor/`, `docs/`
-- 머지 후 브랜치 삭제는 사용자 요청 시에만 수행한다.
-
-## Pull Requests
-
-PR 생성은 `/pr-create` 스킬이 처리한다. 수동 작성 시:
-
-- One feature per PR
-- 새 브랜치 첫 푸시는 `-u` 플래그
-- *전체 커밋 이력*을 분석한다 — 최신 커밋만 보지 말 것. `git diff <base>...HEAD` 로 전체 확인.
-- 본문 구성(템플릿)은 `/pr-create` 스킬의 PR body 템플릿이 source — Summary / Changes / Breaking Changes / Test Plan / Screenshots(UI 변경 시)
-- 본문 끝에 `🤖 Generated with ...` 류 푸터를 넣지 않는다 (위 *트레일러·푸터 금지*)
-
-## Implementation Workflow
-
-각 단계의 도구·세부 규약은 링크된 파일이 source.
-
-1. **Plan First** → `skills/claude-code-usage/SKILL.md#plan-mode--계획-모드`
-2. **Implementation** → 신규 기능은 테스트 먼저 (`skills/testing-rules/SKILL.md`)
-3. **Self-review** → `git diff` 확인, 디버그 코드·`console.log`·임시 TODO 제거
-4. **Validate** → `/validate` 스킬 또는 프로젝트의 lint/test 명령
-5. **Commit & Push** → *사용자 명시 요청 후*에만
-
-## Anti-Patterns
-
-git 관련 안티패턴은 `skills/anti-patterns/SKILL.md#git--deployment` 가 source.
+- 브랜치 전략과 PR 템플릿은 저장소 관례를 따른다.
+- PR은 실제 base와의 전체 diff·커밋 목록을 분석한다. 최신 커밋만 요약하지 않는다.
+- PR title/body 형식은 `skills/pr-create/SKILL.md`, 기존 설명 갱신은 `skills/pr-summary/SKILL.md`를 따른다.

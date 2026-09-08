@@ -23,13 +23,7 @@ The installer (`run.sh`) is plain bash; AI settings sync uses Python 3.11+ stand
 
 ## Git profile switching (non-obvious)
 
-Base `gitconfig` uses `includeIf` to swap email/signing by directory:
-
-- `~/workspace/github.com/nalbam/`, `~/workspace/github.com/opspresso/` → `gitconfig-nalbam`
-- `~/workspace/github-emu.com/`, `~/workspace/github.dev.kr.krpay.io/`, `~/workspace/github.com/karrot-emu/`, `~/workspace/github.com/daangn/` → `gitconfig-bruce`
-- Otherwise → base `me@nalbam.com`
-
-When editing `gitconfig*`, check all three files stay consistent. A wrong email will silently commit under the wrong identity.
+Base `gitconfig` uses `includeIf` to select directory-specific email/signing profiles. Read `gitconfig`, `gitconfig-nalbam`, and `gitconfig-bruce` together when changing identity settings; a wrong email silently changes commit attribution.
 
 ## Platform-specific gotchas
 
@@ -55,9 +49,7 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 
 - Put them in `aliases` (not `zshrc`), grouped by tool.
 - Keep functions small; prefer POSIX-compatible syntax so `bashrc` can source them too.
-- Toast CLI is the central workspace manager — `c`, `x`, `d`, `e`, `g`, `r`, `p`, `ssm` route through `toast`. Separately: `m` runs `aws sts get-caller-identity`, `tu` updates toast-cli itself, `tt` re-runs the dotfiles installer.
-- Claude Code shortcuts (`cc`, `ccc`, `ccp`, `ccu`) and Codex shortcuts (`cx`, `cxc`, `cxp`) live near the top of `aliases`; prompts are positional arguments.
-- Korean keyboard aliases exist (`ㅊ`→`c`, `ㅊㅇ`→`cd`, `ㅅㅅ`→`tt`, `ㅊㅊ`→`cc`) — preserve them when refactoring.
+- Preserve Korean keyboard aliases when refactoring.
 
 ## AI tool settings (claude/, codex/, kiro/)
 
@@ -80,9 +72,7 @@ For Codex instruction changes:
 
 - **Do not commit or push without explicit user instruction.** Global rule, but especially important here — this repo drives the user's entire environment.
 - **Shell changes are live the next time `run.sh` runs on any machine.** Test locally before recommending risky changes.
-- **Read the whole file before editing** (`run.sh` is tightly sequenced).
 - **Check both `darwin/` and `linux/` paths** when touching platform logic — one branch is easy to miss.
 - **Prefer editing `aliases` or `Brewfile` over adding logic to `run.sh`.** The installer should stay declarative.
-- **POSIX-compatible in files sourced by both bash and zsh** (`aliases`, `zshrc`, `bashrc`, `zprofile.*`): no `[[ ]]`, no arrays, no bash-only expansions there. `run.sh` itself is bash and may use bash features.
 
 For the directory tree, installation flow sequence, and architecture diagrams, see [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).

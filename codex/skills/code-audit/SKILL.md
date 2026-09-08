@@ -5,322 +5,41 @@ description: Deep read-only audit of an entire codebase — severity-ranked repo
 
 # Code Audit
 
-**한국어로 응답. 코드·명령어는 원문 유지** (AGENTS.md 의 Language).
-
-프로젝트의 전체 구현 코드를 심층 분석하여 문제점·근본원인·개선사항을 도출한다. 평가 기준은 AGENTS.md 의 Core Principles / Testing / Security 원칙과 일관해야 한다 — *수치 강제 없음*, 프로젝트 관례 우선.
-
-이 파일의 *Exclude Patterns* 표는 다른 skill (예: `docs-sync`) 이 참조하는 단일 source 다.
-
-## Scope
-
-- **대상**: 저장소 전체 구현 코드 (Exclude Patterns 적용 후)
-- **읽기 전용** — 이 스킬은 코드를 수정하지 않는다. 발견 사항은 보고까지이며, 수정은 사용자 승인 후 별도 작업이다
-- **경계**: 변경분·PR 리뷰는 `/code-review`, lint·typecheck·test 실행과 수정은 `/validate`, 코드↔문서 정합은 `/docs-sync`. 이 스킬은 *현재 코드 전체의 상태* 만 다룬다
-
-## Philosophy
-
-- **증상이 아니라 근본원인을 찾는다** — "왜?"를 5번 반복한다
-- **심사숙고한다** — 성급한 판단을 피하고, 코드를 끝까지 읽은 후 결론을 내린다
-- **맥락을 이해한다** — 개별 파일이 아닌 시스템 전체의 흐름을 파악한다
-- **실질적 위험을 구별한다** — 이론적 문제와 실제 영향이 있는 문제를 구분한다
-
-## Rules
-
-- Read files completely before making judgments
-- Trace call chains and data flows end-to-end
-- Distinguish symptoms from root causes
-- Prioritize findings by actual impact, not theoretical risk
-- Do NOT suggest changes without understanding full context
-- Do NOT flag style preferences as issues
-- Do NOT recommend fixes for non-existent problems
+저장소 전체 구현을 읽기 전용으로 감사한다. 발견 사항은 보고하고 코드·외부 상태를 바꾸지 않는다. 변경분 리뷰는 `code-review`, 검사 실행·수정은 `validate`, 문서 정합은 `docs-sync`의 범위다.
 
 ## Exclude Patterns
 
-**Important: Always skip these directories before scanning.**
+다음은 탐색 시 기본 제외 대상이다. 저장소가 직접 관리하거나 감사 대상에 필요한 파일은 이름만으로 제외하지 않는다.
 
-| Category | Directories |
-|----------|-------------|
+| Category | Directories / files |
+|----------|---------------------|
 | Dependencies | `node_modules/`, `vendor/`, `bower_components/`, `.pnp/` |
 | Build outputs | `dist/`, `build/`, `out/`, `target/`, `.next/`, `.nuxt/`, `.vercel/` |
 | Cache | `.cache/`, `.tmp/`, `tmp/`, `__pycache__/`, `.turbo/`, `.parcel-cache/` |
 | Virtual envs | `.venv/`, `venv/`, `.env/`, `env/` |
-| VCS | `.git/`, `.svn/`, `.hg/` |
-| IDE | `.idea/`, `.vscode/`, `.vs/` |
+| VCS / IDE | `.git/`, `.svn/`, `.hg/`, `.idea/`, `.vscode/`, `.vs/` |
 | Test outputs | `coverage/`, `.nyc_output/`, `test-results/` |
-| Generated | `*.min.js`, `*.bundle.js`, lock files |
-| OS | `.DS_Store`, `Thumbs.db` |
+| Generated / OS | `*.min.js`, `*.bundle.js`, `.DS_Store`, `Thumbs.db` |
 
-## Process
+lockfile·배포 설정은 의존성·운영 위험을 확인할 때 읽는다. 시크릿 파일의 값을 출력하지 않는다.
 
-### Phase 1: Reconnaissance — 프로젝트 전체 파악
+## 조사
 
-프로젝트의 전체 구조, 기술 스택, 아키텍처를 파악한다.
+1. README·AGENTS.md·manifest·CI와 주요 설정으로 목적·구조·진입점·운영 제약을 파악한다.
+2. 다음 네 축으로 구현·호출·데이터 흐름을 추적한다. 실제 위임 도구와 권한이 있으면 독립 영역을 나누고, 없으면 직접 수행한다. 에이전트 수나 역할명을 고정하지 않는다.
 
-```bash
-# Project type detection
-ls -la package.json pyproject.toml go.mod Cargo.toml Makefile 2>/dev/null
+| 축 | 확인할 내용 |
+|----|-------------|
+| Security | 입력·권한·주입·시크릿·의존성 위험과 source-to-sink 흐름 |
+| Architecture | 모듈 책임·의존 방향·데이터/오류 전파·공유 상태·API 계약 |
+| Code Quality | 실제 결함으로 이어지는 중복·복잡도·타입·자원 처리 |
+| Testing & Reliability | 중요 경로·실패 처리·mock 정확성·경쟁 상태·CI 누락 |
 
-# Directory structure overview
-ls -la
-ls -d */ 2>/dev/null
-```
+3. 위임 시 범위·제외 패턴·프로젝트 제약·산출물 형식을 전달한다. 메인은 근거를 확인하고 같은 원인의 중복 findings를 합친다.
+4. 의심 항목의 발생 조건·실제 영향·가역성을 확인한다. 파일 줄 수·타입 사용·취향 차이만으로 문제를 만들지 않는다.
 
-**Read key files:**
-1. `README.md` — project purpose and setup
-2. `AGENTS.md` — project conventions (if exists)
-3. Package manifest (`package.json`, `pyproject.toml`, `go.mod`, etc.)
-4. Configuration files (`tsconfig.json`, `.eslintrc`, `vite.config.*`, etc.)
+## 보고
 
-**Build a mental model:**
-- What is the project? What problem does it solve?
-- What is the tech stack?
-- What are the entry points?
-- What are the architectural boundaries?
+심각도 기준은 `skills/code-review/SKILL.md#severity`를 따른다. 각 finding에 파일·줄, 문제, 발생 조건, 근거, 영향, 권장 조치를 담는다.
 
-### Phase 2: Deep Analysis — 병렬 심층 분석
-
-**4개의 감사 에이전트를 한 메시지에 동시 spawn 한다** (`skills/claude-code-usage/SKILL.md#subagents--서브에이전트`). 순차 실행하면 감사 시간이 4배가 되고 메인 컨텍스트가 전체 코드로 채워진다.
-
-| # | 감사 축 | `subagent_type` |
-|---|---------|-----------------|
-| 1 | Security | `code-reviewer` |
-| 2 | Architecture & Design | `architect` |
-| 3 | Code Quality & Maintainability | `code-reviewer` |
-| 4 | Testing & Reliability | `general-purpose` |
-
-위 에이전트가 배치돼 있지 않은 환경이면 전부 `general-purpose` 로 대체한다. **available agent 목록에 없는 타입을 추측해서 호출하지 않는다.**
-
-**서브에이전트는 이 파일을 보지 못한다** — 각 프롬프트에 다음을 함께 넣는다:
-
-- 위의 *Exclude Patterns* 표
-- "수치는 참고 가이드이며 프로젝트 관례가 우선" 이라는 평가 기준
-- 산출물 형식 — 항목마다 `{severity, file:line, 문제, 근거, 영향}`
-
-각 에이전트에 전달할 프롬프트:
-
-#### Analysis 1: Security Audit
-```
-Analyze the entire codebase for security issues:
-1. Hardcoded secrets (API keys, passwords, tokens, connection strings)
-2. Input validation gaps (user input, API parameters, file uploads)
-3. Injection vulnerabilities (SQL, XSS, command injection, path traversal)
-4. Authentication/authorization flaws
-5. Sensitive data exposure (logs, error messages, responses)
-6. Insecure dependencies (known CVEs)
-7. CSRF/CORS misconfiguration
-8. Cryptographic weaknesses
-
-For each finding, trace the data flow from source to sink.
-Report file paths, line numbers, and severity.
-```
-
-#### Analysis 2: Architecture & Design Audit
-```
-Analyze the codebase architecture and design:
-1. Dependency structure — circular dependencies, tight coupling
-2. Module boundaries — are responsibilities clearly separated?
-3. Abstraction levels — leaky abstractions, wrong abstractions, missing abstractions
-4. Data flow — how data moves through the system, transformation points
-5. Error propagation — how errors flow, where they get swallowed
-6. State management — shared mutable state, race conditions
-7. Configuration management — hardcoded values, environment handling
-8. API design — consistency, versioning, contract clarity
-
-For each finding, explain WHY it's a problem and what the systemic impact is.
-Report file paths and line numbers.
-```
-
-#### Analysis 3: Code Quality & Maintainability Audit
-```
-Analyze the codebase for quality and maintainability issues:
-1. Dead code — unused functions, variables, imports, files
-2. Code duplication — copy-pasted logic that should be unified
-3. Complexity — functions/files/중첩이 프로젝트 관례 대비 이상치인 곳 (참고 가이드: 함수 >50줄, 파일 >800줄, 중첩 >4단계 — 절대 기준 아님)
-4. Naming — unclear, misleading, or inconsistent naming
-5. Type safety — use of any, missing types, type assertions
-6. Error handling — empty catch blocks, swallowed errors, generic handlers
-7. Mutation — mutable state where immutability is expected
-8. Magic values — unexplained numbers, strings, boolean flags
-
-For each finding, report file paths, line numbers, and specific code.
-```
-
-#### Analysis 4: Testing & Reliability Audit
-```
-Analyze the testing strategy and reliability:
-1. Test coverage — what is tested, what is NOT tested
-2. Critical paths without tests — business logic, error handlers, edge cases
-3. Test quality — do tests actually verify behavior or just existence?
-4. Flaky test indicators — timing dependencies, shared state, order dependency
-5. Missing integration tests — component interaction gaps
-6. Error scenario coverage — are failure paths tested?
-7. Mock accuracy — do mocks reflect real behavior?
-8. Build/CI reliability — configuration issues, missing steps
-
-Report specific untested functions/paths and their risk level.
-```
-
-### Phase 3: Root Cause Analysis — 근본원인 추적
-
-After gathering findings from all agents, perform root cause analysis:
-
-**For each significant finding, apply the 5 Whys:**
-
-```
-Finding: [Description]
-├── Why 1: [Direct cause]
-│   ├── Why 2: [Underlying cause]
-│   │   ├── Why 3: [Systemic cause]
-│   │   │   ├── Why 4: [Process/design cause]
-│   │   │   │   └── Why 5: [Root cause]
-│   │   │   │       └── ROOT CAUSE: [Fundamental issue]
-```
-
-**Look for patterns across findings:**
-- Do multiple findings share a common root cause?
-- Are there systemic issues (process, architecture, tooling)?
-- What is the relationship between findings?
-
-### Phase 4: Impact Assessment — 영향도 평가
-
-Classify each finding:
-
-| Severity | Impact | Examples |
-|----------|--------|----------|
-| **CRITICAL** | Immediate risk to production, data loss, security breach | SQL injection, exposed secrets, data corruption |
-| **HIGH** | Significant reliability/security risk, likely to cause incidents | Missing auth checks, unhandled errors in critical paths, race conditions |
-| **MEDIUM** | Degrades maintainability, increases tech debt, potential bugs | Code duplication, missing tests for core logic, tight coupling |
-| **LOW** | Minor quality issues, future maintenance burden | Naming inconsistencies, minor dead code, style violations |
-
-**Assess each finding:**
-1. **Likelihood** — how likely is this to cause a real problem?
-2. **Blast radius** — if it fails, what is affected?
-3. **Reversibility** — how hard is it to fix after the fact?
-4. **Urgency** — does this need immediate attention?
-
-### Phase 5: Report — 감사 보고서 작성
-
-```markdown
-# Code Audit Report
-
-> Project: {project name}
-> Date: {date}
-> Scope: Full codebase analysis
-
-## Executive Summary
-
-[2-3 sentences: overall health assessment, key risks, recommended actions]
-
-## Findings by Severity
-
-### CRITICAL ({count})
-
-#### 1. {Finding Title} — {file}:{line}
-- **문제**: [What is wrong]
-- **근본원인**: [Root cause from 5 Whys analysis]
-- **영향**: [What happens if not fixed]
-- **권장 조치**: [Specific fix recommendation]
-
-### HIGH ({count})
-...
-
-### MEDIUM ({count})
-...
-
-### LOW ({count})
-...
-
-## Root Cause Patterns
-
-[Group findings by common root causes]
-
-### Pattern 1: {Root Cause Category}
-- **영향받는 영역**: {list of affected areas}
-- **근본원인**: {systemic explanation}
-- **개선 방향**: {strategic recommendation}
-
-### Pattern 2: ...
-
-## Positive Highlights
-
-[What the project does well — balanced review]
-
-- ✅ {Good practice 1}
-- ✅ {Good practice 2}
-
-## Recommended Action Plan
-
-### Immediate (CRITICAL)
-1. {Action item with specific file/line references}
-
-### Short-term (HIGH)
-1. {Action item}
-
-### Medium-term (MEDIUM)
-1. {Action item}
-
-## Metrics Summary
-
-| Metric | Value | Target | Status |
-|--------|-------|--------|--------|
-| Security Issues (CRITICAL/HIGH) | {n} | 0 | {status} |
-| Test Coverage | {n}% | 프로젝트 관례 | {status} |
-| Files >800 lines (참고) | {n} | 프로젝트 관례 | {status} |
-| Functions >50 lines (참고) | {n} | 프로젝트 관례 | {status} |
-| Dead code files | {n} | 0 | {status} |
-| Code duplication | {n} spots | minimal | {status} |
-```
-
-> **수치 기준 안내**: Test Coverage / 함수·파일 크기 등은 *프로젝트 관례*에 맞춰 평가한다. 강제 임계값은 두지 않는다 (AGENTS.md 의 Testing / Core Principles 원칙).
-
-## Audit Dimensions Checklist
-
-### Security
-- [ ] No hardcoded secrets
-- [ ] All inputs validated at boundaries
-- [ ] No injection vulnerabilities
-- [ ] Auth/authz properly implemented
-- [ ] Sensitive data not exposed in logs/errors
-- [ ] Dependencies free of known CVEs
-
-### Architecture
-- [ ] Clear module boundaries
-- [ ] No circular dependencies
-- [ ] Consistent data flow patterns
-- [ ] Proper separation of concerns
-- [ ] Configuration externalized
-
-### Code Quality
-- [ ] No dead code
-- [ ] Minimal duplication
-- [ ] 함수·파일·중첩 크기가 *프로젝트 관례*에 부합 (참고 가이드: 함수 <50줄, 파일 <800줄, 중첩 <4단계)
-- [ ] Consistent naming
-
-### Error Handling
-- [ ] No swallowed errors
-- [ ] Specific error types used
-- [ ] Error messages informative
-- [ ] Failure paths tested
-
-### Testing
-- [ ] Core logic tested
-- [ ] Critical paths tested
-- [ ] Edge cases covered
-- [ ] Error scenarios tested
-- [ ] Coverage가 *프로젝트 관례*에 부합 (강제 임계값 없음 — AGENTS.md 의 Testing 원칙)
-
-### Type Safety
-- [ ] No `any` types
-- [ ] Proper null handling
-- [ ] Return types explicit
-- [ ] API contracts typed
-
-## Anti-Patterns
-
-- Do NOT treat every finding as critical — prioritize honestly
-- Do NOT suggest fixes without understanding the codebase's constraints
-- Do NOT flag intentional patterns as issues (e.g., framework conventions)
-- Do NOT recommend massive refactoring without justifying ROI
-- Do NOT ignore the project's stage — MVP code has different standards than production
-- Do NOT confuse "different from my preference" with "wrong"
-- Do NOT skip positive highlights — balanced reviews build trust
+실제 위험을 먼저 제시하고 공통 근본 원인은 필요한 경우에만 묶는다. 직접 확인한 범위·제외한 영역·실행하지 않은 검사를 밝힌다. 읽지 않은 영역까지 감사 완료로 표현하거나 측정하지 않은 커버리지·성능 수치를 쓰지 않는다.

@@ -5,161 +5,35 @@ description: Create pull request with proper format. PR 생성, 변경사항 분
 
 # Create Pull Request
 
-**한국어로 응답. 코드·명령어는 원문 유지** (AGENTS.md 의 Language).
-
-git 안전 규칙은 AGENTS.md 의 Git Safety, 변경 작업 자체는 AGENTS.md 의 Surgical Changes 를 따른다. 이 파일은 PR title / body 형식의 *유일한 source* 다 (`pr-summary` 가 이를 참조).
-
-## Philosophy
-
-- **PR은 코드 리뷰의 시작이다** — 리뷰어가 맥락을 이해할 수 있도록 작성한다
-- **변경의 "왜"를 설명한다** — diff는 "무엇"을 보여주지만, PR은 "왜"를 설명해야 한다
-- **영향 범위를 정직하게 밝힌다** — 변경의 리스크와 한계를 숨기지 않는다
+명시적으로 요청한 PR을 생성한다. Git 권한은 AGENTS.md 의 Git Safety, 커밋·푸시가 필요하면 해당 스킬의 절차를 따른다. PR title/body의 공통 형식은 이 파일에서 관리한다.
 
 ## Workflow
 
-### 0. Run Validation First
-Before creating PR, run validation (lint·typecheck·test) to ensure checks pass. 프로젝트 타입·package manager 감지와 실행 명령은 `validate` 스킬이 *유일한 source* 다.
+1. 현재 브랜치·작업 트리·remote·기존 PR을 확인한다. base는 기존 PR, 원격 기본 브랜치, 저장소 관례로 판단하며 `main`을 가정하지 않는다.
+2. 실제 base 대비 전체 diff와 커밋 목록을 읽는다. 변경된 코드의 호출자·영향·호환성·검증 결과를 확인한다.
+3. 저장소가 요구하는 검증을 확인한다. 변경 이후 유효한 결과는 재사용하고, 추가 검사는 `skills/validate/SKILL.md`를 따른다. 새 회귀·원인 불명의 실패는 먼저 해결한다. 알려진 기존 실패·환경 제약은 숨기지 않는다.
+4. base가 앞섰다는 이유만으로 rebase하지 않는다. 충돌 등 필요성이 있으면 확인하고, 공개 이력 재작성·force push는 명시적 허가가 있을 때만 수행한다.
+5. 저장소 PR 템플릿에 맞춰 설명을 작성한다. 요청 범위의 커밋만 푸시됐는지 확인한 뒤 PR을 생성한다.
+6. `gh pr view <number>`로 제목·본문·base/head를 확인하고 URL을 보고한다.
 
-**If validation fails, report the failures and STOP — do not create the PR.** 이 스킬은 *PR 생성*이 목적이며 코드를 수정하지 않는다 — 수정은 사용자 또는 `/validate` 로 별도 수행한 뒤 다시 시도한다.
-**If the project has no lint/typecheck/test tooling (e.g., shell scripts, dotfiles), skip this step.**
+## PR Title / Body
 
-### 1. Gather Context
-```bash
-# Detect base branch dynamically
-BASE_BRANCH=$(gh pr view --json baseRefName -q '.baseRefName' 2>/dev/null || git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main")
+프로젝트 관례가 없으면 제목은 `<type>(<scope>): <subject>`로 쓴다. scope는 선택이며 type은 `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `perf`, `ci` 중 목적에 맞게 고른다.
 
-# Check current branch status
-git status
+본문은 해결한 문제와 최종 동작을 먼저 설명한다. 간단한 변경은 한두 문장과 검증 결과로 충분하다. 복잡할 때만 다음 항목으로 나눈다.
 
-# View commits since branching from base
-git log origin/${BASE_BRANCH}..HEAD --oneline
+- Summary: 문제와 결과
+- Changes: 리뷰어가 알아야 할 주요 변경과 이유
+- Breaking Changes: 호환성 영향과 이행 방법이 있을 때만
+- Test Plan: 실제 실행 결과와 미실행 항목을 구분
+- Screenshots: UI 변경을 설명하는 데 도움이 될 때만
 
-# View full diff for PR description
-git diff origin/${BASE_BRANCH}...HEAD --stat
-git diff origin/${BASE_BRANCH}...HEAD
-```
+추측·대화 이력·폐기한 접근·귀속 푸터를 넣지 않는다. 알려진 위험과 제한은 관련 내용 옆에 명시한다.
 
-### 2. Deep Analysis — 변경사항 심층 분석
+## 명령 전달
 
-**CRITICAL: diff 통계만 보지 않는다. 변경의 의미를 이해한다.**
-
-**For each changed file, read and understand:**
-1. **Purpose** — why was this file changed?
-2. **Impact** — what depends on this file? What could break?
-3. **Completeness** — are there related changes that should be included?
-
-**Deliberation questions:**
-- What is the **single purpose** of this PR?
-- Could this be broken into smaller PRs?
-- What are the **risks** of merging this?
-- What **edge cases** might be affected?
-- Is there adequate **test coverage** for the changes?
-- Are there any **breaking changes** for consumers?
-
-### 3. Sync with Main (if needed)
-
-**CRITICAL: rebase와 force push는 사용자 확인 후에만 실행한다.**
+여러 줄 본문은 임시 파일에 정확한 줄바꿈으로 작성하고 `--body-file`로 전달한다. 동적 본문을 셸 코드에 보간하지 않는다.
 
 ```bash
-git fetch origin
-
-# Check if rebase is needed
-git log --oneline origin/${BASE_BRANCH}..HEAD
-git log --oneline HEAD..origin/${BASE_BRANCH}
+gh pr create --base <base> --head <head> --title "<title>" --body-file <body-file>
 ```
-
-If the branch is behind `origin/${BASE_BRANCH}`:
-1. **사용자에게 rebase 필요성을 알리고 확인을 요청한다**
-2. 사용자가 승인하면 실행:
-   ```bash
-   git rebase origin/${BASE_BRANCH}
-   # Resolve conflicts if any, then:
-   git push --force-with-lease
-   ```
-3. 사용자가 거부하면 rebase 없이 PR을 생성한다
-
-### 4. Craft PR Description
-
-**Before writing, articulate:**
-1. What problem does this PR solve? (Summary)
-2. What specific changes were made and why? (Changes)
-3. Are there any breaking changes? (Breaking Changes)
-4. How should a reviewer verify this works? (Test Plan)
-5. What risks or limitations exist? (if any)
-
-```bash
-gh pr create --title "<type>(<scope>): <subject>" --body "$(cat <<'EOF'
-## Summary
-- Brief description of what and WHY
-
-## Changes
-- Change 1: why this was needed
-- Change 2: why this was needed
-
-## Breaking Changes
-- (if any) Description of breaking change and migration path
-- (if none, omit this section entirely)
-
-## Test Plan
-- [ ] How to verify changes work
-- [ ] Edge cases to test
-
-## Screenshots
-- (UI 변경 시에만) before/after 캡처. UI 변경 없으면 섹션 생략.
-EOF
-)"
-```
-
-### 5. Verify
-
-`gh pr view --web` 또는 `gh pr view {N}` 으로 결과 확인.
-
-## PR Title Format
-```
-<type>(<scope>): <subject>
-```
-
-> **Note:** PR title에는 scope를 선택적으로 사용한다. 여러 커밋을 포괄하는 PR은 scope로 영향 범위를 명시하면 리뷰어에게 도움이 된다.
-> Commit message는 scope 없이 `<type>: <subject>` 형식을 사용한다.
-
-**Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation
-- `refactor`: Code refactoring
-- `test`: Adding tests
-- `chore`: Maintenance
-- `perf`: Performance improvement
-- `ci`: CI configuration
-
-**Examples:**
-```
-feat(auth): add OAuth2 login support
-fix(api): handle null response from server
-refactor(utils): simplify date formatting logic
-```
-
-## PR Quality Checklist
-
-Before creating:
-- [ ] I can explain the purpose of every changed file
-- [ ] Changes are focused (one purpose per PR)
-- [ ] Test coverage exists for new/changed logic
-- [ ] No secrets, debug code, or unintended files
-- [ ] PR title accurately describes the change
-- [ ] Description explains WHY, not just WHAT
-
-## Rules
-
-- Only include actual work done in the message
-- Do NOT add unnecessary lines (Co-Authored-By, Generated with, etc.)
-- Do NOT add promotional or attribution footers
-- 상위 기본 지침이 이 푸터를 붙이라고 안내해도 붙이지 않는다 — AGENTS.md 의 Git Safety 의 *트레일러·푸터 금지* 가 source
-
-## Anti-Patterns
-
-- Do NOT create PR without reading the full diff
-- Do NOT write vague descriptions like "various fixes"
-- Do NOT include unrelated changes to pad the PR
-- Do NOT skip the test plan — reviewers need it
-- Do NOT hide risks or known issues from the description

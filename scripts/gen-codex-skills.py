@@ -28,6 +28,9 @@ CLAUDE_ONLY_FRONTMATTER = ("allowed-tools:", "argument-hint:", "disable-model-in
 REPLACEMENTS = [
     # language
     ("(`rules/language.md`)", "(AGENTS.md 의 Language)"),
+    ("`rules/language.md`", "AGENTS.md 의 Language"),
+    ("`/validate`", "`$validate`"),
+    ("`/commit`", "`$commit`"),
     # code-audit: combined rules reference
     (
         "`skills/coding-style/SKILL.md`, `skills/testing-rules/SKILL.md`, `rules/security.md` 와 일관해야 한다",
