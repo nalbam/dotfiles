@@ -48,7 +48,12 @@ export plugins=(
 export PROMPT='$(kube_ps1)'$PROMPT # or RPROMPT='$(kube_ps1)'
 
 # kubectl completion
-[[ $commands[kubectl] ]] && source <(kubectl completion zsh)
+if command -v kubectl >/dev/null 2>&1; then
+  if _kubectl_completion="$(kubectl completion zsh 2>/dev/null)" 2>/dev/null; then
+    source <(printf '%s\n' "$_kubectl_completion")
+  fi
+  unset _kubectl_completion
+fi
 
 # zsh-autosuggestions
 if [ -d "${BREWPATH}/share/zsh-autosuggestions" ]; then
