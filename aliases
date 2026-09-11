@@ -43,11 +43,8 @@ alias cx='codex'
 alias cxc='codex resume --last'
 alias cxp='codex'
 
-# Herdr
-alias hd='herdr'
-
-# Neovim
-alias nv='nvim'
+# OpenCode
+alias oc='opencode'
 
 # Tailscale shortcut
 alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
