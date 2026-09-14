@@ -49,110 +49,6 @@ alias oc='opencode'
 # Tailscale shortcut
 alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
 
-# tmux
-tm() {
-  # Interactive tmux session manager; pass args to tmux directly if provided
-  if [ $# -gt 0 ]; then
-    tmux "$@"
-    return
-  fi
-
-  local default_name
-  default_name=$(basename "$PWD")
-
-  local sessions
-  sessions=$(tmux ls 2>/dev/null)
-
-  if command -v fzf &>/dev/null; then
-    local options
-    if [ -n "$sessions" ]; then
-      options="$sessions"$'\n'"[+ new session]"$'\n'"[x kill session]"
-    else
-      options="[+ new session]"
-    fi
-
-    local selected
-    selected=$(echo "$options" | fzf \
-      --prompt="tmux > " \
-      --height=40% \
-      --layout=reverse \
-      --border \
-      --no-sort)
-
-    [ -z "$selected" ] && return
-
-    case "$selected" in
-      "[+ new session]")
-        printf "Session name [%s]: " "$default_name"
-        read -r name
-        tmux new -s "${name:-$default_name}"
-        ;;
-      "[x kill session]")
-        local kill_sel
-        kill_sel=$(tmux ls 2>/dev/null | fzf \
-          --prompt="kill > " \
-          --height=40% \
-          --layout=reverse \
-          --border \
-          --header="Select session to kill" \
-          --no-sort)
-        if [ -n "$kill_sel" ]; then
-          local kill_name
-          kill_name=$(echo "$kill_sel" | awk -F: '{print $1}')
-          tmux kill-session -t "$kill_name" && echo "Killed: $kill_name"
-        fi
-        ;;
-      *)
-        local session_name
-        session_name=$(echo "$selected" | awk -F: '{print $1}')
-        tmux attach -t "$session_name"
-        ;;
-    esac
-  else
-    # Fallback: numbered menu without fzf
-    if [ -z "$sessions" ]; then
-      printf "No tmux sessions. Session name [%s]: " "$default_name"
-      read -r name
-      tmux new -s "${name:-$default_name}"
-      return
-    fi
-
-    echo "tmux sessions:"
-    local i=1
-    local line
-    while IFS= read -r line; do
-      printf "  %d) %s\n" $i "$(echo "$line" | awk -F: '{print $1}')"
-      i=$((i+1))
-    done <<< "$sessions"
-    printf "  n) new   k) kill   q) quit\nSelect: "
-    read -r choice
-
-    case "$choice" in
-      n)
-        printf "Session name [%s]: " "$default_name"
-        read -r name
-        tmux new -s "${name:-$default_name}"
-        ;;
-      k)
-        printf "Kill session name: "
-        read -r name
-        [ -n "$name" ] && tmux kill-session -t "$name" && echo "Killed: $name"
-        ;;
-      q|"") return ;;
-      *)
-        local target
-        target=$(echo "$sessions" | sed -n "${choice}p" | awk -F: '{print $1}')
-        [ -n "$target" ] && tmux attach -t "$target" || echo "Invalid selection"
-        ;;
-    esac
-  fi
-}
-alias tml='tmux ls'
-alias tmn='tmux new -s'
-alias tma='tmux attach -t'
-alias tmk='tmux kill-session -t'
-alias tmka='tmux kill-server'
-
 # AWS SSO login helper
 alias asl='aws sso login --profile'
 
@@ -164,14 +60,10 @@ av() {
       local profiles
       profiles=$(aws-vault list 2>/dev/null | awk 'NR>2 && $1 ~ /^[a-zA-Z]/ {print $1}')
       if [ -z "$profiles" ]; then
-        profiles="daangn-alpha
-daangn-data
-daangn-prod
-nalbam
+        profiles="nalbam
 nalbam-two
 awskrug-team
-opspresso
-bruce"
+opspresso"
       fi
 
       local selected
@@ -195,28 +87,20 @@ bruce"
       esac
     else
       echo "aws-vault profiles:"
-      echo "  a|alpha  - daangn-alpha"
-      echo "  d|data   - daangn-data"
-      echo "  p|prod   - daangn-prod"
       echo "  n|nalbam - nalbam"
       echo "  t|two    - nalbam-two"
       echo "  k|krug   - awskrug-team"
       echo "  o|ops    - opspresso"
-      echo "  b|bruce  - bruce"
       echo "Commands: c|clear, l|list"
     fi
     return
   fi
 
   case "$1" in
-    a|alpha)  export AWS_VAULT= && aws-vault exec daangn-alpha -- ${@:2} ;;
-    d|data)   export AWS_VAULT= && aws-vault exec daangn-data -- ${@:2} ;;
-    p|prod)   export AWS_VAULT= && aws-vault exec daangn-prod -- ${@:2} ;;
     n|nalbam) export AWS_VAULT= && aws-vault exec nalbam -- ${@:2} ;;
     t|two)    export AWS_VAULT= && aws-vault exec nalbam-two -- ${@:2} ;;
     k|krug)   export AWS_VAULT= && aws-vault exec awskrug-team -- ${@:2} ;;
     o|ops)    export AWS_VAULT= && aws-vault exec opspresso -- ${@:2} ;;
-    b|bruce)  export AWS_VAULT= && aws-vault exec bruce -- ${@:2} ;;
     c|clear)  aws-vault clear ;;
     l|list)   aws-vault list ;;
     *)        export AWS_VAULT= && aws-vault exec "$@" ;;
@@ -224,14 +108,10 @@ bruce"
 }
 
 # Keep backward compatibility aliases
-alias ava='av alpha'
-alias avd='av data'
-alias avp='av prod'
 alias avn='av nalbam'
 alias avt='av nalbam-two'
 alias avk='av awskrug-team'
 alias avo='av opspresso'
-alias avb='av bruce'
 alias avc='av clear'
 alias avl='av list'
 
