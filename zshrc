@@ -39,7 +39,7 @@ if [ -d "${BREWPATH}/opt/gnu-getopt/bin" ]; then
   export PATH="${BREWPATH}/opt/gnu-getopt/bin:$PATH"
 fi
 
-export HOMEBREW_REQUIRE_TAP_TRUST=1
+# export HOMEBREW_REQUIRE_TAP_TRUST=1
 
 # PS1='$(kube_ps1)'$PS1
 export plugins=(
