@@ -1,6 +1,7 @@
 # brew "argo"
 # brew "argocd"
 brew "awscli"
+brew "aws-vault"
 brew "colordiff"
 brew "curl"
 brew "direnv"
