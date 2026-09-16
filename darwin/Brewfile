@@ -70,7 +70,7 @@ cask "orbstack"
 cask "tailscale-app"
 
 tap "opspresso/tap"
-cask "opspresso/tap/romty"
+brew "opspresso/tap/romty"
 cask "opspresso/tap/toast"
 
 tap "pakerwreah/calendr"

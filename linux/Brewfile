@@ -45,4 +45,4 @@ cask "font-dejavu-sans-mono-nerd-font"
 cask "codex"
 
 tap "opspresso/tap"
-cask "opspresso/tap/romty"
+brew "opspresso/tap/romty"
