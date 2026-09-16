@@ -41,3 +41,8 @@ brew "zsh-syntax-highlighting"
 
 cask "font-d2coding-nerd-font"
 cask "font-dejavu-sans-mono-nerd-font"
+
+cask "codex"
+
+tap "opspresso/tap"
+cask "opspresso/tap/rt"
