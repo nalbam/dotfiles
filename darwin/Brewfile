@@ -72,6 +72,7 @@ cask "tailscale-app"
 tap "opspresso/tap"
 brew "opspresso/tap/romty"
 cask "opspresso/tap/toast"
+cask "opspresso/tap/vibemon"
 
 tap "pakerwreah/calendr"
 cask "pakerwreah/calendr/calendr"
