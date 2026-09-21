@@ -745,20 +745,21 @@ if [ "${OS_NAME}" == "darwin" ]; then
 
   # macOS 시스템 설정
   _download .macos macos
-  if [ ! -f ~/.macos.backup ]; then
+  # 다운로드 백업과 적용 완료 기록을 분리한다. 성공한 내용만 기록해 실패 시 재시도한다.
+  MACOS_APPLIED_FILE=~/.toast/macos.applied
+  if [ ! -f "$MACOS_APPLIED_FILE" ] || [ "$(_md5 ~/.macos)" != "$(_md5 "$MACOS_APPLIED_FILE")" ]; then
     _run "Applying macOS system preferences..."
-    /bin/bash ~/.macos
-    _backup ~/.macos
-    _ok "macOS system preferences applied"
-  else
-    if [ -f ~/.dotfiles/macos ] && [ "$(_md5 ~/.dotfiles/macos)" != "$(_md5 ~/.macos.backup)" ]; then
-      _run "Updating macOS system preferences..."
-      /bin/bash ~/.macos
-      _backup ~/.macos
-      _ok "macOS system preferences updated"
+    if /bin/bash ~/.macos; then
+      if (umask 077; cp ~/.macos "$MACOS_APPLIED_FILE"); then
+        _ok "macOS system preferences applied"
+      else
+        _warn "Failed to record macOS system preferences — will retry on next run"
+      fi
     else
-      _skip "macOS system preferences already applied"
+      _warn "macOS system preferences failed — will retry on next run"
     fi
+  else
+    _skip "macOS system preferences already applied"
   fi
 fi
 

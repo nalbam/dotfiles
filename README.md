@@ -33,6 +33,16 @@ cd ~/.dotfiles
 ./run.sh
 ```
 
+macOS 시스템 설정 중에는 Terminal이나 데스크톱 앱을 강제 종료하지 않는다. 즉시 반영되지 않는 UI 설정은 설치 완료 후 로그아웃하거나 재시작하면 적용된다. 적용에 성공한 설정은 `~/.toast/macos.applied`에 기록하며, 설정 변경 또는 적용 실패 시 다음 실행에서 다시 시도한다. `~/.macos.backup`은 덮어쓰기 전 파일의 백업으로만 사용한다.
+
+macOS 설정 단계는 실제 시스템 설정을 변경하지 않는 격리 테스트로 검증한다.
+
+```bash
+python3 scripts/test_macos.py
+bash -n run.sh
+bash -n macos
+```
+
 ## Highlights
 
 - **Cross-platform**: 한 저장소로 macOS / Linux / Windows 지원

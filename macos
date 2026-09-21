@@ -3,6 +3,9 @@
 # Thanks to Mathias Bynens!
 # ~/.macos — https://mths.be/macos
 
+# Let the installer record completion only when all settings succeed.
+set -e
+
 # Close any open System Preferences panes, to prevent them from overriding
 # settings we’re about to change
 osascript -e 'tell application "System Preferences" to quit'
@@ -272,26 +275,6 @@ defaults write com.apple.ActivityMonitor ShowCategory -int 0
 defaults write com.apple.ActivityMonitor SortColumn -string "CPUUsage"
 defaults write com.apple.ActivityMonitor SortDirection -int 0
 
-###############################################################################
-# Kill affected applications                                                  #
-###############################################################################
-
-for app in "Activity Monitor" \
-  "Address Book" \
-  "Calendar" \
-  "Contacts" \
-  "Dock" \
-  "Finder" \
-  "iCal" \
-  "Mail" \
-  "Messages" \
-  "Photos" \
-	"Safari" \
-  "SizeUp" \
-  "Spectacle" \
-  "SystemUIServer" \
-  "Terminal"; do
-  killall "${app}" &>/dev/null
-done
-
-echo "Done. Note that some of these changes require a logout/restart to take effect."
+# Keep the desktop and terminal alive so the installer can finish and record
+# success. Apply pending UI changes at the user's next logout or restart.
+echo "Done. After installation completes, log out or restart to apply pending UI changes."
