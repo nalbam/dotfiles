@@ -1,6 +1,6 @@
 ---
 name: code-audit
-description: Deep read-only audit of an entire codebase — severity-ranked report, no code changes. 저장소 전체 심층 감사(수정 없음) — 변경분·PR 리뷰는 /code-review, 검사 실행·수정은 /validate.
+description: Audit an entire codebase and report evidence-backed findings without edits. 저장소 전체 읽기 전용 감사; 변경분 리뷰는 code-review.
 ---
 
 # Code Audit
@@ -25,7 +25,7 @@ lockfile·배포 설정은 의존성·운영 위험을 확인할 때 읽는다. 
 
 ## 조사
 
-1. README·AGENTS.md·manifest·CI와 주요 설정으로 목적·구조·진입점·운영 제약을 파악한다.
+1. README·CLAUDE.md·AGENTS.md·manifest·CI와 주요 설정으로 목적·구조·진입점·운영 제약을 파악한다.
 2. 다음 네 축으로 구현·호출·데이터 흐름을 추적한다. 실제 위임 도구와 권한이 있으면 독립 영역을 나누고, 없으면 직접 수행한다. 에이전트 수나 역할명을 고정하지 않는다.
 
 | 축 | 확인할 내용 |

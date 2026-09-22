@@ -3,6 +3,7 @@
 
 import json
 import os
+import re
 import runpy
 from pathlib import Path
 import shutil
@@ -252,16 +253,25 @@ class GeneratorTests(unittest.TestCase):
         expected = "---\nname: example\ndescription: example\n---\nbody\n"
         self.assertEqual(self.module["strip_claude_frontmatter"](source), expected)
 
-    def test_tool_specific_sections_and_project_names(self):
+    def test_tool_specific_instructions_and_project_names(self):
         transform = self.module["transform"]
-        source = (ROOT / "claude/skills/claude-code-usage/SKILL.md").read_text()
-        result = transform("claude-code-usage", source)
-        self.assertNotIn("EnterPlanMode", result)
-        self.assertIn("## Codex", result)
-        self.assertIn("## Subagents", result)
-        self.assertEqual(transform("docs-read", "CLAUDE.md / AGENTS.md"), "CLAUDE.md / AGENTS.md")
-        self.assertEqual(transform("coding-style", "`rules/language.md`"), "AGENTS.md 의 Language")
-        self.assertEqual(transform("nextjs-init", "`/validate` · `/commit`"), "`$validate` · `$commit`")
+        source = "---\nname: sample\ndescription: sample\ndisable-model-invocation: true\n---\n"
+        source += "CLAUDE.md / AGENTS.md\n`rules/git-workflow.md`\n`/validate`\n"
+        source += "PR 번호 인자: `$ARGUMENTS`\n"
+        result = transform(source)
+        self.assertNotIn("disable-model-invocation:", result)
+        self.assertNotIn("rules/git-workflow.md", result)
+        self.assertNotIn("$ARGUMENTS", result)
+        self.assertIn("CLAUDE.md / AGENTS.md", result)
+        self.assertIn("AGENTS.md 의 Git Safety", result)
+        self.assertIn("`$validate`", result)
+
+    def test_committed_mirror_is_current(self):
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts/gen-codex-skills.py"), "--check"],
+            capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_stale_references_and_deleted_skills(self):
         with tempfile.TemporaryDirectory(prefix="dotfiles-generator-") as tmp:
@@ -283,6 +293,25 @@ class GeneratorTests(unittest.TestCase):
             self.assertFalse((fixture / "codex/skills/commit/SKILL.md").exists())
             self.assertTrue(all(p.read_bytes() == data for p, data in metadata.items()))
             self.assertEqual(subprocess.run(command + ["--check"], capture_output=True).returncode, 0)
+
+
+class SkillReferenceTests(unittest.TestCase):
+    def test_referenced_files_exist(self):
+        for tool in ("claude", "codex"):
+            root = ROOT / tool
+            for source in root.rglob("*.md"):
+                body = source.read_text()
+                references = [
+                    root / match
+                    for match in re.findall(r"`((?:skills|rules)/[\w./-]+\.md)(?:#[^`]+)?`", body)
+                ]
+                references += [
+                    source.parent / match
+                    for match in re.findall(r"\]\(([^():#\s]+\.md)(?:#[^)]*)?\)", body)
+                ]
+                for target in references:
+                    with self.subTest(source=source.relative_to(ROOT), target=target):
+                        self.assertTrue(target.is_file(), f"Missing reference: {target}")
 
 
 class MemoryHookTests(unittest.TestCase):

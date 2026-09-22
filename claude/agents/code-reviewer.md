@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Code review for quality, security, and maintainability (read-mostly). 코드 품질·보안·유지보수성 검토 — 변경분 리뷰는 /code-review, 저장소 전체 감사는 /code-audit 이 트리거.
+description: Read-only review of a delegated diff or audit area. 위임받은 변경분·감사 영역의 코드 리뷰.
 tools: Read, Grep, Glob, Bash
 ---
 

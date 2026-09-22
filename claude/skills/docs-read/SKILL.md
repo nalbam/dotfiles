@@ -1,6 +1,6 @@
 ---
 name: docs-read
-description: Read project documentation for explicit onboarding or a project-overview request. Read-only. 프로젝트 온보딩·전체 구조 파악을 명시적으로 요청할 때 사용. 일반 구현의 관련 문서 확인이나 문서 수정은 대상 아님.
+description: Explain a project from its docs for onboarding or an overview. 읽기 전용 온보딩; 일반 구현의 문서 확인은 제외.
 ---
 
 # Documentation Read
@@ -14,4 +14,4 @@ description: Read project documentation for explicit onboarding or a project-ove
 3. 문서가 가리키는 진입점의 존재와 역할을 확인한다. 전체 코드 감사는 `code-audit`, 코드↔문서 검증·수정은 `docs-sync`로 구분한다.
 4. 목적·구조·핵심 관례·비자명한 제약과 다음에 볼 파일을 간결하게 설명한다. 문서에 없는 내용은 추측으로 채우지 않고 모순·공백을 구분한다.
 
-탐색 제외 기준은 `skills/code-audit/SKILL.md#exclude-patterns`를 따른다. 문서 전문을 복사하거나 결과용 새 문서를 만들지 않는다.
+의존성·캐시·빌드 출력은 질문과 직접 관련될 때만 읽는다. 문서 전문을 복사하거나 결과용 새 문서를 만들지 않는다.

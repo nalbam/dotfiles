@@ -2,8 +2,8 @@
 """Generate codex/skills/*/SKILL.md from claude/skills/*/SKILL.md.
 
 claude/skills is the single source of truth. This script applies the
-Claude -> Codex transformations (frontmatter fields, rules/*.md -> AGENTS.md
-references, Team mode -> generic multi-agent) and writes the results to
+Claude -> Codex transformations (frontmatter, Git rules references, and
+skill invocation syntax) and writes the results to
 codex/skills. Skill-local reference docs (*.md next to SKILL.md, e.g.
 references/) are mirrored with the same body transformations. Codex-only
 files (e.g. agents/openai.yaml) are preserved as-is.
@@ -23,79 +23,12 @@ CODEX_SKILLS = REPO_ROOT / "codex" / "skills"
 # Frontmatter fields that only Claude Code understands.
 CLAUDE_ONLY_FRONTMATTER = ("allowed-tools:", "argument-hint:", "disable-model-invocation:")
 
-# Ordered literal replacements applied to every skill body
-# (specific phrases first, generic fallbacks last).
+# Translate only tool-specific instructions; project filenames stay intact.
 REPLACEMENTS = [
-    # language
-    ("(`rules/language.md`)", "(AGENTS.md 의 Language)"),
-    ("`rules/language.md`", "AGENTS.md 의 Language"),
-    ("`/validate`", "`$validate`"),
-    ("`/commit`", "`$commit`"),
-    # code-audit: combined rules reference
-    (
-        "`skills/coding-style/SKILL.md`, `skills/testing-rules/SKILL.md`, `rules/security.md` 와 일관해야 한다",
-        "AGENTS.md 의 Core Principles / Testing / Security 원칙과 일관해야 한다",
-    ),
-    (
-        "(`skills/testing-rules/SKILL.md`, `skills/coding-style/SKILL.md#file--function-organization`)",
-        "(AGENTS.md 의 Testing / Core Principles 원칙)",
-    ),
-    ("— `skills/testing-rules/SKILL.md`)", "— AGENTS.md 의 Testing 원칙)"),
-    # surgical changes (particle variants)
-    (
-        "`skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 원칙",
-        "AGENTS.md 의 Surgical Changes 원칙",
-    ),
-    (
-        "`skills/coding-style/SKILL.md#surgical-changes--외과적-변경` 을",
-        "AGENTS.md 의 Surgical Changes 를",
-    ),
-    (
-        "`skills/coding-style/SKILL.md#surgical-changes--외과적-변경`을",
-        "AGENTS.md 의 Surgical Changes 를",
-    ),
-    (
-        "(skills/coding-style/SKILL.md#surgical-changes--외과적-변경)",
-        "(AGENTS.md Surgical Changes)",
-    ),
-    (
-        "`skills/coding-style/SKILL.md#surgical-changes--외과적-변경`",
-        "AGENTS.md 의 Surgical Changes",
-    ),
-    # docs-sync: current-state-only documentation rule
-    (
-        "(`skills/coding-style/SKILL.md#documentation`)",
-        "(AGENTS.md 의 Anti-Patterns — 현재 상태만 기록)",
-    ),
-    # git safety / security
     ("`rules/git-workflow.md`", "AGENTS.md 의 Git Safety"),
-    ("`rules/security.md`", "AGENTS.md 의 Security"),
-    # anti-patterns
-    ("`skills/anti-patterns/SKILL.md#git--deployment`", "AGENTS.md 의 Anti-Patterns"),
-    # generic instruction-file rename (after the specific rules above)
-    ("CLAUDE.md", "AGENTS.md"),
-    # deployed skill path (Codex scans ~/.agents/skills)
-    ("~/.claude/skills/", "~/.agents/skills/"),
-    # $ARGUMENTS is a Claude Code placeholder; Codex passes arguments as plain text
+    ("`/validate`", "`$validate`"),
     ("PR 번호 인자: `$ARGUMENTS`", "PR 번호 인자: 사용자가 스킬 호출 시 함께 제공한 값"),
 ]
-
-# code-audit Phase 2: Claude Team mode -> generic multi-agent wording.
-TEAM_INTRO_START = "**Team 모드를 사용하여 4개의 전문 에이전트를 병렬로 실행합니다.**"
-TEAM_INTRO_END = "`TeamCreate`가 없는 경우 Agent 도구로 병렬 에이전트를 직접 스폰합니다."
-TEAM_INTRO_REPLACEMENT = """가능하면 Codex multi-agent 도구로 4개의 전문 분석을 병렬 실행합니다. multi-agent 도구가 없으면 같은 기준으로 직접 분석합니다.
-
-Codex에서 multi-agent 도구가 사용 가능한 경우:
-
-```
-1. 코드 감사 목적의 팀/작업 컨텍스트를 만든다
-2. 4개 감사 태스크를 병렬로 실행한다
-3. 각 에이전트의 결과를 수집한다
-4. 사용한 팀/세션 리소스를 정리한다
-```"""
-
-TEAM_SHUTDOWN_START = "#### Team 종료"
-TEAM_SHUTDOWN_END = "```"  # second fence after the start marker closes the block
 
 
 def strip_claude_frontmatter(text):
@@ -122,58 +55,9 @@ def strip_claude_frontmatter(text):
     return "\n".join(out)
 
 
-def replace_region(text, start_marker, end_marker, replacement):
-    """Replace the inclusive line range [start_marker, end_marker] with replacement."""
-    lines = text.split("\n")
-    try:
-        start = lines.index(start_marker)
-    except ValueError:
-        return text
-    end = start + 1 + lines[start + 1:].index(end_marker)
-    return "\n".join(lines[:start] + replacement.split("\n") + lines[end + 1:])
-
-
-def remove_region(text, start_marker, end_marker, occurrence=1):
-    """Remove lines from start_marker through the Nth end_marker, plus one trailing blank line."""
-    lines = text.split("\n")
-    try:
-        start = lines.index(start_marker)
-    except ValueError:
-        return text
-    end = start
-    for _ in range(occurrence):
-        end = end + 1 + lines[end + 1:].index(end_marker)
-    if end + 1 < len(lines) and lines[end + 1] == "":
-        end += 1
-    return "\n".join(lines[:start] + lines[end + 1:])
-
-
-def replacements_for(name):
-    """Keep project instruction filenames in scaffolding and documentation inventory."""
-    if name in ("nextjs-init", "docs-read"):
-        return [(old, new) for old, new in REPLACEMENTS if old != "CLAUDE.md"]
-    return REPLACEMENTS
-
-
-def transform(name, text):
+def transform(text):
     text = strip_claude_frontmatter(text)
-    if name == "claude-code-usage":
-        text = replace_region(text, "## Claude Code", "## Codex", "## Codex")
-        text = text.replace(
-            "description: Claude Code 도구 사용 규약 — 계획 모드, 서브에이전트, 작업 추적, 병렬 호출. Claude Code feature-usage conventions.",
-            "description: Codex 도구 사용 규약 — 계획, 스킬 로딩, 서브에이전트, 작업 추적, 병렬 호출. Codex feature-usage conventions.",
-        )
-    if name == "anti-patterns":
-        text = replace_region(
-            text, "## Claude Code 고유", "## Working If / 잘 작동하고 있다는 신호",
-            "## Working If / 잘 작동하고 있다는 신호",
-        )
-    if name == "code-audit":
-        text = replace_region(text, TEAM_INTRO_START, TEAM_INTRO_END, TEAM_INTRO_REPLACEMENT)
-        text = remove_region(text, TEAM_SHUTDOWN_START, TEAM_SHUTDOWN_END, occurrence=2)
-        for n in range(1, 5):
-            text = text.replace(f"#### Agent {n}:", f"#### Analysis {n}:")
-    for old, new in replacements_for(name):
+    for old, new in REPLACEMENTS:
         text = text.replace(old, new)
     return text
 
@@ -195,7 +79,7 @@ def main():
         for src in sources:
             rel = src.relative_to(skill_dir)
             label = name if str(rel) == "SKILL.md" else f"{name}/{rel}"
-            generated = transform(name, src.read_text(encoding="utf-8"))
+            generated = transform(src.read_text(encoding="utf-8"))
             dst = CODEX_SKILLS / name / rel
             expected.add(dst)
             if check_mode:

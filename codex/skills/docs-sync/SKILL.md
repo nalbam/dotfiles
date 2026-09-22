@@ -11,7 +11,7 @@ description: Verify docs against code and fix gaps. 코드↔문서 정합 검�
 
 - 기본 대상은 루트 안내 문서와 `docs/`다. 코드 주석·docstring·CHANGELOG는 요청에 포함된 경우에 다룬다.
 - 생성 문서는 원본을 수정하고 재생성한다. 기존 문서 위치와 구조를 우선한다.
-- 코드·문서 탐색은 `skills/code-audit/SKILL.md#exclude-patterns`를 참고한다.
+- 의존성·캐시·빌드 출력은 해당 설명 검증에 필요한 경우에만 읽는다.
 
 ## Workflow
 

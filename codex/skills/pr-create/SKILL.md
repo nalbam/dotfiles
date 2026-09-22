@@ -1,6 +1,6 @@
 ---
 name: pr-create
-description: Create pull request with proper format. PR 생성, 변경사항 분석, PR 메시지 작성.
+description: Create a pull request from the full branch diff. 전체 변경 분석·본문 작성·PR 생성.
 ---
 
 # Create Pull Request
