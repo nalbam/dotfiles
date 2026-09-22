@@ -1,7 +1,6 @@
 ---
 name: docs-sync
 description: Verify docs against code and fix gaps. 코드↔문서 정합 검증·수정, 문서 동기화, 문서 갱신. 읽고 파악만 하려면 docs-read.
-allowed-tools: Read, Edit, Bash, Grep, Glob, Agent
 ---
 
 # Documentation Sync

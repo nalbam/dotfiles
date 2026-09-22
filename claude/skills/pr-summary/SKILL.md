@@ -1,9 +1,7 @@
 ---
 name: pr-summary
 description: Analyze all PR changes and update PR description with accurate summary. PR 변경사항 분석 후 정확한 요약으로 PR 설명 업데이트.
-allowed-tools: Read, Bash, Grep, Glob
 disable-model-invocation: true
-argument-hint: [pr-number]
 ---
 
 # PR Summary Update

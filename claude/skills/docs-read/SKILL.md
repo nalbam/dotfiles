@@ -1,7 +1,6 @@
 ---
 name: docs-read
 description: Read project documentation for explicit onboarding or a project-overview request. Read-only. 프로젝트 온보딩·전체 구조 파악을 명시적으로 요청할 때 사용. 일반 구현의 관련 문서 확인이나 문서 수정은 대상 아님.
-allowed-tools: Read, Bash, Grep, Glob
 ---
 
 # Documentation Read

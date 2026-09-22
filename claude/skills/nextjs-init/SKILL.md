@@ -1,7 +1,6 @@
 ---
 name: nextjs-init
 description: Scaffold a new Next.js project with the opinionated stack (Mantine, Better Auth, DynamoDB). 새 Next.js 프로젝트 생성·초기 셋업·보일러플레이트.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Next.js Project Init

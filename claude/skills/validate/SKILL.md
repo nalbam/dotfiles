@@ -1,7 +1,6 @@
 ---
 name: validate
 description: Run lint, typecheck, and tests. Fix issues at root cause; stop and report when unfixable. 린트, 타입체크, 테스트 실행. 문제 자동 수정, 수정 불가 시 보고.
-allowed-tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
 # Validate

@@ -1,7 +1,6 @@
 ---
 name: code-review
 description: Review the current diff or a pull request and report severity-ranked, actionable findings without changing code. 변경분·PR 코드 리뷰, 위험·회귀·테스트 누락 분석. 저장소 전체 감사는 code-audit, 검사 실행·수정은 validate.
-allowed-tools: Read, Bash, Grep, Glob
 ---
 
 # Code Review
