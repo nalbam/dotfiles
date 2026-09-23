@@ -96,7 +96,7 @@ bash -n macos
 | `tt` | dotfiles 재설치 |
 | `c <workspace>` | toast-cli 워크스페이스 디렉터리 이동 |
 | `av <profile> <cmd>` | aws-vault 프로파일 실행 (e.g. `av n kubectl get pods`) |
-| `nn` / `nb` | Node.js: clean install / build (npm·pnpm·yarn 자동 판별) |
+| `nn` / `nnn` / `nb` | Node.js: lockfile 기준 재설치 / lockfile 삭제 후 새 버전 설치 / build (npm·pnpm·yarn 자동 판별) |
 | `ss` / `sl` / `sk` | 로컬 dev 서버 (node dev 또는 python http.server 자동): start / list / kill |
 | `tf*` | Terraform: plan/apply/destroy/state |
 | `tm*` | tmux: new / attach / list / kill |

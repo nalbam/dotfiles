@@ -117,7 +117,7 @@ alias avl='av list'
 
 # Terraform
 alias tf='terraform'
-alias tfc='rm -rf .terraform .terraform.lock.hcl'
+alias tfc='echo "Removing Terraform cache and lockfile..." && rm -rf .terraform .terraform.lock.hcl'
 alias tff='m && tf init -upgrade && tf fmt'
 alias tfp='m && tf init -upgrade && tf fmt && tf plan'
 alias tfa='m && tf init -upgrade && tf fmt && tf apply'
@@ -168,24 +168,40 @@ np() {
 nn() {
   case "$(np)" in
     pnpm)
-      echo "Cleaning and reinstalling with pnpm..."
+      echo "Reinstalling from pnpm lockfile..."
+      rm -rf node_modules .next && pnpm install --frozen-lockfile
+      ;;
+    yarn)
+      echo "Reinstalling from yarn lockfile..."
+      rm -rf node_modules dist && yarn install --frozen-lockfile
+      ;;
+    *)
+      echo "Reinstalling from npm lockfile..."
+      rm -rf node_modules dist && npm ci
+      ;;
+  esac
+}
+nnn() {
+  case "$(np)" in
+    pnpm)
+      echo "Installing fresh versions with pnpm..."
       rm -rf node_modules pnpm-lock.yaml .next && pnpm install
       ;;
     yarn)
-      echo "Cleaning and reinstalling with yarn..."
+      echo "Installing fresh versions with yarn..."
       rm -rf node_modules yarn.lock dist && yarn install
       ;;
     *)
-      echo "Cleaning and reinstalling with npm..."
+      echo "Installing fresh versions with npm..."
       rm -rf node_modules package-lock.json dist && npm install
       ;;
   esac
 }
 nb() {
   case "$(np)" in
-    pnpm) pnpm build ;;
-    yarn) yarn build ;;
-    *) npm run build ;;
+    pnpm) echo "Building with pnpm..."; pnpm build ;;
+    yarn) echo "Building with yarn..."; yarn build ;;
+    *) echo "Building with npm..."; npm run build ;;
   esac
 }
 
@@ -198,7 +214,7 @@ alias pip='pip3'
 alias pipi='pip install'
 alias pipu='pip install --upgrade'
 alias pipr='pip install -r requirements.txt'
-alias pipf='pip freeze > requirements.txt'
+alias pipf='echo "Writing requirements.txt from installed packages..." && pip freeze > requirements.txt'
 alias pipl='pip list'
 
 # Color diff
