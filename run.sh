@@ -47,13 +47,46 @@ _echo() {
   fi
 }
 
+# Banner text is ASCII, so character counts match terminal columns.
+_box() {
+  local color="$1" title="$2" subtitle="$3"
+  local columns=67 size width inner border line left right
+
+  if [ -t 1 ]; then
+    # Query stdout's terminal even when stdin is a pipe (curl | bash).
+    { size=$(stty size 2>/dev/null); } <&1
+    columns="${size##* }"
+  fi
+
+  case "$columns" in
+    '' | *[!0-9]*) _echo "$title" "$color"; return ;;
+  esac
+
+  # Leave one column free to avoid wrapping at the terminal's right edge.
+  width=$((columns - 1))
+  [ "$width" -le 66 ] || width=66
+  if [ "$width" -lt $((${#title} + 4)) ]; then
+    _echo "$title" "$color"
+    return
+  fi
+
+  inner=$((width - 2))
+  border=$(printf '%*s' "$inner" '')
+  border=${border// /═}
+  _echo "╔${border}╗" "$color"
+  for line in "$title" "$subtitle"; do
+    [ -n "$line" ] && [ "${#line}" -le $((inner - 2)) ] || continue
+    left=$(((inner - ${#line}) / 2))
+    right=$((inner - ${#line} - left))
+    _echo "$(printf '║%*s%s%*s║' "$left" '' "$line" "$right" '')" "$color"
+  done
+  _echo "╚${border}╝" "$color"
+}
+
 # 시작 배너 출력 함수
 _banner() {
   _echo
-  _echo "╔════════════════════════════════════════════════════════════════╗" 6
-  _echo "║                       DOTFILES INSTALLER                       ║" 6
-  _echo "║          Development Environment Setup Automation Tool         ║" 6
-  _echo "╚════════════════════════════════════════════════════════════════╝" 6
+  _box 6 "DOTFILES INSTALLER" "Development Environment Setup Automation Tool"
 }
 
 # 진행률 표시 함수
@@ -98,9 +131,7 @@ _error() {
 # 최종 성공 메시지 출력 함수 (초록)
 _success() {
   _echo
-  _echo "╔════════════════════════════════════════════════════════════════╗" 2
-  _echo "║                    INSTALLATION COMPLETED!                     ║" 2
-  _echo "╚════════════════════════════════════════════════════════════════╝" 2
+  _box 2 "INSTALLATION COMPLETED!"
   if [ "${WARN_COUNT}" -gt 0 ]; then
     _echo "\n  ⚠ Completed with ${WARN_COUNT} warning(s) — review the ⚠ lines above." 3
   fi
