@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
 
-# Thanks to Mathias Bynens!
-# ~/.macos — https://mths.be/macos
+# Based on Mathias Bynens' ~/.macos — https://mths.be/macos
+# Preference consumers checked on macOS 26.6; app overrides may take precedence.
 
 # Let the installer record completion only when all settings succeed.
 set -e
 
-# Close any open System Preferences panes, to prevent them from overriding
-# settings we’re about to change
-osascript -e 'tell application "System Preferences" to quit'
+# Close System Settings so it cannot overwrite pending preference changes.
+osascript -e 'tell application id "com.apple.systempreferences" to quit'
 
-# Ask for the administrator password upfront
+# Authenticate for the startup sound setting.
 sudo -v
-
-# Keep-alive: update existing `sudo` time stamp until `.macos` has finished
 while true; do
   sudo -n true
   sleep 60
@@ -21,260 +18,131 @@ while true; do
 done 2>/dev/null &
 
 ###############################################################################
-# General UI/UX                                                               #
+# Sound                                                                       #
 ###############################################################################
 
-# Disable the sound effects on boot
-sudo nvram SystemAudioVolume=" "
+# Mute the startup chime using the current Sound settings NVRAM key.
+# https://support.apple.com/102230
+sudo nvram StartupMute=%01
 
-# Increase window resize speed for Cocoa applications
-defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
+###############################################################################
+# Keyboard and text input                                                     #
+###############################################################################
 
-# Disable Notification Center and remove the menu bar icon
-# launchctl unload -w /System/Library/LaunchAgents/com.apple.notificationcenterui.plist 2> /dev/null
+# Repeat held keys instead of opening the accent selection menu.
+defaults write -g ApplePressAndHoldEnabled -bool false
+# Use a fast repeat rate and a short delay before repeating.
+defaults write NSGlobalDomain KeyRepeat -int 2
+defaults write NSGlobalDomain InitialKeyRepeat -int 15
 
-# Disable automatic capitalization as it’s annoying when typing code
-# defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
-
-# Disable smart dashes as they’re annoying when typing code
+# Disable substitutions that alter source code in Cocoa text fields.
+defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
 defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
-
-# Disable automatic period substitution as it’s annoying when typing code
-# defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
-
-# Disable smart quotes as they’re annoying when typing code
 defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
-
-# Disable auto-correct
 defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
-###############################################################################
-# Trackpad, mouse, keyboard, Bluetooth accessories, and input                 #
-###############################################################################
-
-# Could not write domain com.apple.universalaccess; exiting
-# defaults write com.apple.universalaccess mouseDriverCursorSize -int 2
-
-# Increase sound quality for Bluetooth headphones/headsets
-defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" -int 40
+# Keep double-space period insertion enabled.
+defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool true
 
 ###############################################################################
-# Energy saving                                                               #
+# Windows and screenshots                                                     #
 ###############################################################################
 
-# Enable lid wakeup
-# sudo pmset -a lidwake 1
+# Speed up animated frame resizing in apps using NSWindow's default timing.
+# https://developer.apple.com/documentation/appkit/nswindow/animationresizetime(_:)
+defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
 
-# Restart automatically on power loss
-# sudo pmset -a autorestart 1
-
-# Restart automatically if the computer freezes
-# sudo systemsetup -setrestartfreeze on
-
-# Sleep the display after 15 minutes
-# sudo pmset -a displaysleep 15
-
-# Disable machine sleep while charging
-# sudo pmset -c sleep 0
-
-# Set machine sleep to 5 minutes on battery
-# sudo pmset -b sleep 5
-
-# Set standby delay to 24 hours (default is 1 hour)
-# sudo pmset -a standbydelay 86400
-
-# Never go into computer sleep mode
-# sudo systemsetup -setcomputersleep Off >/dev/null
-
-# Hibernation mode
-# 0: Disable hibernation (speeds up entering sleep mode)
-# 3: Copy RAM to disk so the system state can still be restored in case of a
-#    power failure.
-# sudo pmset -a hibernatemode 0
-
-###############################################################################
-# Screen                                                                      #
-###############################################################################
-
-# Re-enable subpixel antialiasing
-defaults write -g CGFontRenderingFontSmoothingDisabled -bool FALSE
-
-# Require password immediately after sleep or screen saver begins
-defaults write com.apple.screensaver askForPassword -int 1
-defaults write com.apple.screensaver askForPasswordDelay -int 0
-
-# Save screenshots to the clipboard
+# Save screenshots to the clipboard.
 defaults write com.apple.screencapture target -string "clipboard"
 
-# Disable shadow in screenshots
-# defaults write com.apple.screencapture disable-shadow -bool true
-
 ###############################################################################
-# Finder                                                                      #
+# Finder and file storage                                                     #
 ###############################################################################
 
-# Finder: allow quitting via ⌘ + Q; doing so will also hide desktop icons
-# defaults write com.apple.finder QuitMenuItem -bool true
-
-# Finder: disable window animations and Get Info animations
-defaults write com.apple.finder DisableAllAnimations -bool true
-
-# Finder: show hidden files by default
-# defaults write com.apple.finder AppleShowAllFiles -bool true
-
-# Finder: show all filename extensions
+# Prefer list view, visible filename extensions, and folders first by name.
+# Existing per-folder view settings can override the default view style.
+defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
 defaults write NSGlobalDomain AppleShowAllExtensions -bool true
-
-# Finder: show status bar
-# defaults write com.apple.finder ShowStatusBar -bool true
-
-# Finder: show path bar
-# defaults write com.apple.finder ShowPathbar -bool true
-
-# Display full POSIX path as Finder window title
-# defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
-
-# Keep folders on top when sorting by name
 defaults write com.apple.finder _FXSortFoldersFirst -bool true
 
-# When performing a search, search the current folder by default
+# Show the folder path, item counts, and available disk space.
+defaults write com.apple.finder ShowPathbar -bool true
+defaults write com.apple.finder ShowStatusBar -bool true
+
+# Search the current folder and disable Finder window animations.
 defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+defaults write com.apple.finder DisableAllAnimations -bool true
 
-# Disable the warning when changing a file extension
+# Disable confirmation when changing extensions or emptying the Trash.
 defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
-
-# Enable spring loading for directories
-# defaults write NSGlobalDomain com.apple.springing.enabled -bool true
-
-# Remove the spring loading delay for directories
-# defaults write NSGlobalDomain com.apple.springing.delay -float 0
-
-# Avoid creating .DS_Store files on network or USB volumes
-defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
-defaults write com.apple.desktopservices DSDontWriteUSBStores -bool true
-
-# Use list view in all Finder windows by default
-# Four-letter codes for the other view modes: `icnv`, `clmv`, `glyv`
-defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
-
-# Disable the warning before emptying the Trash
 defaults write com.apple.finder WarnOnEmptyTrash -bool false
 
-# Enable AirDrop over Ethernet and on unsupported Macs running Lion
+# Skip .DS_Store files on network volumes; existing files are not removed.
+# https://support.apple.com/102064
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+
+# Browse all interfaces for network sharing discovery through sharingd.
 defaults write com.apple.NetworkBrowser BrowseAllInterfaces -bool true
 
-# Show the ~/Library folder
-chflags nohidden ~/Library # && xattr -d com.apple.FinderInfo ~/Library
+# Show the user's Library folder.
+chflags nohidden ~/Library
 
-###############################################################################
-# Dock, Dashboard, and hot corners                                            #
-###############################################################################
-
-# Enable highlight hover effect for the grid view of a stack (Dock)
-defaults write com.apple.dock mouse-over-hilite-stack -bool true
-
-# Set the icon size of Dock items
-defaults write com.apple.dock tilesize -int 36
-defaults write com.apple.dock largesize -int 60
-
-# Change minimize/maximize window effect
-defaults write com.apple.dock mineffect -string "genie"
-
-# Minimize windows into their application’s icon
-defaults write com.apple.dock minimize-to-application -bool true
-
-# Show only open applications in the Dock
-# defaults write com.apple.dock static-only -bool true
-
-# Don’t show recent applications in Dock
-# defaults write com.apple.dock show-recents -bool false
-
-# Disable Dashboard
-defaults write com.apple.dashboard mcx-disabled -bool true
-
-# Don’t show Dashboard as a Space
-defaults write com.apple.dock dashboard-in-overlay -bool true
-
-# Hot corners
-# Possible values:
-#  0: no-op
-#  2: Mission Control
-#  3: Show application windows
-#  4: Desktop
-#  5: Start screen saver
-#  6: Disable screen saver
-#  7: Dashboard
-# 10: Put display to sleep
-# 11: Launchpad
-# 12: Notification Center
-# 13: Lock Screen
-# 14: Memo
-defaults write com.apple.dock wvous-tl-corner -int 6 # Disable screen saver
-defaults write com.apple.dock wvous-tr-corner -int 6 # Disable screen saver
-defaults write com.apple.dock wvous-bl-corner -int 6 # Disable screen saver
-defaults write com.apple.dock wvous-br-corner -int 13 # Lock Screen
-
-###############################################################################
-# Safari & WebKit                                                             #
-###############################################################################
-
-# Privacy: don’t send search queries to Apple
-# defaults write com.apple.Safari UniversalSearchEnabled -bool false
-# defaults write com.apple.Safari SuppressSearchSuggestions -bool true
-
-# Show the full URL in the address bar (note: this still hides the scheme)
-# defaults write com.apple.Safari ShowFullURLInSmartSearchField -bool true
-
-# Set Safari’s home page to `about:blank` for faster loading
-# defaults write com.apple.Safari HomePage -string "about:blank"
-
-# Update extensions automatically
-# defaults write com.apple.Safari InstallExtensionUpdatesAutomatically -bool true
-
-###############################################################################
-# Terminal & iTerm 2                                                          #
-###############################################################################
-
-# Only use UTF-8 in Terminal.app
-defaults write com.apple.terminal StringEncodings -array 4
-
-# Don’t display the annoying prompt when quitting iTerm
-defaults write com.googlecode.iterm2 PromptOnQuit -bool false
-
-# Set the window size
-# defaults write com.googlecode.iterm2 "New Bookmarks" Columns -int 240
-# defaults write com.googlecode.iterm2 "New Bookmarks" Rows -int 50
-
-# Increase scrollback lines
-# defaults write com.googlecode.iterm2 "New Bookmarks" ScrollbackLines -int 9000
-
-###############################################################################
-# Time Machine                                                                #
-###############################################################################
-
-# Prevent Time Machine from prompting to use new hard drives as backup volume
+# Do not offer newly connected disks as Time Machine backup destinations.
 defaults write com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true
 
-# Disable local Time Machine backups
-# hash tmutil &> /dev/null && sudo tmutil disablelocal
+###############################################################################
+# Dock and hot corners                                                        #
+###############################################################################
+
+defaults write com.apple.dock mouse-over-hilite-stack -bool true
+defaults write com.apple.dock tilesize -int 36
+# Used when Dock magnification is enabled in the user's settings.
+defaults write com.apple.dock largesize -int 60
+defaults write com.apple.dock mineffect -string "genie"
+defaults write com.apple.dock minimize-to-application -bool true
+
+# Three corners prevent the screen saver; bottom-right locks the screen.
+defaults write com.apple.dock wvous-tl-corner -int 6
+defaults write com.apple.dock wvous-tr-corner -int 6
+defaults write com.apple.dock wvous-bl-corner -int 6
+defaults write com.apple.dock wvous-br-corner -int 13
+
+###############################################################################
+# Terminal applications                                                       #
+###############################################################################
+
+# Use UTF-8 in Terminal and disable iTerm2's quit confirmation.
+defaults write com.apple.Terminal StringEncodings -array 4
+defaults write com.googlecode.iterm2 PromptOnQuit -bool false
 
 ###############################################################################
 # Activity Monitor                                                            #
 ###############################################################################
 
-# Show the main window when launching Activity Monitor
+# Open the main window, show all processes sorted by CPU, and use a CPU meter.
 defaults write com.apple.ActivityMonitor OpenMainWindow -bool true
-
-# Visualize CPU usage in the Activity Monitor Dock icon
-defaults write com.apple.ActivityMonitor IconType -int 5
-
-# Show all processes in Activity Monitor
 defaults write com.apple.ActivityMonitor ShowCategory -int 0
-
-# Sort Activity Monitor results by CPU usage
 defaults write com.apple.ActivityMonitor SortColumn -string "CPUUsage"
 defaults write com.apple.ActivityMonitor SortDirection -int 0
+defaults write com.apple.ActivityMonitor IconType -int 5
 
-# Keep the desktop and terminal alive so the installer can finish and record
-# success. Apply pending UI changes at the user's next logout or restart.
+###############################################################################
+# Screen lock                                                                 #
+###############################################################################
+
+# Ordinary com.apple.screensaver defaults do not configure the effective lock
+# delay on current macOS. sysadminctl authenticates with the login password;
+# '-' prompts without exposing it in command arguments or logs.
+SCREEN_LOCK_STATUS=$(sysadminctl -screenLock status 2>&1)
+if [[ "$SCREEN_LOCK_STATUS" != *"screenLock delay is immediate"* ]]; then
+  echo "Setting immediate screen lock; enter your macOS login password when prompted."
+  sysadminctl -screenLock immediate -password -
+  SCREEN_LOCK_STATUS=$(sysadminctl -screenLock status 2>&1)
+  if [[ "$SCREEN_LOCK_STATUS" != *"screenLock delay is immediate"* ]]; then
+    echo "Failed to verify immediate screen lock." >&2
+    exit 1
+  fi
+fi
+
+# Keep the desktop and terminal alive so the installer can record success.
 echo "Done. After installation completes, log out or restart to apply pending UI changes."

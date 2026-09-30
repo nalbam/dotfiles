@@ -60,6 +60,27 @@ defaults() {
   return "${TEST_DEFAULTS_STATUS:-0}"
 }
 chflags() { printf 'chflags %s\n' "$*" >> "$HOME/commands"; }
+sysadminctl() {
+  printf 'sysadminctl %s\n' "$*" >> "$HOME/commands"
+  if [ "$1" != -screenLock ]; then return 1; fi
+  if [ "$2" = status ]; then
+    if [ -f "$HOME/screen-lock-immediate" ]; then
+      printf 'screenLock delay is immediate\n' >&2
+      return "${TEST_SCREEN_LOCK_VERIFY_STATUS:-0}"
+    fi
+    printf 'screenLock delay is %s\n' "${TEST_SCREEN_LOCK_DELAY:-immediate}" >&2
+    return "${TEST_SCREEN_LOCK_STATUS:-0}"
+  fi
+  if [ "$2" != immediate ] || [ "$3" != -password ] || [ "$4" != - ]; then
+    return 1
+  fi
+  if [ "${TEST_SCREEN_LOCK_SET_STATUS:-0}" != 0 ]; then
+    return "$TEST_SCREEN_LOCK_SET_STATUS"
+  fi
+  if [ "${TEST_SCREEN_LOCK_NO_CHANGE:-0}" = 0 ]; then
+    touch "$HOME/screen-lock-immediate"
+  fi
+}
 killall() {
   printf 'killall %s\n' "$*" >> "$HOME/commands"
   # Model losing the terminal by signaling only this test's installer shell.
@@ -67,7 +88,7 @@ killall() {
 }
 # End the mocked sudo keep-alive immediately, without a background sleep.
 sleep() { exit 0; }
-export -f osascript sudo defaults chflags killall sleep
+export -f osascript sudo defaults chflags sysadminctl killall sleep
 ''' + step + '\nprintf "NEXT_STEP\\n"\n'
 
     def invoke(self, **overrides):
@@ -154,6 +175,34 @@ export -f osascript sudo defaults chflags killall sleep
         self.assert_continues(self.invoke())
         self.assertTrue(self.marker.exists())
         self.assertGreater(len(self.log.read_text()), len(calls))
+
+    def test_immediate_screen_lock_does_not_prompt_for_password(self):
+        self.assert_continues(self.invoke())
+        calls = self.log.read_text()
+        self.assertIn("sysadminctl -screenLock status", calls)
+        self.assertNotIn("sysadminctl -screenLock immediate", calls)
+
+    def test_screen_lock_change_is_verified_before_recording_success(self):
+        self.assert_continues(self.invoke(TEST_SCREEN_LOCK_DELAY="60 seconds"))
+        calls = self.log.read_text()
+        self.assertIn("sysadminctl -screenLock immediate -password -", calls)
+        self.assertEqual(calls.count("sysadminctl -screenLock status"), 2)
+        self.assertTrue((self.home / "screen-lock-immediate").exists())
+        self.assertTrue(self.marker.exists())
+
+    def test_screen_lock_failures_do_not_record_success_and_retry(self):
+        for failure in ("TEST_SCREEN_LOCK_STATUS", "TEST_SCREEN_LOCK_SET_STATUS",
+                        "TEST_SCREEN_LOCK_NO_CHANGE", "TEST_SCREEN_LOCK_VERIFY_STATUS"):
+            with self.subTest(failure=failure):
+                self.marker.unlink(missing_ok=True)
+                (self.home / "screen-lock-immediate").unlink(missing_ok=True)
+                result = self.invoke(TEST_SCREEN_LOCK_DELAY="60 seconds", **{failure: "1"})
+                self.assert_continues(result)
+                self.assertFalse(self.marker.exists())
+                self.assertIn("macOS system preferences failed", result.stdout)
+                self.assertNotIn("macOS system preferences applied", result.stdout)
+                self.assert_continues(self.invoke(TEST_SCREEN_LOCK_DELAY="60 seconds"))
+                self.assertTrue(self.marker.exists())
 
     def test_linux_skips_macos_preferences(self):
         self.assert_continues(self.invoke(TEST_OS_NAME="linux", TEST_OS_ARCH="x86_64"))
