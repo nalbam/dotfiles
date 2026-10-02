@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Offline macOS setup regressions; never changes preferences or closes real apps."""
 
+import fcntl
 import os
 from pathlib import Path
 import signal
 import shutil
 import subprocess
 import tempfile
+import termios
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -49,7 +51,19 @@ cp() {
 osascript() { printf 'osascript %s\n' "$*" >> "$HOME/commands"; }
 sudo() {
   printf 'sudo %s\n' "$*" >> "$HOME/commands"
-  return "${TEST_SUDO_STATUS:-0}"
+  if [ "${TEST_SUDO_STATUS:-0}" != 0 ]; then return "$TEST_SUDO_STATUS"; fi
+  if [ "$1" = nvram ]; then shift; nvram "$@"; fi
+}
+nvram() {
+  printf 'nvram %s\n' "$*" >> "$HOME/commands"
+  if [ "$1" = StartupMute ]; then
+    if [ "${TEST_NVRAM_READ_STATUS:-0}" != 0 ]; then return "$TEST_NVRAM_READ_STATUS"; fi
+    printf 'StartupMute\t%s\n' "${TEST_STARTUP_MUTE:-%01}"
+  elif [ "$1" = StartupMute=%01 ]; then
+    return "${TEST_NVRAM_WRITE_STATUS:-0}"
+  else
+    return 1
+  fi
 }
 defaults() {
   printf 'defaults %s\n' "$*" >> "$HOME/commands"
@@ -74,6 +88,11 @@ sysadminctl() {
   if [ "$2" != immediate ] || [ "$3" != -password ] || [ "$4" != - ]; then
     return 1
   fi
+  # sysadminctl reads stdin instead of opening /dev/tty for piped installers.
+  if [ ! -t 0 ]; then
+    printf 'Password is required!\n' >&2
+    return 0
+  fi
   if [ "${TEST_SCREEN_LOCK_SET_STATUS:-0}" != 0 ]; then
     return "$TEST_SCREEN_LOCK_SET_STATUS"
   fi
@@ -86,15 +105,29 @@ killall() {
   # Model losing the terminal by signaling only this test's installer shell.
   if [ "$1" = Terminal ]; then kill -HUP "$TEST_INSTALLER_PID"; fi
 }
-# End the mocked sudo keep-alive immediately, without a background sleep.
-sleep() { exit 0; }
-export -f osascript sudo defaults chflags sysadminctl killall sleep
+export -f osascript sudo nvram defaults chflags sysadminctl killall
 ''' + step + '\nprintf "NEXT_STEP\\n"\n'
 
-    def invoke(self, **overrides):
-        return subprocess.run(["/bin/bash", "-c", self.script],
-                              env=dict(self.env, **overrides), cwd=self.temp.name,
-                              capture_output=True, text=True, timeout=5)
+    def invoke(self, *, terminal=True, **overrides):
+        master, slave = os.openpty() if terminal else (None, None)
+
+        def attach_terminal():
+            os.setsid()
+            if terminal:
+                fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+
+        try:
+            # Feed the installer through a pipe, as in curl | bash. A controlling
+            # terminal remains available for authentication unless disabled.
+            return subprocess.run(["/bin/bash"], input=self.script,
+                                  env=dict(self.env, **overrides), cwd=self.temp.name,
+                                  capture_output=True, text=True, timeout=5,
+                                  preexec_fn=attach_terminal,
+                                  pass_fds=(slave,) if terminal else ())
+        finally:
+            if terminal:
+                os.close(master)
+                os.close(slave)
 
     def assert_continues(self, result):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -132,11 +165,11 @@ export -f osascript sudo defaults chflags sysadminctl killall sleep
         self.assertTrue(self.marker.exists())
 
     def test_authentication_and_preference_failures_retry(self):
-        for failure in ("TEST_SUDO_STATUS", "TEST_DEFAULTS_STATUS"):
+        for failure in ("TEST_SUDO_STATUS", "TEST_NVRAM_WRITE_STATUS", "TEST_DEFAULTS_STATUS"):
             with self.subTest(failure=failure):
                 self.marker.unlink(missing_ok=True)
                 self.log.unlink(missing_ok=True)
-                result = self.invoke(**{failure: "1"})
+                result = self.invoke(TEST_STARTUP_MUTE="%00", **{failure: "1"})
                 self.assert_continues(result)
                 self.assertFalse(self.marker.exists())
                 self.assertIn("macOS system preferences failed", result.stdout)
@@ -177,10 +210,31 @@ export -f osascript sudo defaults chflags sysadminctl killall sleep
         self.assertGreater(len(self.log.read_text()), len(calls))
 
     def test_immediate_screen_lock_does_not_prompt_for_password(self):
-        self.assert_continues(self.invoke())
+        self.assert_continues(self.invoke(terminal=False))
         calls = self.log.read_text()
         self.assertIn("sysadminctl -screenLock status", calls)
         self.assertNotIn("sysadminctl -screenLock immediate", calls)
+        self.assertNotIn("sudo", calls)
+
+    def test_startup_sound_authenticates_only_when_mute_is_needed(self):
+        for overrides in ({"TEST_STARTUP_MUTE": "%00"}, {"TEST_NVRAM_READ_STATUS": "1"}):
+            with self.subTest(overrides=overrides):
+                self.marker.unlink(missing_ok=True)
+                self.log.unlink(missing_ok=True)
+                self.assert_continues(self.invoke(**overrides))
+                calls = self.log.read_text()
+                self.assertEqual(calls.count("sudo "), 1)
+                self.assertIn("sudo nvram StartupMute=%01", calls)
+
+    def test_screen_lock_without_terminal_reports_action_and_retries(self):
+        result = self.invoke(terminal=False, TEST_SCREEN_LOCK_DELAY="60 seconds")
+        self.assert_continues(result)
+        self.assertIn("terminal", result.stderr)
+        self.assertIn("Lock Screen", result.stderr)
+        self.assertFalse(self.marker.exists())
+        self.assertNotIn("sysadminctl -screenLock immediate", self.log.read_text())
+        self.assert_continues(self.invoke(TEST_SCREEN_LOCK_DELAY="60 seconds"))
+        self.assertTrue(self.marker.exists())
 
     def test_screen_lock_change_is_verified_before_recording_success(self):
         self.assert_continues(self.invoke(TEST_SCREEN_LOCK_DELAY="60 seconds"))
@@ -189,6 +243,8 @@ export -f osascript sudo defaults chflags sysadminctl killall sleep
         self.assertEqual(calls.count("sysadminctl -screenLock status"), 2)
         self.assertTrue((self.home / "screen-lock-immediate").exists())
         self.assertTrue(self.marker.exists())
+        self.assert_continues(self.invoke())
+        self.assertEqual(self.log.read_text(), calls)
 
     def test_screen_lock_failures_do_not_record_success_and_retry(self):
         for failure in ("TEST_SCREEN_LOCK_STATUS", "TEST_SCREEN_LOCK_SET_STATUS",

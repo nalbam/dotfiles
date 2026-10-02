@@ -9,21 +9,16 @@ set -e
 # Close System Settings so it cannot overwrite pending preference changes.
 osascript -e 'tell application id "com.apple.systempreferences" to quit'
 
-# Authenticate for the startup sound setting.
-sudo -v
-while true; do
-  sudo -n true
-  sleep 60
-  kill -0 "$$" || exit
-done 2>/dev/null &
-
 ###############################################################################
 # Sound                                                                       #
 ###############################################################################
 
 # Mute the startup chime using the current Sound settings NVRAM key.
 # https://support.apple.com/102230
-sudo nvram StartupMute=%01
+# Only this setting needs sudo; avoid authentication when already muted.
+if ! STARTUP_MUTE=$(nvram StartupMute 2>/dev/null) || [[ "$STARTUP_MUTE" != $'StartupMute\t%01' ]]; then
+  sudo nvram StartupMute=%01
+fi
 
 ###############################################################################
 # Keyboard and text input                                                     #
@@ -135,8 +130,15 @@ defaults write com.apple.ActivityMonitor IconType -int 5
 # '-' prompts without exposing it in command arguments or logs.
 SCREEN_LOCK_STATUS=$(sysadminctl -screenLock status 2>&1)
 if [[ "$SCREEN_LOCK_STATUS" != *"screenLock delay is immediate"* ]]; then
+  # curl | bash leaves stdin connected to the installer pipe. sysadminctl
+  # needs terminal input to prompt instead of consuming that pipe as a password.
+  if ! { exec 3</dev/tty; } 2>/dev/null; then
+    echo "Immediate screen lock requires a terminal for authentication. Re-run from Terminal, or set the password delay to Immediately in System Settings > Lock Screen." >&2
+    exit 1
+  fi
   echo "Setting immediate screen lock; enter your macOS login password when prompted."
-  sysadminctl -screenLock immediate -password -
+  sysadminctl -screenLock immediate -password - <&3
+  exec 3<&-
   SCREEN_LOCK_STATUS=$(sysadminctl -screenLock status 2>&1)
   if [[ "$SCREEN_LOCK_STATUS" != *"screenLock delay is immediate"* ]]; then
     echo "Failed to verify immediate screen lock." >&2
