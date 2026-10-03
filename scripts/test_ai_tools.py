@@ -202,7 +202,8 @@ class DeploymentTests(unittest.TestCase):
         self.put(".dotfiles/codex/new.md", "new instructions")
         real_replace = os.replace
         def fail_replace(source, destination):
-            if Path(destination) == target:
+            # macOS temporary paths can use /var aliases for /private/var.
+            if Path(destination).resolve() == target.resolve():
                 raise OSError("simulated disk failure")
             return real_replace(source, destination)
         with patch("pathlib.Path.home", return_value=self.home), patch("os.replace", side_effect=fail_replace):

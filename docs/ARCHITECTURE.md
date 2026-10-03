@@ -1,245 +1,145 @@
 # Architecture
 
-## Overview
+Use this guide when changing the installer or diagnosing a partial installation. For commands to install or deploy settings, start with the [main README](../README.md).
 
-This project is a development environment automation tool that provides consistent setup across different operating systems. It follows a modular architecture with clear separation of concerns.
+## Entry points
+
+| Entry point | Purpose | Preconditions |
+|-------------|---------|---------------|
+| `run.sh` | Full development setup for macOS and APT-based Linux | Run as the target user; Bash, curl, network access, and access to sudo when requested |
+| `run.sh --vibe` | Deploy AI settings only | A populated `~/.dotfiles` checkout and Python 3.11+ |
+| `run.ps1` | Windows Git/Vim links, Git and 7-Zip packages, optional `custom.ps1` | Checkout at `$HOME\.dotfiles`, winget, and permission to create symlinks |
+| `linux/init.sh` | Prepare a fresh Ubuntu server | Root access; see the [Linux guide](../linux/README.md) |
+| `nvim/install.sh` | Copy the Neovim configuration | See the [Neovim guide](../nvim/README.md) |
+
+`run.ps1`, `linux/init.sh`, and `nvim/install.sh` are separate entry points. The full Bash installer does not invoke them. AI settings deployment does not install all AI CLIs.
 
 ## Core Components
 
 ```mermaid
-graph TD
-    A[run.sh] --> B[System Detection]
-    A --> C[Configuration Management]
-    A --> D[Package Management]
-    A --> E[Shell Environment]
-
-    B --> B1[OS Detection]
-    B --> B2[Architecture Detection]
-
-    C --> C1[Git Config]
-    C --> C2[SSH Config]
-    C --> C3[AWS Config]
-    C --> C4[macOS Settings]
-
-    D --> D1[Homebrew]
-    D --> D2[APT]
-    D --> D3[winget]
-
-    E --> E1[ZSH]
-    E --> E2[Oh My ZSH]
-    E --> E3[Dracula Theme]
+flowchart TD
+    A[run.sh] --> B[OS and architecture detection]
+    A --> C[Clone or update ~/.dotfiles]
+    A --> D[Packages and shell setup]
+    A --> E[Copy user configuration]
+    A --> F[scripts/sync-ai-tools.py]
+    D --> G[Homebrew and platform Brewfile]
+    D --> H[APT on Linux]
+    D --> I[nvm and pip]
+    F --> J[Claude, Codex, and Kiro settings]
+    K[run.ps1] --> L[Windows links and winget packages]
 ```
+
+The full installer reads its shell block before execution so a repository update cannot replace the script while the shell is still reading it. `_dotfiles` uses `git -C` to preserve the caller's working directory.
+
+Both full installation and `--vibe` read deployment sources from `~/.dotfiles`. Running a script in another checkout does not change that source path. `--vibe` skips repository updates and all package and shell setup.
 
 ## Directory Structure
 
-```
-.
-├── AGENTS.md              # Project-specific Codex instructions
-├── CLAUDE.md              # Project-specific Claude Code instructions
-├── README.md              # Project overview and installation guide
-├── run.sh                 # Main installation script (11-step process)
-├── run.ps1                # Windows PowerShell installation script
-│
-├── aliases                # Custom command aliases and helper functions
-├── bashrc                 # Bash shell configuration
-├── gitconfig              # Git default settings
-├── gitconfig-bruce        # Bruce organization Git profile
-├── gitconfig-nalbam       # nalbam organization Git profile
-├── macos                  # macOS system preferences script
-├── profile                # Shell environment variables
-├── tmux.conf              # Tmux terminal multiplexer configuration
-├── vimrc                  # Vim editor settings
-├── wgetrc                 # wget configuration
-├── zshrc                  # ZSH shell configuration
-│
-├── aws/                   # AWS configuration templates
-│   └── config             # AWS CLI config template
-├── darwin/                # macOS specific configurations
-│   ├── Brewfile           # macOS Homebrew package list
-│   ├── zprofile.arm64.sh  # Apple Silicon profile
-│   └── zprofile.x86_64.sh # Intel Mac profile
-├── docs/                  # Technical documentation
-│   ├── ARCHITECTURE.md    # System architecture
-│   └── README.md          # Documentation index
-├── claude/                # Claude Code settings (synced to ~/.claude/)
-│   ├── CLAUDE.md          # Global Claude Code instructions
-│   ├── settings.json      # Permissions, hooks, plugins
-│   ├── agents/            # Specialized agents (3)
-│   ├── hooks/             # memory-sync.sh (cross-machine auto-memory sync)
-│   ├── rules/             # Always-loaded rules (3)
-│   └── skills/            # Shared workflow and reference skill sources
-├── codex/                 # Codex settings (synced to ~/.codex/)
-│   ├── AGENTS.md          # Global Codex instructions
-│   ├── config.toml        # Feature flags
-│   ├── hooks.json         # Hook wiring
-│   ├── rules/             # Codex-managed command approval rules
-│   └── skills/            # Codex skills (synced to ~/.agents/skills/,
-│                          #   generated from claude/skills/)
-├── ghostty/               # Ghostty terminal configuration
-│   └── config             # Ghostty settings
-├── iterm2/                # iTerm2 configuration
-│   └── profiles.json      # Dracula theme profile
-├── kiro/                  # Kiro settings (synced to ~/.kiro/)
-│   └── agents/            # Agent definitions
-├── linux/                 # Linux specific configurations
-│   ├── Brewfile           # Linux Homebrew package list
-│   ├── zprofile.aarch64.sh  # Raspberry Pi 64-bit profile
-│   ├── zprofile.armv7l.sh   # Raspberry Pi 32-bit profile
-│   └── zprofile.x86_64.sh   # WSL/Ubuntu profile
-├── scripts/               # Python standard-library tooling
-│   ├── gen-codex-skills.py # claude/skills → codex/skills mirror generator
-│   ├── sync-ai-tools.py   # Validated AI settings deployment (Python 3.11+)
-│   └── test_ai_tools.py   # Offline deployment, generator, and memory-hook tests
-└── ssh/                   # SSH configuration templates
-    └── config             # SSH config template
-```
+| Source | Owner or consumer |
+|--------|-------------------|
+| `run.sh`, `run.ps1` | Installation order and platform-specific entry points |
+| `darwin/Brewfile`, `linux/Brewfile` | Package selection; commented entries are inactive |
+| `aliases` | Shared shell aliases and helper functions |
+| `zshrc`, `bashrc`, `profile`, platform `zprofile.*.sh` | Shell initialization |
+| `gitconfig*` | Base Git settings and directory-specific identities |
+| `ssh/`, `aws/` | Templates; only the files selected by `run.sh` are deployed |
+| `macos` | macOS preferences applied in Step 7 |
+| `iterm2/`, `ghostty/`, `tmux.conf`, `vimrc` | Terminal and editor settings copied by the installer |
+| `nvim/` | Separately installed Neovim configuration |
+| `claude/`, `codex/`, `kiro/` | AI settings sources |
+| `scripts/` | Skill generation, AI settings deployment, and isolated tests |
+| `AGENTS.md`, `CLAUDE.md` | Repository instructions; `CLAUDE.md` links to `AGENTS.md` |
 
-## Core Functions
-
-1. System Detection
-   - OS detection (darwin/linux/windows)
-   - Architecture detection (x86_64/arm64/aarch64/armv7l)
-   - Package manager selection (brew/apt/winget)
-
-2. Configuration Management
-   - Git configuration with organization-specific settings
-   - SSH key generation and configuration
-   - AWS CLI configuration
-   - macOS system preferences
-
-3. Package Management
-   - Homebrew for macOS and Linux
-   - APT for Linux
-   - winget for Windows
-   - NPM for Node.js packages (npm, corepack, serverless, ccusage)
-   - PIP for Python packages (toast-cli) with intelligent fallback (normal → --user → --break-system-packages → sudo)
-   - Update throttling with timestamp tracking (6-hour interval minimum between updates)
-
-4. Shell Environment
-   - ZSH as default shell
-   - Oh My ZSH installation with plugins (git, kube-ps1)
-   - Dracula theme integration (ZSH and iTerm2)
-   - Custom aliases and profiles
-   - Tmux configuration with system metrics status bar, vim-like navigation, and clipboard integration
-   - Tool version managers (tenv, tfenv, pyenv, nvm)
-   - VS Code and Kiro terminal shell integration
-   - Toast CLI workspace management integration
-
-5. AI Tools Integration
-   - Claude Code settings synced from `claude/` to `~/.claude/` (agents, hooks, rules, skills, settings)
-   - Codex settings synced from `codex/` to `~/.codex/` (AGENTS.md, config.toml, hooks.json, rules); Codex skills synced from `codex/skills/` to `~/.agents/skills/` (the directory Codex scans)
-   - Kiro settings synced from `kiro/` to `~/.kiro/` (agents)
-   - MD5-based incremental sync (only changed files updated)
-   - Manifest-based prune (`~/.toast/vibe_manifest_*`): only previously deployed files are removed, after a secure backup. Unmanaged files are preserved; see [AI Tools Sync](../README.md#ai-tools-sync).
-   - Codex config and hooks fill missing keys only; command rules update only the managed block. Existing local values can differ across machines.
-   - Python 3.11+ validates all merge results before writing. Atomic file replacement, a process lock, and success-only manifest updates protect retries; failures return a nonzero status.
-   - Standalone sync via `run.sh --vibe`
+Read the source file for exact packages and configuration values. The [AI settings table](../README.md#원본과-배포-대상) maps repository files to deployed paths.
 
 ## Installation Flow
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant Script
-    participant System
-    participant Network
+| Step | Action | Condition or result |
+|------|--------|---------------------|
+| 1 | Detect OS and architecture | Reject an unrecognized OS |
+| 2 | Create working directories and missing SSH keys | Set `~/.ssh` to mode `700` |
+| 3 | Clone or update `~/.dotfiles` | Skip if Git or macOS Command Line Tools are unavailable; retry after Step 5 if the checkout is still missing |
+| 4 | Copy SSH, AWS, and Git configuration | Preserve existing SSH/AWS config; compare and back up changed Git files |
+| 5 | Prepare package managers | Use APT on Linux and attempt Homebrew installation |
+| 6 | Install or update development tools | Apply the Brewfile, bootstrap Node.js 24 through nvm, update installed Claude Code, and install `toast-cli` through pip |
+| 7 | Apply OS settings | On macOS, check Command Line Tools and Rosetta, then apply key bindings and preferences |
+| 8 | Set up Zsh and Oh My Zsh | Change the default shell if needed |
+| 9 | Set up themes and terminal profiles | Apply Dracula resources; copy iTerm2/Ghostty settings on macOS |
+| 10 | Copy user configuration | Shell files, aliases, Vim, tmux, and the matching platform profile |
+| 11 | Deploy AI settings | Run `scripts/sync-ai-tools.py`; a failure stops installation |
 
-    User->>Script: Execute run.sh
-    Script->>System: Step 1: Detect OS & Architecture
-    Script->>System: Step 2: Create directories & SSH keys
-    Script->>Network: Step 3: Clone/Update dotfiles
-    Note over Network: Retry mechanism with exponential backoff
-    Script->>System: Step 4: Setup config files (SSH, AWS, Git)
-    Script->>System: Step 5: Setup package managers
-    Script->>Network: Step 6: Install packages (Homebrew, NPM, PIP)
-    Script->>System: Step 7: OS-specific settings
-    Script->>System: Step 8: Install ZSH & Oh My ZSH
-    Script->>System: Step 9: Apply theme & UI settings
-    Script->>System: Step 10: Deploy user config files
-    Script->>System: Step 11: Sync AI tools (Claude Code, Codex, Kiro)
-    Script->>User: Complete Installation
+The NPM global installation calls in Step 6 are currently commented out. A package listed in a helper function or comment is not necessarily installed.
+
+## Updates and retries
+
+- `_retry` makes at most three attempts and waits 5 seconds, then 10 seconds. It wraps selected downloads and Git operations, not every network call.
+- Update markers are stored at `~/.toast/last_update_*` with a six-hour interval.
+- APT, Homebrew, and Claude update markers advance after their checked operations succeed. The pip section writes its marker after running, even if a package helper reports a warning.
+- A changed Brewfile bypasses the update interval. `~/.Brewfile` stores the last successfully bundled content, so a failed bundle remains eligible for another attempt.
+- The npm ownership check reports unwritable global package directories. It does not repair permissions or install packages through sudo.
+- The pip package helper tries normal installation, `--user`, `--break-system-packages --user`, then sudo. The separate pip-tool upgrade has no sudo fallback.
+
+## Configuration and backups
+
+### User files
+
+When a source exists in `~/.dotfiles`, `_download` compares it with the destination using MD5 and copies changed content. If the source is missing, it downloads the file from the repository's `main` branch. Both replacement paths first back up an existing destination as `<path>.backup`. MD5 detects local content changes; it does not authenticate a download.
+
+Copied SSH/AWS files and backups receive mode `600`. These backups hold the previous version of each file, not a complete system snapshot. The full installer has no global rollback.
+
+### macOS preferences
+
+`macos` closes System Settings but keeps the terminal running. Preferences that require a new session take effect after logout or restart.
+
+`~/.toast/macos.applied` records the source content only after all preference commands succeed. `~/.macos.backup` is a file backup and does not indicate successful application. If settings change or application fails, the next run tries again.
+
+The startup-sound setting requests sudo only when it needs to change. Screen-lock configuration uses `sysadminctl`, reads the login password from the terminal, and verifies that the effective delay is immediate. Without a terminal or a successful verification, the preference step warns and leaves the completion marker unchanged.
+
+### AI settings
+
+The Python sync process acquires a lock, validates source paths and all merge results, then applies changes. It backs up changed or removed managed files and replaces each written file atomically. It updates target manifests after all file operations succeed.
+
+Existing JSON/TOML values and local Codex rules outside the managed block are preserved. A manifest lists previously deployed files; pruning affects only those files. Unmanaged files remain in place. Missing or empty source directories preserve the corresponding deployed files and manifest.
+
+A write failure can leave earlier files updated. There is no transaction across all files and manifests. Fix the reported cause and rerun the sync. See [preservation and failure handling](../README.md#기존-설정-보존과-실패-처리).
+
+## AI instructions and skills
+
+Global instructions live in `claude/CLAUDE.md` and `codex/AGENTS.md`. They apply ISO 24495-1 principles for reader needs, navigation, understanding, and use, together with ASD-STE100 principles for short, clear, unambiguous wording. Project-specific commands belong in repository instructions.
+
+`claude/skills/` is the source for shared skills. `scripts/gen-codex-skills.py` adapts tool-specific instructions and mirrors Markdown to `codex/skills/`. It preserves manually maintained Codex metadata. Its `--check` mode reports mismatches and stale generated files.
+
+Claude's memory hook uses a separate private Git repository. It links project memory and runs Git synchronization in the background for session hooks. A failed Git stage stops the following stages. This hook does not sync Codex transcripts or authorize commits in the current project.
+
+## Failure diagnosis
+
+| Symptom | Check and next action |
+|---------|-----------------------|
+| Full install reports warnings | Read the corresponding warning lines, fix the cause, and rerun; exit status alone does not prove every package was installed |
+| Repository update fails | Inspect `~/.dotfiles` Git state and network access; the installer can continue with that checkout |
+| Command Line Tools dialog opens | Complete installation, then rerun |
+| macOS settings are retried | Check authentication and the preference error; a file backup is not an application marker |
+| AI sync fails | Check the reported file, lock, Python version, or merge error; rerun after resolving it |
+| New instructions do not appear | Compare deployed files with the intended checkout and confirm the tool's instruction path and session |
+
+## Verification
+
+Run these from the repository root before deploying instruction changes:
+
+```bash
+python3 scripts/gen-codex-skills.py --check
+python3 scripts/test_ai_tools.py
+bash -n run.sh
+bash -n claude/hooks/memory-sync.sh
+git diff --check
 ```
 
-## Security Considerations
+For changes to macOS preferences or their installer step, also run:
 
-1. File Permissions
-   - SSH config: 600
-   - AWS config: 600
-   - Backup files: 600
-   - Automatic permission setting for sensitive files
-   - Secure backup handling
+```bash
+python3 scripts/test_macos.py
+bash -n macos
+```
 
-2. Authentication
-   - SSH key generation
-   - Git credentials management
-   - Organization-specific email configuration
-   - Safe credential handling
-
-## Advanced Features
-
-1. Toast CLI Integration
-   - Workspace and environment management
-   - Context switching (AWS, Kubernetes, etc.)
-   - Extensive alias shortcuts for common operations
-   - Directory navigation with `c()` function
-
-2. Development Helpers
-   - **Node.js**: Smart package manager detection (pnpm/npm), automatic cleanup, dev server port management
-   - **Local Servers**: Python HTTP server management (start, list, kill) with port conflict resolution
-   - **Terraform**: Complete alias set with state management, automatic formatting
-   - **AWS Vault**: Profile shortcuts with automatic credential handling
-
-3. Shell Customization
-   - **tenv/tfenv**: Terraform version management (tenv via Homebrew, tfenv optional at ~/.tfenv) with ARM64 support
-   - **Korean keyboard**: Native Korean character aliases for common commands
-   - **Terminal integration**: VS Code and Kiro terminal shell integration
-
-## Performance Optimization
-
-1. Package Management
-   - Update throttling with 6-hour minimum interval
-   - Timestamp tracking for APT and Homebrew
-   - Version-aware package installation (skip if already latest)
-   - Optimized download retry with exponential backoff
-   - Connection timeout handling
-
-2. Installation Process
-   - Progress tracking with step counting
-   - Modular installation steps
-   - Conditional execution
-   - Efficient error recovery
-
-## Error Handling
-
-1. System Compatibility
-   - OS version verification
-   - Architecture compatibility check
-   - Package manager availability
-   - Directory access verification
-
-2. Network Issues
-   - Exponential backoff retry mechanism
-   - Connection timeout handling
-   - Maximum retry attempts (3회)
-   - Detailed error reporting
-   - Graceful fallback handling
-
-3. File Operations
-   - Backup creation verification
-   - Permission setting validation (600 for sensitive files)
-   - File integrity checks using MD5
-   - Safe directory navigation with error handling
-
-## Future Considerations
-
-1. Extensibility
-   - Plugin system for custom configurations
-   - Organization-specific extensions
-   - Custom theme support
-   - Enhanced error handling patterns
-
-2. Maintenance
-   - Version control
-   - Dependency updates
-   - Configuration backups
-   - Automated testing integration
+Tests use temporary homes and mocked system or Git commands. They do not validate real package installation, live OS preferences, or external accounts. Deployment comparisons are documented in [AI Tools Sync](../README.md#배포와-결과-확인).

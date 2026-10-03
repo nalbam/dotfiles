@@ -1,20 +1,20 @@
 # Skills
 
-기본 작업 원칙은 `../CLAUDE.md`, 언어·Git·보안은 `../rules/`에서 관리한다. 스킬에는 작업별 절차와 비자명한 제약만 둔다.
+작업에 맞는 스킬을 선택할 때 사용하는 안내다. 공통 작업·문서 작성 원칙은 [CLAUDE.md](../CLAUDE.md), 언어·Git·보안은 [rules/](../rules/)에서 관리한다. 스킬에는 작업별 절차와 비자명한 제약만 둔다.
 
 | 요청 | 스킬 |
 |------|------|
-| 지정 스택으로 새 Next.js 프로젝트 생성 | `nextjs-init` |
-| Laya 도입·기존 통합 수정 | `laya-integration` |
-| 온보딩·프로젝트 개요 | `docs-read` (읽기 전용) |
-| 변경 커밋 | `commit` |
-| 커밋 후 푸시 | `commit-push` |
-| lint·타입·테스트 실행·수정 | `validate` |
-| 변경분·PR 리뷰 | `code-review` (읽기 전용) |
-| 저장소 전체 감사 | `code-audit` (읽기 전용) |
-| PR 생성·설명 갱신 | `pr-create`·`pr-summary` |
-| CodeRabbit 평가·수정·resolve | `resolve-coderabbit` |
-| 코드와 문서의 정합 확인·수정 | `docs-sync` |
+| 지정 스택으로 새 Next.js 프로젝트 생성 | [nextjs-init](nextjs-init/SKILL.md) |
+| Laya 도입·기존 통합 수정 | [laya-integration](laya-integration/SKILL.md) |
+| 온보딩·프로젝트 개요 | [docs-read](docs-read/SKILL.md) (읽기 전용) |
+| 변경 커밋 | [commit](commit/SKILL.md) |
+| 커밋 후 푸시 | [commit-push](commit-push/SKILL.md) |
+| lint·타입·테스트 실행·수정 | [validate](validate/SKILL.md) |
+| 변경분·PR 리뷰 | [code-review](code-review/SKILL.md) (읽기 전용) |
+| 저장소 전체 감사 | [code-audit](code-audit/SKILL.md) (읽기 전용) |
+| PR 생성·설명 갱신 | [pr-create](pr-create/SKILL.md)·[pr-summary](pr-summary/SKILL.md) |
+| CodeRabbit 평가·수정·resolve | [resolve-coderabbit](resolve-coderabbit/SKILL.md) |
+| 코드와 문서의 정합 확인·구조·표현 개선 | [docs-sync](docs-sync/SKILL.md) |
 
 ## 관리
 

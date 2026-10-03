@@ -6,7 +6,7 @@ Guidance for Codex (and other AI agents) working in this repository. For a human
 
 Cross-platform dotfiles installer. A single shell script (`run.sh`) detects the OS/architecture and provisions a consistent dev environment: SSH keys, Git config, package managers, shell, terminals, and AI tool settings.
 
-The installer (`run.sh`) is plain bash; AI settings sync uses Python 3.11+ standard libraries in `scripts/sync-ai-tools.py`. Files sourced by interactive shells (`aliases`, `zshrc`/`bashrc`, `zprofile.*`) stay POSIX-compatible so both bash and zsh can source them. **No build step, no package graph**.
+The installer (`run.sh`) is Bash; AI settings sync uses Python 3.11+ standard libraries in `scripts/sync-ai-tools.py`. `zshrc` and `bashrc` configure their respective shells. Shared `aliases` and `zprofile.*` files must work in both Bash and Zsh; prefer POSIX-compatible syntax for shared helpers. **No build step, no package graph**.
 
 ## Entry points
 
@@ -23,14 +23,14 @@ The installer (`run.sh`) is plain bash; AI settings sync uses Python 3.11+ stand
 
 ## Git profile switching (non-obvious)
 
-Base `gitconfig` uses `includeIf` to select directory-specific email/signing profiles. Read `gitconfig`, `gitconfig-nalbam`, and `gitconfig-bruce` together when changing identity settings; a wrong email silently changes commit attribution.
+Base `gitconfig` uses `includeIf` to select directory-specific identities. Read `gitconfig`, `gitconfig-nalbam`, `gitconfig-bruce`, and `gitconfig-yujh404` together when changing identity settings; a wrong email changes commit attribution.
 
 ## Platform-specific gotchas
 
 - **macOS arm64**: Homebrew lives at `/opt/homebrew`. Rosetta 2 is auto-installed for x86_64 binaries.
 - **macOS x86_64**: Homebrew at `/usr/local`.
-- **Raspberry Pi (aarch64/armv7l)**: Homebrew is optional (ARM compile cost). npm globals may need `sudo`. Skip heavy packages when possible.
-- **WSL**: detected as Linux x86_64. Homebrew optional.
+- **Raspberry Pi (aarch64/armv7l)**: Homebrew and Node.js bootstrapping can require slow source builds. The installer checks npm directory ownership and skips global package work when it is not writable; do not recommend `sudo npm`.
+- **Ubuntu/WSL**: uses the Linux/APT path. The installer attempts Homebrew installation and warns if it remains unavailable.
 - **zprofile scripts** must degrade gracefully when `brew` / `pyenv` / `nvm` are absent — they run early in shell init.
 
 ## Resilience contracts (keep these when editing run.sh)
@@ -65,11 +65,12 @@ For Codex instruction changes:
 
 1. Edit global instructions in `codex/AGENTS.md`, shared skills in `claude/skills/`, and Codex configuration in `codex/`.
 2. Regenerate changed skills and run `python3 scripts/gen-codex-skills.py --check`.
-3. Run `python3 scripts/test_ai_tools.py`, `bash -n run.sh claude/hooks/memory-sync.sh`, and `git diff --check`. Tests use temporary homes and fake Git commands; no live deployment or remote push is required. Check referenced paths, instruction sections, and tool compatibility.
+3. Run `python3 scripts/test_ai_tools.py`, `bash -n run.sh`, `bash -n claude/hooks/memory-sync.sh`, and `git diff --check`. Tests use temporary homes and fake Git commands; no live deployment or remote push is required. Check referenced paths, instruction sections, and tool compatibility.
 4. Deploy using the README procedure when deployment is in scope. Do not run the installer merely to validate documentation.
 
 ## Working rules for agents
 
+- Apply the ISO 24495-1 and ASD-STE100 writing principles in [the shared documentation workflow](./claude/skills/docs-sync/SKILL.md#작성-품질). Match the reader's task, preserve technical meaning, and verify examples against code. Do not claim full standard compliance from these checks alone.
 - **Do not commit or push without explicit user instruction.** Global rule, but especially important here — this repo drives the user's entire environment.
 - **Shell changes are live the next time `run.sh` runs on any machine.** Test locally before recommending risky changes.
 - **Check both `darwin/` and `linux/` paths** when touching platform logic — one branch is easy to miss.

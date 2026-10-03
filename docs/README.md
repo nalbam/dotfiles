@@ -1,39 +1,28 @@
 # Documentation
 
-This directory contains the technical documentation for the dotfiles project.
+Choose a guide by the task you want to complete.
 
-## Documents
+| Task | Start here |
+|------|------------|
+| Install or rerun dotfiles | [Quick Start](../README.md#quick-start) |
+| Understand installation order, backups, or failures | [Architecture](ARCHITECTURE.md) |
+| Edit, verify, or deploy AI settings | [AI Tools Sync](../README.md#ai-tools-sync) |
+| Choose a shared AI skill | [Skills](../claude/skills/README.md) |
+| Prepare a fresh Ubuntu server as root | [Linux setup](../linux/README.md) |
+| Install the separate Neovim configuration | [Neovim setup](../nvim/README.md) |
+| Change shell helpers | [aliases](../aliases) |
+| Work on this repository with an agent | [AGENTS.md](../AGENTS.md); `CLAUDE.md` links to the same file |
 
-| Document | Description |
-|----------|-------------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | System architecture, installation flow, component overview, and advanced features |
+## Configuration sources
 
-## Quick Links
+- Packages: [macOS Brewfile](../darwin/Brewfile), [Linux Brewfile](../linux/Brewfile).
+- Shell startup: [Zsh](../zshrc), [Bash](../bashrc), [profile](../profile), and platform `zprofile.*.sh` files.
+- Git identities: [base configuration](../gitconfig), [nalbam](../gitconfig-nalbam), [bruce](../gitconfig-bruce), [yujh404](../gitconfig-yujh404).
+- Terminal and editor settings: [Ghostty](../ghostty/config), [iTerm2](../iterm2/profiles.json), [tmux](../tmux.conf), [Vim](../vimrc).
+- OS settings: [macos](../macos). The installer does not automatically apply every configuration file in the repository.
 
-- [aliases](../aliases) - Complete shell alias and helper function definitions
-- [CLAUDE.md](../CLAUDE.md) - Claude Code AI instructions and advanced development features
-- [AGENTS.md](../AGENTS.md) - Codex repository instructions
-- [Main README](../README.md) - Project overview, installation guide, and feature list
-- [zshrc](../zshrc) - ZSH configuration and environment setup
+## Documentation principles
 
-## Additional Resources
+Write for the reader's task. Apply ISO 24495-1 principles to make information easy to find, understand, and use, and ASD-STE100 principles to keep wording short, clear, and unambiguous. Preserve commands, identifiers, conditions, and technical meaning.
 
-### Configuration Files
-- `aliases` - Custom aliases and helper functions
-- `bashrc` - Bash shell configuration
-- `gitconfig*` - Git configuration profiles
-- `macos` - macOS system preferences script
-- `profile` - Shell environment variables
-- `tmux.conf` - Tmux terminal multiplexer configuration
-- `vimrc` - Vim editor settings
-- `wgetrc` - wget configuration
-- `zshrc` - ZSH shell configuration
-
-### Platform-Specific
-- `darwin/Brewfile` - macOS Homebrew packages
-- `darwin/zprofile.*.sh` - macOS architecture-specific profiles
-- `linux/Brewfile` - Linux Homebrew packages
-- `linux/zprofile.*.sh` - Linux architecture-specific profiles
-
-### AI Tools Integration
-See [AI Tools Sync](../README.md#ai-tools-sync) for instruction sources, generated Codex skills, deployment targets, local-state preservation, and verification across machines.
+The shared [documentation workflow](../claude/skills/docs-sync/SKILL.md#작성-품질) defines the review checks. These checks support writing quality; they do not establish full compliance with either standard.
