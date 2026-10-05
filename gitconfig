@@ -29,15 +29,13 @@
   name = nalbam
   email = me@nalbam.com
 
-[includeIf "gitdir:~/workspace/github.dev.kr.krpay.io/"]
-  path = .gitconfig-bruce
-[includeIf "gitdir:~/workspace/github.com/karrot-emu/"]
-  path = .gitconfig-bruce
-[includeIf "gitdir:~/workspace/github.com/daangn/"]
-  path = .gitconfig-bruce
 [includeIf "gitdir:~/workspace/github.com/nalbam/"]
   path = .gitconfig-nalbam
 [includeIf "gitdir:~/workspace/github.com/opspresso/"]
   path = .gitconfig-nalbam
 [includeIf "gitdir:~/workspace/github.com/yujh404/"]
   path = .gitconfig-yujh404
+[includeIf "gitdir:~/workspace/github.com/nalbam-me/"]
+  path = .gitconfig-nalbam-me
+[includeIf "gitdir:~/workspace/github.com/nalbam-bot/"]
+  path = .gitconfig-nalbam-bot
