@@ -167,44 +167,60 @@ _md5() {
 # 백업 생성 함수
 _backup() {
   if [ -f "$1" ]; then
-    if ! cp "$1" "$1.backup"; then
-      _error "Failed to create backup of $1"
-    fi
+    cp "$1" "$1.backup" || return 1
     # Set secure permissions for backup files
-    chmod 600 "$1.backup"
+    chmod 600 "$1.backup" || return 1
     _info "Created backup: $1.backup"
   fi
 }
 
 # 파일 다운로드 함수
 _download() {
-  # 대상 파일의 디렉토리 자동 생성
-  local target_file=~/$1
-  local target_dir=$(dirname "$target_file")
-  if [ "$target_dir" != "$HOME" ] && [ ! -d "$target_dir" ]; then
-    mkdir -p "$target_dir"
+  local target_file="$HOME/$1" source_file="$HOME/.dotfiles/${2:-$1}"
+  local target_dir="${target_file%/*}" temporary
+  if [ -e "$target_file" ] && [ ! -f "$target_file" ]; then
+    _error "Expected a file at $target_file"
   fi
+  mkdir -p "$target_dir" || _error "Failed to create $target_dir"
 
-  if [ -f ~/.dotfiles/${2:-$1} ]; then
-    if [ -f ~/$1 ]; then
-      if [ "$(_md5 ~/.dotfiles/${2:-$1})" != "$(_md5 ~/$1)" ]; then
-        _backup ~/$1
-        cp ~/.dotfiles/${2:-$1} ~/$1
+  if [ -f "$source_file" ] && [ -f "$target_file" ] &&
+     [ "$(_md5 "$source_file")" = "$(_md5 "$target_file")" ]; then
+    :
+  else
+    temporary=$(mktemp "$target_file.tmp.XXXXXX") || _error "Failed to stage $target_file"
+    if [ -f "$target_file" ] && ! cp -p "$target_file" "$temporary"; then
+      rm -f "$temporary"
+      _error "Failed to stage existing $target_file"
+    fi
+    if [ -f "$source_file" ]; then
+      if ! cp "$source_file" "$temporary"; then
+        rm -f "$temporary"
+        _error "Failed to copy ${2:-$1}"
       fi
     else
-      cp ~/.dotfiles/${2:-$1} ~/$1
+      if ! _retry "Download ${2:-$1}" curl -fsSL --connect-timeout 10 -o "$temporary" "https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}"; then
+        rm -f "$temporary"
+        _error "Failed to download ${2:-$1} after 3 attempts"
+      fi
     fi
-  else
-    _backup ~/$1
-    if ! _retry "Download ${2:-$1}" curl -fsSL --connect-timeout 10 -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}; then
-      _error "Failed to download ${2:-$1} after 3 attempts"
+    if [ -f "$target_file" ] && [ "$(_md5 "$temporary")" = "$(_md5 "$target_file")" ]; then
+      rm -f "$temporary"
+    else
+      if ! _backup "$target_file"; then
+        rm -f "$temporary"
+        _error "Failed to back up $target_file"
+      fi
+      if ! mv -f "$temporary" "$target_file"; then
+        rm -f "$temporary"
+        _error "Failed to replace $target_file"
+      fi
     fi
   fi
 
   # Set appropriate permissions for sensitive files
   case "$1" in
     .ssh/* | .aws/* | *.backup)
-      chmod 600 ~/$1
+      chmod 600 "$target_file" || _error "Failed to protect $target_file"
       ;;
   esac
 }

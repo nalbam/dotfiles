@@ -84,7 +84,7 @@ The NPM global installation calls in Step 6 are currently commented out. A packa
 
 ### User files
 
-When a source exists in `~/.dotfiles`, `_download` compares it with the destination using MD5 and copies changed content. If the source is missing, it downloads the file from the repository's `main` branch. Both replacement paths first back up an existing destination as `<path>.backup`. MD5 detects local content changes; it does not authenticate a download.
+When a source exists in `~/.dotfiles`, `_download` compares it with the destination using MD5. If the source is missing, it downloads the file from the repository's `main` branch. Changed content is staged in the destination directory before the existing file is backed up and atomically replaced. A failed copy or download leaves the destination unchanged. Identical content leaves both the destination and its backup unchanged. MD5 detects content changes; it does not authenticate a download.
 
 Copied SSH/AWS files and backups receive mode `600`. These backups hold the previous version of each file, not a complete system snapshot. The full installer has no global rollback.
 
