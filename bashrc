@@ -21,8 +21,15 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
-# vscode
-[[ "$TERM_PROGRAM" == "vscode" ]] && . "$(code --locate-shell-integration-path bash)"
-
-# kiro
-[[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path bash)"
+# Optional editor shell integration.
+case "$TERM_PROGRAM" in
+  vscode) _editor_cli=code ;;
+  kiro) _editor_cli=kiro ;;
+  *) _editor_cli= ;;
+esac
+if [ -n "$_editor_cli" ] && command -v "$_editor_cli" >/dev/null 2>&1; then
+  if _editor_integration=$("$_editor_cli" --locate-shell-integration-path bash) && [ -r "$_editor_integration" ]; then
+    . "$_editor_integration"
+  fi
+fi
+unset _editor_cli _editor_integration
