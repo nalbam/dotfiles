@@ -38,10 +38,13 @@ systemctl restart docker
 if command -v aws >/dev/null && aws --version 2>&1 | grep -q '^aws-cli/2\.'; then
   echo "$(aws --version 2>&1) is already installed"
 else
-  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip
-  unzip -q /tmp/awscliv2.zip -d /tmp
-  /tmp/aws/install --update
-  rm -rf /tmp/awscliv2.zip /tmp/aws
+  (
+    AWS_INSTALL_DIR=$(mktemp -d)
+    trap 'rm -rf "$AWS_INSTALL_DIR"' EXIT
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "$AWS_INSTALL_DIR/awscliv2.zip"
+    unzip -q "$AWS_INSTALL_DIR/awscliv2.zip" -d "$AWS_INSTALL_DIR"
+    "$AWS_INSTALL_DIR/aws/install" --update
+  )
 fi
 
 # swap

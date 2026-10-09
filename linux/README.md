@@ -33,6 +33,6 @@ sudo docker info
 swapon --show
 ```
 
-The script stops when a command fails. Read the failing command, resolve its cause, and review any existing Docker configuration before rerunning. Package upgrades and replaced files are not rolled back.
+The script stops when a command fails. Read the failing command, resolve its cause, and review any existing Docker configuration before rerunning. AWS CLI downloads use a separate temporary directory for each attempt, which is removed on success or failure. Package upgrades and replaced files are not rolled back.
 
 If the `ubuntu` user exists, log in with a new session before using its Docker group membership. Install the user-level dotfiles separately under that user.
