@@ -480,6 +480,8 @@ fi
 _download .gitconfig gitconfig
 _download .gitconfig-bruce gitconfig-bruce
 _download .gitconfig-nalbam gitconfig-nalbam
+_download .gitconfig-nalbam-me gitconfig-nalbam-me
+_download .gitconfig-nalbam-bot gitconfig-nalbam-bot
 _download .gitconfig-yujh404 gitconfig-yujh404
 _ok "Git configuration files downloaded"
 

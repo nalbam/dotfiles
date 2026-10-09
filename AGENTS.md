@@ -23,7 +23,7 @@ The installer (`run.sh`) is Bash; AI settings sync uses Python 3.11+ standard li
 
 ## Git profile switching (non-obvious)
 
-Base `gitconfig` uses `includeIf` to select directory-specific identities. Read `gitconfig`, `gitconfig-nalbam`, `gitconfig-bruce`, and `gitconfig-yujh404` together when changing identity settings; a wrong email changes commit attribution.
+Base `gitconfig` uses `includeIf` to select directory-specific identities. Read all `gitconfig*` files together when changing identity settings, and keep the Step 4 deployment list in sync with the includes; a wrong email changes commit attribution.
 
 ## Platform-specific gotchas
 
