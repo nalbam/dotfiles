@@ -27,7 +27,8 @@ class InstallerTests(unittest.TestCase):
                               env=self.env, capture_output=True, text=True, timeout=5)
 
     def block(self, start, end):
-        return self.source[self.source.index(start):self.source.index(end)]
+        execution = self.source[self.source.index("# 실행 영역"):]
+        return execution[execution.index(start):execution.index(end)]
 
     def test_every_git_identity_include_is_deployed_and_effective(self):
         for source in ROOT.glob("gitconfig*"):
@@ -126,6 +127,38 @@ _download .settings settings
         target = self.home / ".ssh/config with spaces"
         self.assertEqual(target.read_text(), "settings")
         self.assertEqual(target.stat().st_mode & 0o777, 0o600)
+
+    def test_pip_marker_advances_only_after_all_updates_succeed(self):
+        marker = self.home / ".toast/last_update_pip"
+        marker.parent.mkdir()
+        for tools_status, package_status in [(0, 7), (7, 0), (0, 0)]:
+            with self.subTest(tools_status=tools_status, package_status=package_status):
+                marker.unlink(missing_ok=True)
+                body = f'''python3() {{
+  case "$*" in
+    *"pip show"*) return 1 ;;
+    *toast-cli*) return {package_status} ;;
+    *) return {tools_status} ;;
+  esac
+}}
+sudo() {{ "$@"; }}
+'''
+                result = self.run_shell(body + self.block("# PIP 패키지 설치 (버전 체크 포함)", "# Step 7:"))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(marker.exists(), tools_status == package_status == 0)
+
+    def test_pip_package_failure_propagates_after_bounded_fallbacks(self):
+        result = self.run_shell('''
+python3() {
+  printf '%s\\n' "$*" >> "$HOME/pip-calls"
+  return 7
+}
+sudo() { "$@"; }
+_install_pip_package toast-cli
+''')
+        self.assertNotEqual(result.returncode, 0)
+        installs = [line for line in (self.home / "pip-calls").read_text().splitlines() if "pip install" in line]
+        self.assertEqual(len(installs), 4)
 
 
 if __name__ == "__main__":

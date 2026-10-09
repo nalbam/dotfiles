@@ -319,60 +319,27 @@ _install_npm_package() {
 _pip_try_install() {
   local package_name="$1"
   shift
-  local flags="$@"
 
-  python3 -m pip install $flags "$package_name" 2>/dev/null >/dev/null ||
-  python3 -m pip install --user $flags "$package_name" 2>/dev/null >/dev/null ||
-  python3 -m pip install --break-system-packages --user $flags "$package_name" 2>/dev/null >/dev/null ||
-  sudo python3 -m pip install $flags "$package_name" 2>/dev/null >/dev/null
+  python3 -m pip install "$@" "$package_name" >/dev/null 2>&1 ||
+  python3 -m pip install --user "$@" "$package_name" >/dev/null 2>&1 ||
+  python3 -m pip install --break-system-packages --user "$@" "$package_name" >/dev/null 2>&1 ||
+  sudo python3 -m pip install "$@" "$package_name" >/dev/null 2>&1
 }
 
-# PIP 패키지 설치 함수 (버전 체크 포함)
 _install_pip_package() {
   local package_name="$1"
-
-  # Python3 체크
   if ! command -v python3 >/dev/null 2>&1; then
     _skip "Python3 not found, skipping $package_name"
     return 1
   fi
 
-  # Check if package is installed
-  if python3 -m pip show "$package_name" >/dev/null 2>&1; then
-    local installed_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
-    local latest_version=$(python3 -m pip index versions "$package_name" 2>/dev/null | grep "LATEST:" | awk '{print $2}')
-
-    if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
-      if [ "$installed_version" != "$latest_version" ]; then
-        _run "Updating $package_name: $installed_version → $latest_version"
-        if _pip_try_install "$package_name" --upgrade; then
-          _ok "$package_name updated to $latest_version"
-        else
-          _warn "Failed to update $package_name after trying all methods"
-        fi
-      else
-        _skip "$package_name already up to date ($installed_version)"
-      fi
-    else
-      _run "Installing $package_name..."
-      if _pip_try_install "$package_name"; then
-        _ok "$package_name installed"
-      else
-        _warn "Failed to install $package_name after trying all methods"
-      fi
-    fi
+  # pip's resolver handles installed versions and upgrades in one invocation.
+  _run "Installing/updating $package_name..."
+  if _pip_try_install "$package_name" --upgrade; then
+    _ok "$package_name is installed and up to date"
   else
-    _run "Installing $package_name..."
-    if _pip_try_install "$package_name"; then
-      local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
-      if [ -n "$new_version" ]; then
-        _ok "$package_name installed (v$new_version)"
-      else
-        _ok "$package_name installed"
-      fi
-    else
-      _warn "Failed to install $package_name after trying all methods"
-    fi
+    _warn "Failed to install/update $package_name after trying all methods"
+    return 1
   fi
 }
 
@@ -733,6 +700,7 @@ if command -v python3 >/dev/null; then
 
   if _should_update "$PIP_TIMESTAMP_FILE"; then
     _info "Installing/updating PIP packages..."
+    PIP_OK=true
 
     # 먼저 기본 도구들을 업데이트 (setuptools, wheel 등)
     _run "Ensuring pip, setuptools, and wheel are up to date..."
@@ -742,13 +710,17 @@ if command -v python3 >/dev/null; then
       _ok "pip, setuptools, and wheel updated"
     else
       _warn "Failed to update pip tools, continuing anyway..."
+      PIP_OK=false
     fi
 
     # 사용자 패키지 설치
-    _install_pip_package "toast-cli"
+    if ! _install_pip_package "toast-cli"; then
+      PIP_OK=false
+    fi
 
-    # Update timestamp
-    date +%s > "$PIP_TIMESTAMP_FILE"
+    if [ "$PIP_OK" = true ]; then
+      date +%s > "$PIP_TIMESTAMP_FILE"
+    fi
   else
     _skip "PIP packages update (last update was less than 6 hours ago)"
   fi

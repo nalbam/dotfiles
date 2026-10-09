@@ -75,7 +75,7 @@ The NPM global installation calls in Step 6 are currently commented out. A packa
 
 - `_retry` makes at most three attempts and waits 5 seconds, then 10 seconds. It wraps selected downloads and Git operations, not every network call.
 - Update markers are stored at `~/.toast/last_update_*` with a six-hour interval.
-- APT, Homebrew, and Claude update markers advance after their checked operations succeed. The pip section writes its marker after running, even if a package helper reports a warning.
+- APT, Homebrew, Claude, and pip update markers advance only after their checked operations succeed. Failed updates remain eligible on the next run.
 - A changed Brewfile bypasses the update interval. `~/.Brewfile` stores the last successfully bundled content, so a failed bundle remains eligible for another attempt.
 - The npm ownership check reports unwritable global package directories. It does not repair permissions or install packages through sudo.
 - The pip package helper tries normal installation, `--user`, `--break-system-packages --user`, then sudo. The separate pip-tool upgrade has no sudo fallback.
