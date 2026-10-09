@@ -23,7 +23,7 @@ bash nvim/install.sh
 nvim
 ```
 
-The installer copies `nvim/nvim/` to `~/.config/nvim`. It moves an existing configuration to `~/.config/nvim.bak-<timestamp>` and prints the backup path. It does not back up Neovim's separate plugin, cache, or state directories.
+The installer copies `nvim/nvim/` to `~/.config/nvim`. It moves an existing configuration, including a symlink, to `~/.config/nvim.bak-<timestamp>` and prints the backup path. If that path already exists, it adds a numeric suffix to preserve earlier backups. It does not back up Neovim's separate plugin, cache, or state directories.
 
 Wait for plugin installation to finish. Open `:Lazy` to inspect plugin status, `:Mason` to inspect external tools, and `:LazyHealth` to load plugins and check their health, as described in the [LazyVim installation guide](https://www.lazyvim.org/installation). If installation fails, use the reported error to check network access or the missing tool before retrying.
 
