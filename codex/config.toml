@@ -1,15 +1,29 @@
-approval_policy = "on-request"
-approvals_reviewer = "auto_review"
-default_permissions = "git-write"
+# Execution permissions
+approval_policy = "never"
+default_permissions = ":danger-full-access"
 
-web_search = "live"
-
+# Model and responses
 model_reasoning_effort = "xhigh"
 model_verbosity = "low"
 model_context_window = 1000000
 
+# Project context and search
 project_doc_max_bytes = 131072
+web_search = "live"
 
+# Feature flags
+[features]
+hooks = true
+memories = true
+chronicle = true
+local_thread_store_compression = true
+
+# Memory generation and retrieval
+[memories]
+generate_memories = true
+use_memories = true
+
+# Optional workspace profile; select with default_permissions = "git-write".
 [permissions.git-write]
 extends = ":workspace"
 
@@ -18,13 +32,3 @@ extends = ":workspace"
 
 [permissions.git-write.network]
 enabled = true
-
-[features]
-hooks = true
-memories = true
-chronicle = true
-local_thread_store_compression = true
-
-[memories]
-generate_memories = true
-use_memories = true

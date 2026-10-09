@@ -116,6 +116,86 @@ class DeploymentTests(unittest.TestCase):
         self.sync()
         self.assertEqual(json.loads(target.read_text()), {"env":{"NEW":"yes","CUSTOM":"local"},"hooks":{"SessionStart":[]},"flag":False})
 
+    def test_codex_permission_profile_replaces_local_policy_and_legacy_sandbox(self):
+        self.put(".dotfiles/codex/config.toml", 'approval_policy = "never"\ndefault_permissions = ":danger-full-access"\n[features]\nhooks = true\n')
+        original = '''# Machine preferences
+approval_policy = "on-request"
+approvals_reviewer = "auto_review"
+default_permissions = "git-write"
+sandbox_mode = "workspace-write"
+model = "local-model"
+[sandbox_workspace_write]
+network_access = false
+writable_roots = [
+    "/local/cache",
+]
+[features]
+hooks = false
+[mcp_servers.local]
+command = "local-mcp"
+[projects."/local/project"]
+trust_level = "trusted"
+'''
+        target = self.put(".codex/config.toml", original)
+        self.sync()
+        expected = tomllib.loads(original)
+        expected.update(approval_policy="never", default_permissions=":danger-full-access")
+        for key in ("approvals_reviewer", "sandbox_mode", "sandbox_workspace_write"):
+            del expected[key]
+        self.assertEqual(tomllib.loads(target.read_text()), expected)
+        backup = target.with_name(target.name + ".backup")
+        self.assertEqual(backup.read_text(), original)
+        self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+        first = target.read_bytes()
+        stamp = target.stat().st_mtime_ns
+        self.sync()
+        self.assertEqual(target.read_bytes(), first)
+        self.assertEqual(target.stat().st_mtime_ns, stamp)
+        self.assertEqual(backup.read_text(), original)
+
+    def test_codex_permission_tables_and_multiline_local_values(self):
+        self.put(".dotfiles/codex/config.toml", 'approval_policy = "never"\ndefault_permissions = ":danger-full-access"\n[features]\nhooks = true\n')
+        original = '''custom_instructions = """
+[approval_policy.granular]
+rules = true
+[features]
+"""
+sandbox_workspace_write.network_access = false
+[approval_policy.granular]
+rules = true
+request_permissions = true
+[features]
+hooks = false
+[[examples]]
+name = "preserved array of tables"
+[tui]
+status_line = [
+    "model-with-reasoning",
+    "git-branch",
+]
+'''
+        target = self.put(".codex/config.toml", original)
+        self.sync()
+        expected = tomllib.loads(original)
+        expected.update(approval_policy="never", default_permissions=":danger-full-access")
+        del expected["sandbox_workspace_write"]
+        self.assertEqual(tomllib.loads(target.read_text()), expected)
+        first = target.read_bytes()
+        self.sync()
+        self.assertEqual(target.read_bytes(), first)
+
+    def test_codex_repository_can_select_a_different_permission_profile(self):
+        self.put(".dotfiles/codex/config.toml", 'approval_policy = "on-request"\napprovals_reviewer = "auto_review"\ndefault_permissions = "work"\n[permissions.work]\nextends = ":workspace"\n')
+        target = self.put(".codex/config.toml", 'approval_policy = "never"\ndefault_permissions = ":danger-full-access"\nmodel = "local-model"\n[permissions.personal]\nextends = ":read-only"\n')
+        self.sync()
+        config = tomllib.loads(target.read_text())
+        self.assertEqual(config["approval_policy"], "on-request")
+        self.assertEqual(config["approvals_reviewer"], "auto_review")
+        self.assertEqual(config["default_permissions"], "work")
+        self.assertEqual(config["model"], "local-model")
+        self.assertEqual(config["permissions"], {"work": {"extends": ":workspace"},
+                                                "personal": {"extends": ":read-only"}})
+
     def test_invalid_json_does_not_commit_manifest(self):
         self.sync()
         self.put(".dotfiles/claude/settings.json", '{"hooks": {}}')

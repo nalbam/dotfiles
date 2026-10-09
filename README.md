@@ -116,11 +116,14 @@ Claude Code·Codex·Kiro의 공통 지침과 설정을 저장소에서 관리하
 | `codex/AGENTS.md` | `~/.codex/AGENTS.md` | 모든 프로젝트에 적용할 공통 지침 |
 | `claude/skills/` → `codex/skills/` | `~/.agents/skills/` | Claude 원본에서 생성한 Codex 스킬·참조 문서 |
 | `codex/skills/*/agents/openai.yaml` | 해당 배포 스킬의 `agents/openai.yaml` | 직접 관리하는 Codex 메타데이터 |
-| `codex/config.toml`, `codex/hooks.json` | `~/.codex/`의 같은 파일 | 없는 키만 추가하고 기존 값 유지 |
+| `codex/config.toml` | `~/.codex/config.toml` | 승인·권한 선택은 원본 우선, 나머지는 없는 키만 추가 |
+| `codex/hooks.json` | `~/.codex/hooks.json` | 없는 키만 추가하고 기존 값 유지 |
 | `codex/rules/default.rules` | `~/.codex/rules/default.rules` | 관리 마커 내부만 갱신하고 로컬 규칙 유지 |
 | `claude/`, `kiro/` | `~/.claude/`, `~/.kiro/` | 각 도구의 지침·설정 |
 
 루트 [AGENTS.md](AGENTS.md)는 이 저장소 작업용이며 `CLAUDE.md`는 이를 가리키는 심볼릭 링크다. 모든 프로젝트에 배포할 지침은 [codex/AGENTS.md](codex/AGENTS.md)와 [claude/CLAUDE.md](claude/CLAUDE.md)에서 수정한다. Claude의 언어·Git·보안 규칙은 `claude/rules/`에서 관리한다.
+
+Codex 기본값은 `approval_policy = "never"`, `default_permissions = ":danger-full-access"`다. 로컬 명령의 승인 프롬프트와 샌드박스 제한을 해제한다. 에이전트는 요청한 작업을 자율 수행하며, `main`에 push하거나 merge하기 전에만 사용자 승인을 받는다. 이 승인 규칙은 에이전트 지침이며 Git 서버의 브랜치 보호를 설정하지 않는다. 실행 환경의 강제 정책은 이 설정보다 우선한다. [공식 권한 프로필 안내](https://learn.chatgpt.com/docs/permissions)를 참고한다.
 
 기술 문서는 ISO 24495-1처럼 쉽게 찾고 이해하고 사용할 수 있게, ASD-STE100처럼 짧고 명확하며 모호하지 않게 작성한다. 필요한 정보·문서 구조·표현·작업과 판단에 사용할 수 있는 설명을 함께 검토한다. 구체적인 점검 항목은 [docs-sync](claude/skills/docs-sync/SKILL.md#작성-품질)에 있다. 이는 자체 작성 규칙이며 표준 전체 준수 선언은 아니다. [ISO 개요](https://www.iso.org/standard/78907.html)와 [IPLF의 네 원칙 설명](https://www.iplfederation.org/iso-standard/), [ASD-STE100 소개](https://www.asd-ste100.org/about_STE.html)를 참고한다.
 
@@ -156,7 +159,9 @@ diff -qr ~/.dotfiles/codex/skills ~/.agents/skills
 
 일반 지침·스킬은 MD5로 비교해 변경된 파일을 원자적으로 교체한다. 덮어쓰기·manifest 기반 삭제 전에는 같은 경로의 `.backup`에 직전 내용을 보관하고 권한을 `600`으로 설정한다. manifest는 이전에 배포한 파일 목록이다. 목록에 없는 파일은 삭제하지 않으며, 원본 디렉터리가 없거나 비어 있으면 해당 대상과 목록을 보존한다.
 
-설정 파일은 기존 값을 우선한다. Codex TOML·hooks, Claude `settings.json`, Kiro `agents/default.json`에 없는 키만 채운다. 기존 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다.
+Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저장소 값을 따른다. `approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`를 원본과 맞추고, 원본에 없는 키는 제거한다. 따라서 기존 설치도 동기화 후 같은 승인 정책을 사용하며, 예전 샌드박스 설정이 새 권한 프로필을 가리지 않는다. 변경 후 새 세션에서 권한 모드를 확인한다.
+
+나머지 Codex TOML 설정·hooks, Claude `settings.json`, Kiro `agents/default.json`은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 기존 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다.
 
 [`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과를 확인한 뒤 배포한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
 
@@ -189,7 +194,7 @@ op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~
 
 ## Contributing
 
-별도 브랜치에서 변경하고 관련 검사를 실행한 뒤 PR을 만든다. 커밋은 Conventional Commits 형식을 권장한다. 에이전트의 commit·push는 명시적으로 요청한 범위에서만 수행한다.
+별도 브랜치에서 변경하고 관련 검사를 실행한 뒤 PR을 만든다. 커밋은 Conventional Commits 형식을 권장한다. 에이전트는 요청 범위의 commit·작업 브랜치 push·PR 생성을 자율 수행한다. `main`에 push하거나 merge하기 전에는 사용자 승인을 받는다.
 
 ## License
 

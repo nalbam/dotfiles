@@ -55,6 +55,8 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 
 Edit repository sources, not deployed copies. `run.sh --vibe` reads from `~/.dotfiles`, even when invoked from another checkout. See [AI Tools Sync](./README.md#ai-tools-sync) for targets, local-state exceptions, and deployment checks.
 
+When the source Codex config selects `default_permissions`, sync owns approval and sandbox selection (`approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`). These keys follow the repository, including removal of obsolete selectors. Other local settings keep their existing values.
+
 The root `AGENTS.md` guides work on this repository. `codex/AGENTS.md` is the global template deployed to `~/.codex/AGENTS.md`; keep it independent of machine paths and project-specific commands.
 
 Auto-memory sync belongs to Claude Code: see `claude/hooks/memory-sync.sh` and its registration in `claude/settings.json`. Do not treat these as Codex hooks or transcript sync.
@@ -71,7 +73,7 @@ For Codex instruction changes:
 ## Working rules for agents
 
 - Apply the ISO 24495-1 and ASD-STE100 writing principles in [the shared documentation workflow](./claude/skills/docs-sync/SKILL.md#작성-품질). Match the reader's task, preserve technical meaning, and verify examples against code. Do not claim full standard compliance from these checks alone.
-- **Do not commit or push without explicit user instruction.** Global rule, but especially important here — this repo drives the user's entire environment.
+- **Get user approval only before pushing to `main` or merging into `main`, including PR merges and auto-merge enrollment.** Within the requested task, autonomously edit, validate, commit, push work branches, create PRs, and resolve conflicts. Preserve unrelated user changes and check the push destination, not just the current branch name.
 - **Shell changes are live the next time `run.sh` runs on any machine.** Test locally before recommending risky changes.
 - **Check both `darwin/` and `linux/` paths** when touching platform logic — one branch is easy to miss.
 - **Prefer editing `aliases` or `Brewfile` over adding logic to `run.sh`.** The installer should stay declarative.

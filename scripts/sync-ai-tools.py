@@ -23,6 +23,8 @@ JSON_SETTINGS = {("claude", "settings.json"), ("codex", "hooks.json"),
                  ("kiro", "agents/default.json")}
 BEGIN = "# BEGIN dotfiles managed codex rules"
 END = "# END dotfiles managed codex rules"
+CODEX_PERMISSION_KEYS = {"approval_policy", "approvals_reviewer", "default_permissions",
+                         "sandbox_mode", "sandbox_workspace_write"}
 
 
 def regular_path(path, boundary):
@@ -85,20 +87,65 @@ def table_path(line):
     return path if table == {"__dotfiles_probe__": True} else None
 
 
+def toml_statements(lines):
+    """Yield complete statements so multiline values cannot be mistaken for tables."""
+    start = 0
+    while start < len(lines):
+        if not lines[start].strip() or lines[start].lstrip().startswith("#"):
+            yield start, start + 1, {}, False
+            start += 1
+            continue
+        for end in range(start + 1, len(lines) + 1):
+            statement = "".join(lines[start:end])
+            try:
+                parsed = tomllib.loads(statement)
+            except tomllib.TOMLDecodeError:
+                continue
+            yield start, end, parsed, statement.lstrip().startswith("[")
+            start = end
+            break
+        else:
+            raise ValueError("Cannot identify a complete TOML statement")
+
+
+def remove_toml_roots(text, keys):
+    lines = text.splitlines(keepends=True)
+    result = []
+    table_root = None
+    for start, end, parsed, is_table in toml_statements(lines):
+        if is_table:
+            table_root = next(iter(parsed))
+        if table_root in keys or (table_root is None and keys.intersection(parsed)):
+            continue
+        result.extend(lines[start:end])
+    return "".join(result)
+
+
 def merge_toml(source, old):
     defaults = tomllib.loads(source)
     if old is None:
         return source
     local = tomllib.loads(old)
+    # A repository-selected profile owns approval and sandbox selection across machines.
+    # Remove legacy selectors too: they would otherwise override default_permissions.
+    if "default_permissions" in defaults:
+        changed = {key for key in CODEX_PERMISSION_KEYS
+                   if (key in local) != (key in defaults) or local.get(key) != defaults.get(key)}
+        if changed:
+            old = remove_toml_roots(old, changed)
+            retained = {key: value for key, value in local.items() if key not in changed}
+            if tomllib.loads(old) != retained:
+                raise ValueError("Cannot update Codex permissions without changing local settings")
+            local = retained
     expected = fill_missing(local, defaults)
     if expected == local:
         return old
     lines = old.splitlines(keepends=True)
     tables = {(): 0}
-    for index, line in enumerate(lines):
-        path = table_path(line)
+    for start, end, _, is_table in toml_statements(lines):
+        path = table_path("".join(lines[start:end])) if is_table else None
         if path:
-            tables[path] = index + 1
+            tables[path] = end
     insertions = {}
     for path, value in missing_leaves(local, defaults):
         parent = max((table for table in tables if len(table) < len(path) and path[:len(table)] == table), key=len)
