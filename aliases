@@ -11,7 +11,8 @@ alias rt='romty'
 
 # Change directory with toast cdw
 c() {
-  local dir="$(toast cdw $@)"
+  local dir
+  dir=$(toast cdw "$@") || return
   if [ -n "$dir" ]; then
     echo "Change directory to $dir"
     cd "$dir"
@@ -19,7 +20,7 @@ c() {
 }
 
 # Shortcuts for toast commands
-alias m='aws sts get-caller-identity --output json | jq .'
+alias m='aws sts get-caller-identity --output json'
 alias x='toast ctx'
 alias d='toast dot'
 alias e='toast env'
@@ -47,7 +48,9 @@ alias cxp='codex'
 alias oc='opencode'
 
 # Tailscale shortcut
-alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+if [ -x /Applications/Tailscale.app/Contents/MacOS/Tailscale ]; then
+  alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+fi
 
 # AWS SSO login helper
 alias asl='aws sso login --profile'
@@ -55,15 +58,13 @@ alias asl='aws sso login --profile'
 # AWS Vault helper function
 av() {
   if [ $# -eq 0 ]; then
-    if command -v fzf &>/dev/null; then
-      # Try to get profiles from aws-vault, fall back to hardcoded list
+    if command -v fzf >/dev/null 2>&1; then
       local profiles
-      profiles=$(aws-vault list 2>/dev/null | awk 'NR>2 && $1 ~ /^[a-zA-Z]/ {print $1}')
+      profiles=$(aws-vault list) || return
+      profiles=$(printf '%s\n' "$profiles" | awk 'NR>2 && $1 ~ /^[a-zA-Z]/ {print $1}')
       if [ -z "$profiles" ]; then
-        profiles="nalbam
-nalbam-two
-awskrug-team
-opspresso"
+        echo "No aws-vault profiles found"
+        return 1
       fi
 
       local selected
@@ -96,15 +97,19 @@ opspresso"
     return
   fi
 
+  local profile
   case "$1" in
-    n|nalbam) export AWS_VAULT= && aws-vault exec nalbam -- ${@:2} ;;
-    t|two)    export AWS_VAULT= && aws-vault exec nalbam-two -- ${@:2} ;;
-    k|krug)   export AWS_VAULT= && aws-vault exec awskrug-team -- ${@:2} ;;
-    o|ops)    export AWS_VAULT= && aws-vault exec opspresso -- ${@:2} ;;
-    c|clear)  aws-vault clear ;;
-    l|list)   aws-vault list ;;
-    *)        export AWS_VAULT= && aws-vault exec "$@" ;;
+    n|nalbam) profile=nalbam ;;
+    t|two)    profile=nalbam-two ;;
+    k|krug)   profile=awskrug-team ;;
+    o|ops)    profile=opspresso ;;
+    c|clear)  aws-vault clear; return ;;
+    l|list)   aws-vault list; return ;;
+    *)        export AWS_VAULT= && aws-vault exec "$@"; return ;;
   esac
+  shift
+  export AWS_VAULT=
+  aws-vault exec "$profile" -- "$@"
 }
 
 # Keep backward compatibility aliases
