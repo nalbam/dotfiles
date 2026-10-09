@@ -45,7 +45,7 @@ bash ~/.dotfiles/run.sh
 & "$HOME\.dotfiles\run.ps1"
 ```
 
-기존 Git/Vim 대상 파일이 있으면 링크 생성을 건너뛴다. 이 경로는 Zsh·macOS 설정·AI 설정을 동기화하지 않는다. Windows에서 AI 설정을 동기화하려면 WSL의 `run.sh`를 사용한다.
+기존 Git/Vim 대상 파일이 있으면 링크 생성을 건너뛴다. 링크 생성이나 winget 설치가 실패하면 즉시 중단한다. 이 경로는 Zsh·macOS 설정·AI 설정을 동기화하지 않는다. Windows에서 AI 설정을 동기화하려면 WSL의 `run.sh`를 사용한다.
 
 ### macOS 설정과 인증
 

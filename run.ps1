@@ -22,7 +22,7 @@ foreach ($src in $Links.Keys) {
     if (Test-Path $dst) {
         Write-Host "기존 파일/링크가 존재합니다: $dst. 건너뜁니다." -ForegroundColor Yellow
     } else {
-        New-Item -ItemType SymbolicLink -Path $dst -Target $src | Out-Null
+        New-Item -ItemType SymbolicLink -Path $dst -Target $src -ErrorAction Stop | Out-Null
         Write-Host "심볼릭 링크 생성: $src -> $dst" -ForegroundColor Green
     }
 }
@@ -47,6 +47,9 @@ foreach ($pkgId in $Packages.Keys) {
     if ($LASTEXITCODE -ne 0 -or -Not ($installed | Select-String $pkgId)) {
         Write-Host "패키지가 설치되지 않았습니다: $pkgName. 설치를 진행합니다..."
         winget install --id $pkgId -e --accept-package-agreements --accept-source-agreements
+        if ($LASTEXITCODE -ne 0) {
+            throw "패키지 설치 실패: $pkgName (winget 종료 코드: $LASTEXITCODE)"
+        }
     } else {
         Write-Host "패키지가 이미 설치되어 있습니다: $pkgName" -ForegroundColor Green
     }
