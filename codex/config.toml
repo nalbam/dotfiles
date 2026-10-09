@@ -3,7 +3,7 @@ default_permissions = "git-write"
 
 web_search = "live"
 
-model_reasoning_effort = "high"
+model_reasoning_effort = "xhigh"
 model_verbosity = "low"
 model_context_window = 1000000
 
@@ -20,3 +20,10 @@ enabled = true
 
 [features]
 hooks = true
+memories = true
+chronicle = true
+local_thread_store_compression = true
+
+[memories]
+generate_memories = true
+use_memories = true
