@@ -4,17 +4,17 @@ if [ "$(locale charmap 2>/dev/null)" != "UTF-8" ]; then
 fi
 
 if [ -d "$HOME/.local/bin" ]; then
-  PATH="$HOME/.local/bin:${PATH+:$PATH}"
+  PATH="$HOME/.local/bin${PATH:+:$PATH}"
 fi
 
 if [ -d "/opt/homebrew/bin" ]; then
-  export PATH="/opt/homebrew/bin:${PATH+:$PATH}"
+  export PATH="/opt/homebrew/bin${PATH:+:$PATH}"
 fi
 if [ -d "/opt/homebrew/sbin" ]; then
-  export PATH="/opt/homebrew/sbin:${PATH+:$PATH}"
+  export PATH="/opt/homebrew/sbin${PATH:+:$PATH}"
 fi
 if [ -d "/home/linuxbrew/.linuxbrew/bin" ]; then
-  export PATH="/home/linuxbrew/.linuxbrew/bin:${PATH+:$PATH}"
+  export PATH="/home/linuxbrew/.linuxbrew/bin${PATH:+:$PATH}"
 fi
 
 if [ -f ~/.aliases ]; then

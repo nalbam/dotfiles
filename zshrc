@@ -23,7 +23,7 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
-export PATH="$HOME/.local/bin${PATH+:$PATH}"
+export PATH="$HOME/.local/bin${PATH:+:$PATH}"
 
 if [ -d "/opt/homebrew/bin" ]; then
   export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
