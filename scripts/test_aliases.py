@@ -46,6 +46,18 @@ eval 'm && printf "unexpected followup"'
                 self.assertEqual(result.returncode, 23, result.stderr)
                 self.assertEqual(result.stdout, "")
 
+    def test_aws_identity_disables_pager(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                result = self.run_shell(shell, '''
+aws() { printf '<%s>\\n' "$@"; }
+eval 'm'
+''')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout.splitlines(),
+                                 ["<sts>", "<get-caller-identity>", "<--output>",
+                                  "<json>", "<--no-cli-pager>"])
+
     def test_vault_shortcuts_preserve_arguments(self):
         for shell in SHELLS:
             for shortcut, profile in (("n", "nalbam"), ("two", "nalbam-two"),
