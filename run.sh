@@ -167,6 +167,9 @@ _md5() {
 # 백업 생성 함수
 _backup() {
   if [ -f "$1" ]; then
+    if [ -L "$1.backup" ] || { [ -e "$1.backup" ] && [ ! -f "$1.backup" ]; }; then
+      return 1
+    fi
     cp "$1" "$1.backup" || return 1
     # Set secure permissions for backup files
     chmod 600 "$1.backup" || return 1

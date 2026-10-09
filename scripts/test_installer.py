@@ -120,6 +120,31 @@ _download .settings settings
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(list(target.iterdir()), [])
 
+    def test_non_regular_backup_is_preserved_and_blocks_replacement(self):
+        (self.repo / "settings").write_text("new")
+        target = self.home / ".settings"
+        target.write_text("working")
+        backup = self.home / ".settings.backup"
+        victim = self.home / "unrelated"
+        victim.write_text("unrelated data")
+        for kind in ("directory", "symlink"):
+            with self.subTest(kind=kind):
+                if kind == "directory":
+                    backup.mkdir(mode=0o755)
+                else:
+                    backup.symlink_to(victim)
+                result = self.run_shell('_download .settings settings\n')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(target.read_text(), "working")
+                self.assertEqual(victim.read_text(), "unrelated data")
+                if kind == "directory":
+                    self.assertEqual(backup.stat().st_mode & 0o777, 0o755)
+                    self.assertEqual(list(backup.iterdir()), [])
+                    backup.rmdir()
+                else:
+                    self.assertTrue(backup.is_symlink())
+                self.assertEqual(list(self.home.glob(".settings.tmp.*")), [])
+
     def test_local_copy_supports_spaces_and_private_files(self):
         (self.repo / "config with spaces").write_text("settings")
         result = self.run_shell('_download ".ssh/config with spaces" "config with spaces"\n')
