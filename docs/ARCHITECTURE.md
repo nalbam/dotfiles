@@ -69,7 +69,7 @@ Read the source file for exact packages and configuration values. The [AI settin
 | 10 | Copy user configuration | Shell files, aliases, Vim, tmux, and the matching platform profile |
 | 11 | Deploy AI settings | Run `scripts/sync-ai-tools.py`; a failure stops installation |
 
-The NPM global installation calls in Step 6 are currently commented out. A package listed in a helper function or comment is not necessarily installed.
+Step 6 does not install global npm packages. Node.js is managed through nvm; package selection otherwise comes from the Brewfile and pip setup.
 
 ## Updates and retries
 
@@ -77,7 +77,6 @@ The NPM global installation calls in Step 6 are currently commented out. A packa
 - Update markers are stored at `~/.toast/last_update_*` with a six-hour interval.
 - APT, Homebrew, Claude, and pip update markers advance only after their checked operations succeed. Failed updates remain eligible on the next run.
 - A changed Brewfile bypasses the update interval. `~/.Brewfile` stores the last successfully bundled content, so a failed bundle remains eligible for another attempt.
-- The npm ownership check reports unwritable global package directories. It does not repair permissions or install packages through sudo.
 - The pip package helper tries normal installation, `--user`, `--break-system-packages --user`, then sudo. The separate pip-tool upgrade has no sudo fallback.
 
 ## Configuration and backups

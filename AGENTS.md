@@ -29,7 +29,7 @@ Base `gitconfig` uses `includeIf` to select directory-specific identities. Read 
 
 - **macOS arm64**: Homebrew lives at `/opt/homebrew`. Rosetta 2 is auto-installed for x86_64 binaries.
 - **macOS x86_64**: Homebrew at `/usr/local`.
-- **Raspberry Pi (aarch64/armv7l)**: Homebrew and Node.js bootstrapping can require slow source builds. The installer checks npm directory ownership and skips global package work when it is not writable; do not recommend `sudo npm`.
+- **Raspberry Pi (aarch64/armv7l)**: Homebrew and Node.js bootstrapping can require slow source builds. The installer does not install global npm packages; do not recommend `sudo npm`.
 - **Ubuntu/WSL**: uses the Linux/APT path. The installer attempts Homebrew installation and warns if it remains unavailable.
 - **zprofile scripts** must degrade gracefully when `brew` / `pyenv` / `nvm` are absent — they run early in shell init.
 

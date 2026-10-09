@@ -69,7 +69,7 @@ bash ~/.dotfiles/run.sh
 | 터미널·앱 | macOS Brewfile의 Ghostty·VS Code 등. iTerm2 프로필은 복사하지만 iTerm2 앱 설치는 포함하지 않음 |
 | AI 설정 | Claude Code·Codex·Kiro 지침·설정·스킬 배포 |
 
-AI 설정 배포와 CLI 설치는 별개다. `claude`가 이미 설치되어 있으면 업데이트를 시도한다. NPM 전역 패키지 설치 호출은 현재 주석 처리되어 있다. 일부 macOS 앱은 Brewfile의 사용자 조건을 만족할 때만 설치한다.
+AI 설정 배포와 CLI 설치는 별개다. `claude`가 이미 설치되어 있으면 업데이트를 시도한다. NPM 전역 패키지는 설치하지 않는다. 일부 macOS 앱은 Brewfile의 사용자 조건을 만족할 때만 설치한다.
 
 ## Repository Layout
 

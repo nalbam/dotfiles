@@ -268,53 +268,6 @@ _sync_vibe() {
   fi
 }
 
-# NPM 패키지 설치 함수 (버전 체크 포함)
-# NPM_CMD is set once before calling this function (see Step 6)
-_install_npm_package() {
-  local package_name="$1"
-  local package_spec="$2"
-  local npm_cmd="${NPM_CMD:-npm}"
-
-  # npm 실행 가능 여부 확인 (node 미설치 시 npm 호출이 exit 127 반환)
-  if ! npm --version >/dev/null 2>&1; then
-    _warn "npm is not functional (is node installed?), skipping $package_name"
-    return 1
-  fi
-
-  # Check if package is installed
-  if npm list -g "$package_spec" >/dev/null 2>&1; then
-    local installed_version=$(npm list -g "$package_spec" --depth=0 2>/dev/null | grep "$package_name" | sed 's/.*@\([0-9.]*\).*/\1/')
-    local latest_version=$(npm view "$package_spec" version 2>/dev/null)
-
-    if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
-      if [ "$installed_version" != "$latest_version" ]; then
-        _run "Updating $package_name: $installed_version → $latest_version"
-        if $npm_cmd update -g "$package_spec" >/dev/null 2>&1; then
-          _ok "$package_name updated to $latest_version"
-        else
-          _warn "Failed to update $package_name"
-        fi
-      else
-        _skip "$package_name already up to date ($installed_version)"
-      fi
-    else
-      _run "Installing $package_name..."
-      if $npm_cmd install -g "$package_spec" >/dev/null 2>&1; then
-        _ok "$package_name installed"
-      else
-        _warn "Failed to install $package_name"
-      fi
-    fi
-  else
-    _run "Installing $package_name..."
-    if $npm_cmd install -g "$package_spec" >/dev/null 2>&1; then
-      _ok "$package_name installed"
-    else
-      _warn "Failed to install $package_name"
-    fi
-  fi
-}
-
 # pip install/upgrade를 4단계 fallback으로 시도
 _pip_try_install() {
   local package_name="$1"
@@ -620,59 +573,6 @@ if [ -s "$NVM_SH" ]; then
       _warn "Failed to configure Node.js 24 as default"
     fi
   fi
-fi
-
-# NPM 패키지 설치 (버전 체크 포함)
-if command -v npm >/dev/null; then
-  NPM_TIMESTAMP_FILE=~/.toast/last_update_npm
-
-  if _should_update "$NPM_TIMESTAMP_FILE"; then
-    _info "Installing/updating NPM packages..."
-
-    # npm prefix 의 쓰기 권한 확인
-    # sudo npm 은 lib/node_modules 에 root 소유 파일을 남겨 이후의 npm install 을
-    # 영구 EACCES 로 망가뜨린다 (자가 강화 권한 오염 사이클).
-    # 권한이 깨졌으면 도망가지 말고 멈춘다.
-    NPM_PREFIX=$(npm config get prefix 2>/dev/null || echo "/usr/local")
-    NPM_CMD="npm"
-    NPM_OK=true
-    NPM_NODE_MODULES="$NPM_PREFIX/lib/node_modules"
-
-    # 컨테이너 디렉토리 자체의 쓰기 권한
-    if [ -d "$NPM_NODE_MODULES" ] && [ ! -w "$NPM_NODE_MODULES" ]; then
-      _warn "$NPM_NODE_MODULES is not user-writable."
-      NPM_OK=false
-    fi
-
-    # 컨테이너는 user 소유여도 그 안의 패키지가 root 소유인 케이스 (과거 sudo npm 의 후유증)
-    if [ "$NPM_OK" = true ] && [ -d "$NPM_NODE_MODULES" ]; then
-      while IFS= read -r pkg_dir; do
-        if [ ! -w "$pkg_dir" ]; then
-          _warn "$pkg_dir is not user-writable (root-owned from past sudo npm)."
-          NPM_OK=false
-          break
-        fi
-      done < <(find "$NPM_NODE_MODULES" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
-    fi
-
-    if [ "$NPM_OK" = false ]; then
-      _info "Do NOT use sudo npm — it permanently corrupts the node install."
-      _info "Fix with: sudo chown -R \$(whoami):staff $NPM_NODE_MODULES"
-      _info "Skipping NPM package install/update."
-    fi
-
-    # if [ "$NPM_OK" = true ]; then
-    #   # npm 자체는 nvm 의 node 가 관리하므로 self-update 시도하지 않음
-    #   _install_npm_package "corepack" "corepack"
-    #   _install_npm_package "serverless" "serverless"
-    #   _install_npm_package "ccusage" "ccusage"
-    #   date +%s > "$NPM_TIMESTAMP_FILE"
-    # fi
-  else
-    _skip "NPM packages update (last update was less than 6 hours ago)"
-  fi
-else
-  _skip "NPM not found"
 fi
 
 # Claude Code 업데이트
