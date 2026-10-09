@@ -5,7 +5,7 @@ description: Evaluate CodeRabbit PR comments, fix valid issues, and resolve thre
 
 # Resolve CodeRabbit Reviews
 
-미해결 CodeRabbit 리뷰를 현재 코드와 대조해 처리한다. 이 호출은 thread resolve를 포함하며, commit·push는 별도 사용자 지시 범위에서 수행한다. 요청하지 않은 답글·리뷰 메시지는 게시하지 않는다.
+미해결 CodeRabbit 리뷰를 현재 코드와 대조해 처리한다. 이 호출은 유효한 수정의 검증·원격 반영·thread resolve를 포함하며 Git 작업은 AGENTS.md 의 Git Safety를 따른다. 요청하지 않은 답글·리뷰 메시지는 게시하지 않는다.
 
 ## 대상과 조회
 
@@ -55,7 +55,7 @@ query($owner: String!, $repo: String!, $pr: Int!, $cursor: String) {
 
 ## Resolve와 완료
 
-ACCEPT는 로컬 수정만으로 resolve하지 않는다. push 권한이 없으면 로컬 수정·검증을 끝내고 필요한 원격 반영을 보고한다. 원격 head가 바뀌었으면 관련 코드를 다시 확인한다.
+ACCEPT는 수정·검증·원격 반영을 마친 뒤 resolve한다. 원격 head가 바뀌었으면 관련 코드를 다시 확인한다.
 
 ```graphql
 mutation($threadId: ID!) {

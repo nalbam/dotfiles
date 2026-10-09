@@ -45,7 +45,7 @@ bash ~/.dotfiles/run.sh
 & "$HOME\.dotfiles\run.ps1"
 ```
 
-기존 Git/Vim 대상 파일이 있으면 링크 생성을 건너뛴다. 이 경로는 Zsh·macOS 설정·AI 설정을 동기화하지 않는다. Windows에서 AI 설정을 동기화하려면 WSL의 `run.sh`를 사용한다.
+기존 Git/Vim 대상 파일이 있으면 링크 생성을 건너뛴다. 링크 생성이나 winget 설치가 실패하면 즉시 중단한다. 이 경로는 Zsh·macOS 설정·AI 설정을 동기화하지 않는다. Windows에서 AI 설정을 동기화하려면 WSL의 `run.sh`를 사용한다.
 
 ### macOS 설정과 인증
 
@@ -69,7 +69,7 @@ bash ~/.dotfiles/run.sh
 | 터미널·앱 | macOS Brewfile의 Ghostty·VS Code 등. iTerm2 프로필은 복사하지만 iTerm2 앱 설치는 포함하지 않음 |
 | AI 설정 | Claude Code·Codex·Kiro 지침·설정·스킬 배포 |
 
-AI 설정 배포와 CLI 설치는 별개다. `claude`가 이미 설치되어 있으면 업데이트를 시도한다. NPM 전역 패키지 설치 호출은 현재 주석 처리되어 있다. 일부 macOS 앱은 Brewfile의 사용자 조건을 만족할 때만 설치한다.
+AI 설정 배포와 CLI 설치는 별개다. `claude`가 이미 설치되어 있으면 업데이트를 시도한다. NPM 전역 패키지는 설치하지 않는다. 일부 macOS 앱은 Brewfile의 사용자 조건을 만족할 때만 설치한다.
 
 ## Repository Layout
 
@@ -101,7 +101,9 @@ AI 설정 배포와 CLI 설치는 별개다. `claude`가 이미 설치되어 있
 | `cx` / `cxc` | Codex 시작 / 최근 세션 이어가기 |
 | `ccp "prompt"` / `cxp "prompt"` | 프롬프트를 전달해 Claude Code / Codex 시작 |
 
-`nn`과 `nnn`은 `node_modules`와 해당 빌드 출력을 지운다. `nnn`은 lockfile도 지우므로 의존성 버전이 달라질 수 있다. `ss`는 `package.json`이 있으면 Node.js 개발 서버를, 없으면 기본 `docs/` 디렉터리의 Python HTTP 서버를 실행한다.
+`nn`과 `nnn`은 `node_modules`와 해당 빌드 출력을 지운다. `nnn`은 lockfile도 지우므로 의존성 버전이 달라질 수 있다. `ss`는 `package.json`이 있으면 Node.js 개발 서버를, 없으면 기본 `docs/` 디렉터리의 Python HTTP 서버를 실행한다. Python 서버는 실제 포트 바인딩 후 성공을 알리며, 시작·종료 신호 실패는 오류로 반환한다.
+
+서버 도우미는 Python 3와 `lsof`가 필요하다. 등록 정보 갱신은 파일 잠금으로 직렬화하여 여러 터미널에서 동시에 실행해도 다른 포트의 기록을 보존한다.
 
 한글 키보드 별칭: `ㅊ` → `c`, `ㅊㅇ` → `cd`, `ㅅㅅ` → `tt`, `ㅊㅊ` → `cc`.
 
@@ -142,6 +144,8 @@ git diff --check
 
 `--check`는 생성 파일의 내용과 오래된 잔여 파일을 검사한다. 테스트는 임시 홈과 가짜 Git 명령을 사용하며 실제 설정 배포나 원격 push를 하지 않는다. macOS 설치 단계를 변경했다면 `python3 scripts/test_macos.py`와 `bash -n macos`도 실행한다.
 
+설치기·셸·플랫폼 설정을 함께 변경했다면 `python3 -m unittest discover -s scripts -p 'test_*.py'`로 전체 회귀 검사를 실행한다. 서버 검사는 임시 로컬 HTTP 서버도 실행한다. PowerShell이 없는 환경에서는 Windows 검사만 건너뛰며, 실제 OS 설정 적용과 패키지 설치는 별도 검증이 필요하다.
+
 ### 배포와 결과 확인
 
 각 머신의 `~/.dotfiles`에 원하는 변경을 반영한 뒤 실행한다. `--vibe`는 checkout을 갱신하지 않으며, 다른 경로에서 호출해도 원본은 항상 `~/.dotfiles`에서 읽는다.
@@ -169,7 +173,7 @@ Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저�
 
 ### Claude 메모리와 지침 로딩
 
-[`claude/hooks/memory-sync.sh`](claude/hooks/memory-sync.sh)는 별도의 개인 메모리 저장소를 동기화한다. 최초 clone·프로젝트 연결·Git 작업은 백그라운드에서 실행되므로 완료 후 메모리 링크를 사용할 수 있다. Git 단계가 실패하면 후속 push를 중단한다. 네트워크 오류는 다음 실행에서 재시도하며, 남아 있는 rebase·merge 충돌은 메모리 저장소에서 해결한다. 이 훅의 자동 커밋·push는 메모리 저장소에 한정된다.
+[`claude/hooks/memory-sync.sh`](claude/hooks/memory-sync.sh)는 별도의 개인 메모리 저장소를 동기화한다. Python 표준 라이브러리의 파일 잠금으로 최초 clone·프로젝트 연결·Git 작업을 직렬화한다. 세션 훅은 이 작업을 백그라운드에서 실행하므로 완료 후 메모리 링크를 사용할 수 있다. Git 단계가 실패하면 후속 push를 중단한다. 네트워크 오류는 다음 실행에서 재시도하며, 남아 있는 rebase·merge 충돌은 메모리 저장소에서 해결한다. 이 훅의 자동 커밋·push는 메모리 저장소에 한정된다.
 
 설치기는 Codex 설정을 `~/.codex`에 배포한다. 별도 `CODEX_HOME`이나 `AGENTS.override.md`를 사용하면 실제 로딩 위치를 확인하고 새 세션에서 지침을 확인한다. [공식 지침 로딩 규칙](https://learn.chatgpt.com/docs/agent-configuration/agents-md)을 참고한다.
 

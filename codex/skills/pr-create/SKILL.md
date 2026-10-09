@@ -5,14 +5,14 @@ description: Create a pull request from the full branch diff. 전체 변경 분�
 
 # Create Pull Request
 
-명시적으로 요청한 PR을 생성한다. Git 권한은 AGENTS.md 의 Git Safety, 커밋·푸시가 필요하면 해당 스킬의 절차를 따른다. PR title/body의 공통 형식은 이 파일에서 관리한다.
+요청 범위의 PR을 생성한다. Git 권한은 AGENTS.md 의 Git Safety, 커밋·푸시가 필요하면 해당 스킬의 절차를 따른다. PR title/body의 공통 형식은 이 파일에서 관리한다.
 
 ## Workflow
 
 1. 현재 브랜치·작업 트리·remote·기존 PR을 확인한다. base는 기존 PR, 원격 기본 브랜치, 저장소 관례로 판단하며 `main`을 가정하지 않는다.
 2. 실제 base 대비 전체 diff와 커밋 목록을 읽는다. 변경된 코드의 호출자·영향·호환성·검증 결과를 확인한다.
 3. 저장소가 요구하는 검증을 확인한다. 변경 이후 유효한 결과는 재사용하고, 추가 검사는 `skills/validate/SKILL.md`를 따른다. 새 회귀·원인 불명의 실패는 먼저 해결한다. 알려진 기존 실패·환경 제약은 숨기지 않는다.
-4. base가 앞섰다는 이유만으로 rebase하지 않는다. 충돌 등 필요성이 있으면 확인하고, 공개 이력 재작성·force push는 명시적 허가가 있을 때만 수행한다.
+4. base가 앞섰다는 이유만으로 rebase하지 않는다. 충돌 해결에 이력 변경이 필요하면 Git 안전 규칙에 따라 수행한다.
 5. 저장소 PR 템플릿에 맞춰 설명을 작성한다. 요청 범위의 커밋만 푸시됐는지 확인한 뒤 PR을 생성한다.
 6. `gh pr view <number>`로 제목·본문·base/head를 확인하고 URL을 보고한다.
 

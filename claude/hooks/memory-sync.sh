@@ -20,8 +20,6 @@ set -u
 MEMORY_REPO="git@github.com:nalbam/claude-memory.git"
 MEMORY_ROOT="${HOME}/.claude-memory"
 PROJECTS_ROOT="${HOME}/.claude/projects"
-LOCK_DIR="${MEMORY_ROOT}/.sync.lock"
-LOCK_STALE_MIN=5
 
 # Absolute path to this script, for re-invoking ourselves detached.
 SELF="$0"
@@ -35,23 +33,32 @@ ensure_repo() {
   git clone --quiet "${MEMORY_REPO}" "${MEMORY_ROOT}" 2>/dev/null
 }
 
-# Only one sync may touch the repo at a time — detached syncs from several
-# sessions can overlap. A lock left behind by a killed sync is reclaimed after
-# LOCK_STALE_MIN minutes so the repo never stays wedged.
-acquire_lock() {
-  mkdir "${LOCK_DIR}" 2>/dev/null && return 0
-  [ -n "$(find "${LOCK_DIR}" -maxdepth 0 -mmin "+${LOCK_STALE_MIN}" 2>/dev/null)" ] || return 1
-  rmdir "${LOCK_DIR}" 2>/dev/null
-  mkdir "${LOCK_DIR}" 2>/dev/null
+# Python is already required by AI settings deployment. Keep the lock outside
+# the checkout so it also covers cloning, and let the OS release it on exit.
+# Queued bootstrap/link work must wait rather than silently lose a project link.
+with_repo_lock() {
+  python3 - "${SELF}" "$@" <<'PY'
+import fcntl
+import os
+import sys
+
+try:
+    path = os.path.join(os.path.expanduser("~"), ".claude-memory.lock")
+    fd = os.open(path, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    os.fchmod(fd, 0o600)
+    fcntl.flock(fd, fcntl.LOCK_EX)
+    os.set_inheritable(fd, True)
+    os.execvp("bash", ["bash", sys.argv[1], "--locked", *sys.argv[2:]])
+except OSError as error:
+    sys.exit(f"Memory sync failed: {error}")
+PY
 }
 
 # Commit local changes first so the tree is clean, then converge with remote.
 # Network failures are tolerated silently — offline sessions must never block.
-# A lock we cannot take means another sync is already converging; skip.
+# The caller holds the repository lock across all filesystem and Git work.
 sync_repo() {
   local diff_status
-  acquire_lock || return 0
-  trap 'rmdir "${LOCK_DIR}" 2>/dev/null' EXIT INT TERM
 
   if [ -d "${MEMORY_ROOT}/.git/rebase-merge" ] || [ -d "${MEMORY_ROOT}/.git/rebase-apply" ] ||
      [ -f "${MEMORY_ROOT}/.git/MERGE_HEAD" ] || [ -f "${MEMORY_ROOT}/.git/CHERRY_PICK_HEAD" ]; then
@@ -69,9 +76,6 @@ sync_repo() {
   fi
   git -C "${MEMORY_ROOT}" pull --rebase --autostash --quiet 2>/dev/null || return 1
   git -C "${MEMORY_ROOT}" push --quiet 2>/dev/null || return 1
-
-  trap - EXIT INT TERM
-  rmdir "${LOCK_DIR}" 2>/dev/null
 }
 
 # Re-run ourselves as `sync` in a double-forked, nohup'd child: the inner
@@ -114,6 +118,18 @@ link_project() {
   mkdir -p "${target}" "${PROJECTS_ROOT}/${slug}" || return 1
   ln -s "${target}" "${link}"
 }
+
+# All repository mutations, including first clone and memory migration, share
+# the inherited lock. Session hooks only launch detached workers.
+case "${1:-}" in
+  bootstrap|sync|link)
+    with_repo_lock "$@"
+    exit $?
+    ;;
+  --locked)
+    shift
+    ;;
+esac
 
 case "${1:-}" in
   start)

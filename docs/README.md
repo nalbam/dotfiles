@@ -17,7 +17,7 @@ Choose a guide by the task you want to complete.
 
 - Packages: [macOS Brewfile](../darwin/Brewfile), [Linux Brewfile](../linux/Brewfile).
 - Shell startup: [Zsh](../zshrc), [Bash](../bashrc), [profile](../profile), and platform `zprofile.*.sh` files.
-- Git identities: [base configuration](../gitconfig), [nalbam](../gitconfig-nalbam), [bruce](../gitconfig-bruce), [yujh404](../gitconfig-yujh404).
+- Git identities: [base configuration](../gitconfig), [nalbam](../gitconfig-nalbam), [nalbam-me](../gitconfig-nalbam-me), [nalbam-bot](../gitconfig-nalbam-bot), [bruce](../gitconfig-bruce), [yujh404](../gitconfig-yujh404).
 - Terminal and editor settings: [Ghostty](../ghostty/config), [iTerm2](../iterm2/profiles.json), [tmux](../tmux.conf), [Vim](../vimrc).
 - OS settings: [macos](../macos). The installer does not automatically apply every configuration file in the repository.
 

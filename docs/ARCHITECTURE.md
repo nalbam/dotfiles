@@ -69,22 +69,21 @@ Read the source file for exact packages and configuration values. The [AI settin
 | 10 | Copy user configuration | Shell files, aliases, Vim, tmux, and the matching platform profile |
 | 11 | Deploy AI settings | Run `scripts/sync-ai-tools.py`; a failure stops installation |
 
-The NPM global installation calls in Step 6 are currently commented out. A package listed in a helper function or comment is not necessarily installed.
+Step 6 does not install global npm packages. Node.js is managed through nvm; package selection otherwise comes from the Brewfile and pip setup.
 
 ## Updates and retries
 
 - `_retry` makes at most three attempts and waits 5 seconds, then 10 seconds. It wraps selected downloads and Git operations, not every network call.
 - Update markers are stored at `~/.toast/last_update_*` with a six-hour interval.
-- APT, Homebrew, and Claude update markers advance after their checked operations succeed. The pip section writes its marker after running, even if a package helper reports a warning.
+- APT, Homebrew, Claude, and pip update markers advance only after their checked operations succeed. Failed updates remain eligible on the next run.
 - A changed Brewfile bypasses the update interval. `~/.Brewfile` stores the last successfully bundled content, so a failed bundle remains eligible for another attempt.
-- The npm ownership check reports unwritable global package directories. It does not repair permissions or install packages through sudo.
 - The pip package helper tries normal installation, `--user`, `--break-system-packages --user`, then sudo. The separate pip-tool upgrade has no sudo fallback.
 
 ## Configuration and backups
 
 ### User files
 
-When a source exists in `~/.dotfiles`, `_download` compares it with the destination using MD5 and copies changed content. If the source is missing, it downloads the file from the repository's `main` branch. Both replacement paths first back up an existing destination as `<path>.backup`. MD5 detects local content changes; it does not authenticate a download.
+When a source exists in `~/.dotfiles`, `_download` compares it with the destination using MD5. If the source is missing, it downloads the file from the repository's `main` branch. Changed content is staged in the destination directory before the existing file is backed up and atomically replaced. A failed copy or download leaves the destination unchanged. Identical content leaves both the destination and its backup unchanged. MD5 detects content changes; it does not authenticate a download.
 
 Copied SSH/AWS files and backups receive mode `600`. These backups hold the previous version of each file, not a complete system snapshot. The full installer has no global rollback.
 
@@ -100,7 +99,7 @@ The startup-sound setting requests sudo only when it needs to change. Screen-loc
 
 The Python sync process acquires a lock, validates source paths and all merge results, then applies changes. It backs up changed or removed managed files and replaces each written file atomically. It updates target manifests after all file operations succeed.
 
-Existing JSON/TOML values and local Codex rules outside the managed block are preserved. A manifest lists previously deployed files; pruning affects only those files. Unmanaged files remain in place. Missing or empty source directories preserve the corresponding deployed files and manifest.
+Codex approval and sandbox selection follow the repository when its config declares `default_permissions`. Other existing JSON/TOML values and local Codex rules outside the managed block are preserved. A manifest lists previously deployed files; pruning affects only those files. Unmanaged files remain in place. Missing or empty source directories preserve the corresponding deployed files and manifest.
 
 A write failure can leave earlier files updated. There is no transaction across all files and manifests. Fix the reported cause and rerun the sync. See [preservation and failure handling](../README.md#기존-설정-보존과-실패-처리).
 
@@ -110,7 +109,7 @@ Global instructions live in `claude/CLAUDE.md` and `codex/AGENTS.md`. They apply
 
 `claude/skills/` is the source for shared skills. `scripts/gen-codex-skills.py` adapts tool-specific instructions and mirrors Markdown to `codex/skills/`. It preserves manually maintained Codex metadata. Its `--check` mode reports mismatches and stale generated files.
 
-Claude's memory hook uses a separate private Git repository. It links project memory and runs Git synchronization in the background for session hooks. A failed Git stage stops the following stages. This hook does not sync Codex transcripts or authorize commits in the current project.
+Claude's memory hook uses a separate private Git repository. An OS file lock serializes clone, project-memory migration, and Git synchronization. Session hooks launch this work in the background. A failed Git stage stops the following stages. This hook does not sync Codex transcripts or authorize commits in the current project.
 
 ## Failure diagnosis
 
@@ -125,21 +124,21 @@ Claude's memory hook uses a separate private Git repository. It links project me
 
 ## Verification
 
-Run these from the repository root before deploying instruction changes:
+Run the complete regression suite and generated-skill check from the repository root:
 
 ```bash
 python3 scripts/gen-codex-skills.py --check
-python3 scripts/test_ai_tools.py
+python3 -m unittest discover -s scripts -p 'test_*.py'
 bash -n run.sh
 bash -n claude/hooks/memory-sync.sh
 git diff --check
 ```
 
-For changes to macOS preferences or their installer step, also run:
+For a focused macOS check, use:
 
 ```bash
 python3 scripts/test_macos.py
 bash -n macos
 ```
 
-Tests use temporary homes and mocked system or Git commands. They do not validate real package installation, live OS preferences, or external accounts. Deployment comparisons are documented in [AI Tools Sync](../README.md#배포와-결과-확인).
+Tests use temporary homes and mocked system or Git commands. Server tests also start a temporary local HTTP server. PowerShell tests are skipped when its runtime is absent. Tests do not validate real package installation, live OS preferences, or external accounts. Deployment comparisons are documented in [AI Tools Sync](../README.md#배포와-결과-확인).

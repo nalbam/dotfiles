@@ -38,17 +38,26 @@ systemctl restart docker
 if command -v aws >/dev/null && aws --version 2>&1 | grep -q '^aws-cli/2\.'; then
   echo "$(aws --version 2>&1) is already installed"
 else
-  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o /tmp/awscliv2.zip
-  unzip -q /tmp/awscliv2.zip -d /tmp
-  /tmp/aws/install --update
-  rm -rf /tmp/awscliv2.zip /tmp/aws
+  (
+    AWS_INSTALL_DIR=$(mktemp -d)
+    trap 'rm -rf "$AWS_INSTALL_DIR"' EXIT
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "$AWS_INSTALL_DIR/awscliv2.zip"
+    unzip -q "$AWS_INSTALL_DIR/awscliv2.zip" -d "$AWS_INSTALL_DIR"
+    "$AWS_INSTALL_DIR/aws/install" --update
+  )
 fi
 
 # swap
 if [[ ! -e /swapfile ]]; then
-  fallocate -l 4G /swapfile
-  chmod 600 /swapfile
-  mkswap /swapfile >/dev/null
+  (
+    SWAP_TEMP_FILE=$(mktemp /swapfile.XXXXXX)
+    trap 'rm -f "$SWAP_TEMP_FILE"' EXIT
+    fallocate -l 4G "$SWAP_TEMP_FILE"
+    chmod 600 "$SWAP_TEMP_FILE"
+    mkswap "$SWAP_TEMP_FILE" >/dev/null
+    # Publish only a complete swap file and never replace an existing path.
+    ln "$SWAP_TEMP_FILE" /swapfile
+  )
 fi
 swapon --show=NAME --noheadings | tr -d ' ' | grep -qx /swapfile || swapon /swapfile
 grep -qE '^/swapfile[[:space:]]' /etc/fstab || echo '/swapfile none swap sw 0 0' >>/etc/fstab

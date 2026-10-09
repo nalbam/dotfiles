@@ -23,13 +23,13 @@ The installer (`run.sh`) is Bash; AI settings sync uses Python 3.11+ standard li
 
 ## Git profile switching (non-obvious)
 
-Base `gitconfig` uses `includeIf` to select directory-specific identities. Read `gitconfig`, `gitconfig-nalbam`, `gitconfig-bruce`, and `gitconfig-yujh404` together when changing identity settings; a wrong email changes commit attribution.
+Base `gitconfig` uses `includeIf` to select directory-specific identities. Read all `gitconfig*` files together when changing identity settings, and keep the Step 4 deployment list in sync with the includes; a wrong email changes commit attribution.
 
 ## Platform-specific gotchas
 
 - **macOS arm64**: Homebrew lives at `/opt/homebrew`. Rosetta 2 is auto-installed for x86_64 binaries.
 - **macOS x86_64**: Homebrew at `/usr/local`.
-- **Raspberry Pi (aarch64/armv7l)**: Homebrew and Node.js bootstrapping can require slow source builds. The installer checks npm directory ownership and skips global package work when it is not writable; do not recommend `sudo npm`.
+- **Raspberry Pi (aarch64/armv7l)**: Homebrew and Node.js bootstrapping can require slow source builds. The installer does not install global npm packages; do not recommend `sudo npm`.
 - **Ubuntu/WSL**: uses the Linux/APT path. The installer attempts Homebrew installation and warns if it remains unavailable.
 - **zprofile scripts** must degrade gracefully when `brew` / `pyenv` / `nvm` are absent — they run early in shell init.
 
@@ -69,6 +69,8 @@ For Codex instruction changes:
 2. Regenerate changed skills and run `python3 scripts/gen-codex-skills.py --check`.
 3. Run `python3 scripts/test_ai_tools.py`, `bash -n run.sh`, `bash -n claude/hooks/memory-sync.sh`, and `git diff --check`. Tests use temporary homes and fake Git commands; no live deployment or remote push is required. Check referenced paths, instruction sections, and tool compatibility.
 4. Deploy using the README procedure when deployment is in scope. Do not run the installer merely to validate documentation.
+
+For installer, shell, or platform changes, run `python3 -m unittest discover -s scripts -p 'test_*.py'` and syntax checks for the changed shell files. Report skipped platform runtimes separately from passing tests.
 
 ## Working rules for agents
 

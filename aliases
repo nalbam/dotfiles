@@ -11,7 +11,8 @@ alias rt='romty'
 
 # Change directory with toast cdw
 c() {
-  local dir="$(toast cdw $@)"
+  local dir
+  dir=$(toast cdw "$@") || return
   if [ -n "$dir" ]; then
     echo "Change directory to $dir"
     cd "$dir"
@@ -19,7 +20,7 @@ c() {
 }
 
 # Shortcuts for toast commands
-alias m='aws sts get-caller-identity --output json | jq .'
+alias m='aws sts get-caller-identity --output json --no-cli-pager'
 alias x='toast ctx'
 alias d='toast dot'
 alias e='toast env'
@@ -47,7 +48,9 @@ alias cxp='codex'
 alias oc='opencode'
 
 # Tailscale shortcut
-alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+if [ -x /Applications/Tailscale.app/Contents/MacOS/Tailscale ]; then
+  alias tailscale="/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+fi
 
 # AWS SSO login helper
 alias asl='aws sso login --profile'
@@ -55,15 +58,13 @@ alias asl='aws sso login --profile'
 # AWS Vault helper function
 av() {
   if [ $# -eq 0 ]; then
-    if command -v fzf &>/dev/null; then
-      # Try to get profiles from aws-vault, fall back to hardcoded list
+    if command -v fzf >/dev/null 2>&1; then
       local profiles
-      profiles=$(aws-vault list 2>/dev/null | awk 'NR>2 && $1 ~ /^[a-zA-Z]/ {print $1}')
+      profiles=$(aws-vault list) || return
+      profiles=$(printf '%s\n' "$profiles" | awk 'NR>2 && $1 ~ /^[a-zA-Z]/ {print $1}')
       if [ -z "$profiles" ]; then
-        profiles="nalbam
-nalbam-two
-awskrug-team
-opspresso"
+        echo "No aws-vault profiles found"
+        return 1
       fi
 
       local selected
@@ -96,15 +97,19 @@ opspresso"
     return
   fi
 
+  local profile
   case "$1" in
-    n|nalbam) export AWS_VAULT= && aws-vault exec nalbam -- ${@:2} ;;
-    t|two)    export AWS_VAULT= && aws-vault exec nalbam-two -- ${@:2} ;;
-    k|krug)   export AWS_VAULT= && aws-vault exec awskrug-team -- ${@:2} ;;
-    o|ops)    export AWS_VAULT= && aws-vault exec opspresso -- ${@:2} ;;
-    c|clear)  aws-vault clear ;;
-    l|list)   aws-vault list ;;
-    *)        export AWS_VAULT= && aws-vault exec "$@" ;;
+    n|nalbam) profile=nalbam ;;
+    t|two)    profile=nalbam-two ;;
+    k|krug)   profile=awskrug-team ;;
+    o|ops)    profile=opspresso ;;
+    c|clear)  aws-vault clear; return ;;
+    l|list)   aws-vault list; return ;;
+    *)        export AWS_VAULT= && aws-vault exec "$@"; return ;;
   esac
+  shift
+  export AWS_VAULT=
+  aws-vault exec "$profile" -- "$@"
 }
 
 # Keep backward compatibility aliases
@@ -223,59 +228,145 @@ alias dff='colordiff'
 # Local development servers
 # Registry of servers started by ss(): one "port<TAB>type<TAB>path" per line
 DEV_SERVERS="$HOME/.toast/servers"
+_server_port_valid() {
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  [ "${#1}" -le 5 ] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
 _port_kill() {
-  # Kill whatever listens on a port; 0 if killed, 1 if nothing found
+  # 0: signalled every listener, 1: no listener, 2: lookup or signal failed.
   local port="$1"
-  local pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null | sort -u)
+  _server_port_valid "$port" || { echo "Invalid TCP port: $port" >&2; return 2; }
+  command -v lsof >/dev/null 2>&1 || { echo "lsof is required" >&2; return 2; }
+  local pids result=0 pid cmd
+  pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null)
+  result=$?
+  [ "$result" -le 1 ] || { echo "Could not inspect TCP port $port" >&2; return 2; }
   [ -z "$pids" ] && return 1
-  echo "$pids" | while read pid; do
-    local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
-    kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
-  done
-  return 0
+  result=0
+  pids=$(printf '%s\n' "$pids" | sort -u)
+  while IFS= read -r pid; do
+    cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+    if kill "$pid"; then
+      echo "  Sent TERM to $cmd (PID $pid) on port $port"
+    else
+      result=2
+    fi
+  done <<EOF
+$pids
+EOF
+  return "$result"
+}
+_server_update() {
+  # Lock a stable file: replacing the registry must not replace its lock inode.
+  python3 - "$DEV_SERVERS" "$@" <<'PY'
+import fcntl, os, sys, tempfile
+from pathlib import Path
+
+registry = Path(sys.argv[1])
+action, port = sys.argv[2:4]
+fields = sys.argv[3:]
+temporary = None
+try:
+    if any("\t" in field or "\n" in field or "\r" in field for field in fields):
+        raise ValueError("server fields cannot contain tabs or newlines")
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(registry) + ".lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if registry.is_symlink():
+            raise ValueError("server registry must not be a symlink")
+        rows = registry.read_text().splitlines() if registry.exists() else []
+        rows = [row for row in rows if row.split("\t", 1)[0] != port]
+        if action == "add":
+            rows.append("\t".join(fields))
+        fd, temporary = tempfile.mkstemp(prefix=registry.name + ".", dir=registry.parent)
+        with os.fdopen(fd, "w") as stream:
+            stream.writelines(row + "\n" for row in rows)
+        os.replace(temporary, registry)
+        temporary = None
+except (OSError, ValueError) as error:
+    sys.exit(f"Cannot update server registry: {error}")
+finally:
+    if temporary is not None:
+        os.unlink(temporary)
+PY
 }
 _server_del() {
   [ -f "$DEV_SERVERS" ] || return 0
-  awk -F'\t' -v p="$1" '$1 != p' "$DEV_SERVERS" > "$DEV_SERVERS.tmp" 2>/dev/null
-  mv "$DEV_SERVERS.tmp" "$DEV_SERVERS"
+  _server_update delete "$1"
 }
 _server_add() {
-  mkdir -p "$(dirname "$DEV_SERVERS")"
-  _server_del "$1"
-  printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$DEV_SERVERS"
+  _server_update add "$1" "$2" "$3"
 }
 ss() {
   # Server start - node dev (package.json) or python http.server
+  local port result
+  if [ -f "package.json" ]; then port="${1:-3000}"; else port="${1:-8000}"; fi
+  _server_port_valid "$port" || { echo "Invalid TCP port: $port" >&2; return 2; }
   if [ -f "package.json" ]; then
-    local port="${1:-3000}"
-    _port_kill "$port" > /dev/null 2>&1
-    _server_add "$port" "node" "$(pwd)"
+    _port_kill "$port" >/dev/null
+    result=$?
+    [ "$result" -le 1 ] || return "$result"
+    _server_add "$port" "node" "$(pwd)" || return
     echo "Starting node dev server on port $port..."
     case "$(np)" in
       pnpm) PORT="$port" pnpm dev ;;
       yarn) PORT="$port" yarn dev ;;
       *) PORT="$port" npm run dev ;;
     esac
-    _server_del "$port"
+    result=$?
+    _server_del "$port" || return
+    return "$result"
   else
-    local port="${1:-8000}"
     local dir="${2:-docs}"
-    local abs_dir=$(cd "$dir" 2>/dev/null && pwd)
-    if [ -z "$abs_dir" ]; then
+    local abs_dir startup pid ready
+    if ! abs_dir=$(cd "$dir" 2>/dev/null && pwd); then
       echo "Directory '$dir' not found"
       return 1
     fi
-    _port_kill "$port" > /dev/null 2>&1
-    python3 -m http.server "$port" --directory "$abs_dir" > /dev/null 2>&1 & disown
-    _server_add "$port" "python" "$abs_dir"
-    echo "Serving $abs_dir at http://localhost:$port"
+    _port_kill "$port" >/dev/null
+    result=$?
+    [ "$result" -le 1 ] || return "$result"
+    startup=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-http.XXXXXX") || return
+    if ! mkfifo "$startup/ready"; then rmdir "$startup"; return 1; fi
+    # The child acknowledges its PID only after bind/listen succeeds. EOF means startup failed.
+    python3 -u -c '
+import functools, http.server, os, sys
+handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=sys.argv[2])
+with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
+    with open(os.devnull, "w") as sink:
+        os.dup2(sink.fileno(), 1)
+        os.dup2(sink.fileno(), 2)
+    with os.fdopen(3, "w") as ready:
+        ready.write(str(os.getpid()) + "\n")
+    server.serve_forever()
+' "$port" "$abs_dir" 3>"$startup/ready" >"$startup/log" 2>&1 &
+    pid=$!
+    IFS= read -r ready < "$startup/ready"
+    if [ "$ready" != "$pid" ]; then
+      wait "$pid"
+      result=$?
+      cat "$startup/log" >&2
+      rm -f "$startup/ready" "$startup/log"
+      rmdir "$startup"
+      [ "$result" -ne 0 ] || result=1
+      return "$result"
+    fi
+    rm -f "$startup/ready" "$startup/log"
+    rmdir "$startup"
+    if ! _server_add "$port" "python" "$abs_dir"; then
+      kill "$pid"
+      wait "$pid" 2>/dev/null
+      return 1
+    fi
+    disown "$pid"
+    echo "Serving $abs_dir at http://localhost:$port (PID $pid)"
   fi
 }
 sl() {
   # Server list - show servers started by ss(), pruning dead ones
   [ -f "$DEV_SERVERS" ] || { echo "No servers running"; return 0; }
-  local tmp="$DEV_SERVERS.tmp"
-  : > "$tmp"
+  command -v lsof >/dev/null 2>&1 || { echo "lsof is required" >&2; return 1; }
   local found=""
   while IFS="$(printf '\t')" read -r port type dir; do
     [ -z "$port" ] && continue
@@ -284,12 +375,13 @@ sl() {
       local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
       [ -z "$found" ] && echo "Local servers:"
       echo "  [$type] $cmd (PID $pid) on port $port  $dir"
-      printf '%s\t%s\t%s\n' "$port" "$type" "$dir" >> "$tmp"
       found="1"
+    else
+      _server_del "$port" || return
     fi
   done < "$DEV_SERVERS"
-  mv "$tmp" "$DEV_SERVERS"
   [ -z "$found" ] && echo "No servers running"
+  return 0
 }
 sk() {
   # Server kill - kill a tracked port, or all servers started by ss()
@@ -302,19 +394,27 @@ sk() {
   case "$1" in
     a|all)
       [ -f "$DEV_SERVERS" ] || { echo "No servers running"; return 0; }
-      local any=""
+      local any="" result=0 stopped
       while IFS="$(printf '\t')" read -r port type dir; do
         [ -z "$port" ] && continue
-        _port_kill "$port" && any="1"
+        _port_kill "$port"
+        stopped=$?
+        case "$stopped" in
+          0) any=1; _server_del "$port" || result=1 ;;
+          1) _server_del "$port" || result=1 ;;
+          *) result="$stopped" ;;
+        esac
       done < "$DEV_SERVERS"
-      : > "$DEV_SERVERS"
-      [ -z "$any" ] && echo "No servers running"
+      [ -n "$any" ] || [ "$result" -ne 0 ] || echo "No servers running"
+      return "$result"
       ;;
     *)
       if _port_kill "$1"; then
         _server_del "$1"
       else
-        echo "No process found on port $1"
+        local result=$?
+        [ "$result" -ne 1 ] || echo "No process found on port $1"
+        return "$result"
       fi
       ;;
   esac

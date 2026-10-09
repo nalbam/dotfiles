@@ -61,6 +61,6 @@ volumes:
 - 앱과 테이블 생성 도구에 동일한 리전·로컬 더미 자격증명을 준다. `-sharedDb`가 없는 환경은 자격증명·리전별 DB가 다르다.
 - 테이블은 프로젝트별 고유 이름을 사용한다. 테스트는 별도 인스턴스의 프로젝트별 `-test` 테이블만 초기화한다.
 - 공용 환경에서 `docker compose down -v`, `--remove-orphans`, 전체 테이블 삭제를 하지 않는다.
-- PK/SK와 GSI 2개·TTL 설정은 SDK 기반 생성 코드로 재사용한다. 로컬 실행에는 loopback endpoint와 더미 자격증명을 명시하고, AWS의 실제 생성은 별도 권한이 있을 때만 수행한다.
+- PK/SK와 GSI 2개·TTL 설정은 SDK 기반 생성 코드로 재사용한다. 로컬 실행에는 loopback endpoint와 더미 자격증명을 명시하고, AWS의 실제 생성은 요청 범위에 포함될 때만 수행한다.
 
 [공식 DynamoDB Local 안내](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html)와 [읽기 일관성](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/HowItWorks.ReadConsistency.html)을 참고한다.

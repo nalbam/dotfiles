@@ -167,44 +167,63 @@ _md5() {
 # 백업 생성 함수
 _backup() {
   if [ -f "$1" ]; then
-    if ! cp "$1" "$1.backup"; then
-      _error "Failed to create backup of $1"
+    if [ -L "$1.backup" ] || { [ -e "$1.backup" ] && [ ! -f "$1.backup" ]; }; then
+      return 1
     fi
+    cp "$1" "$1.backup" || return 1
     # Set secure permissions for backup files
-    chmod 600 "$1.backup"
+    chmod 600 "$1.backup" || return 1
     _info "Created backup: $1.backup"
   fi
 }
 
 # 파일 다운로드 함수
 _download() {
-  # 대상 파일의 디렉토리 자동 생성
-  local target_file=~/$1
-  local target_dir=$(dirname "$target_file")
-  if [ "$target_dir" != "$HOME" ] && [ ! -d "$target_dir" ]; then
-    mkdir -p "$target_dir"
+  local target_file="$HOME/$1" source_file="$HOME/.dotfiles/${2:-$1}"
+  local target_dir="${target_file%/*}" temporary
+  if [ -e "$target_file" ] && [ ! -f "$target_file" ]; then
+    _error "Expected a file at $target_file"
   fi
+  mkdir -p "$target_dir" || _error "Failed to create $target_dir"
 
-  if [ -f ~/.dotfiles/${2:-$1} ]; then
-    if [ -f ~/$1 ]; then
-      if [ "$(_md5 ~/.dotfiles/${2:-$1})" != "$(_md5 ~/$1)" ]; then
-        _backup ~/$1
-        cp ~/.dotfiles/${2:-$1} ~/$1
+  if [ -f "$source_file" ] && [ -f "$target_file" ] &&
+     [ "$(_md5 "$source_file")" = "$(_md5 "$target_file")" ]; then
+    :
+  else
+    temporary=$(mktemp "$target_file.tmp.XXXXXX") || _error "Failed to stage $target_file"
+    if [ -f "$target_file" ] && ! cp -p "$target_file" "$temporary"; then
+      rm -f "$temporary"
+      _error "Failed to stage existing $target_file"
+    fi
+    if [ -f "$source_file" ]; then
+      if ! cp "$source_file" "$temporary"; then
+        rm -f "$temporary"
+        _error "Failed to copy ${2:-$1}"
       fi
     else
-      cp ~/.dotfiles/${2:-$1} ~/$1
+      if ! _retry "Download ${2:-$1}" curl -fsSL --connect-timeout 10 -o "$temporary" "https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}"; then
+        rm -f "$temporary"
+        _error "Failed to download ${2:-$1} after 3 attempts"
+      fi
     fi
-  else
-    _backup ~/$1
-    if ! _retry "Download ${2:-$1}" curl -fsSL --connect-timeout 10 -o ~/$1 https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}; then
-      _error "Failed to download ${2:-$1} after 3 attempts"
+    if [ -f "$target_file" ] && [ "$(_md5 "$temporary")" = "$(_md5 "$target_file")" ]; then
+      rm -f "$temporary"
+    else
+      if ! _backup "$target_file"; then
+        rm -f "$temporary"
+        _error "Failed to back up $target_file"
+      fi
+      if ! mv -f "$temporary" "$target_file"; then
+        rm -f "$temporary"
+        _error "Failed to replace $target_file"
+      fi
     fi
   fi
 
   # Set appropriate permissions for sensitive files
   case "$1" in
     .ssh/* | .aws/* | *.backup)
-      chmod 600 ~/$1
+      chmod 600 "$target_file" || _error "Failed to protect $target_file"
       ;;
   esac
 }
@@ -252,111 +271,31 @@ _sync_vibe() {
   fi
 }
 
-# NPM 패키지 설치 함수 (버전 체크 포함)
-# NPM_CMD is set once before calling this function (see Step 6)
-_install_npm_package() {
-  local package_name="$1"
-  local package_spec="$2"
-  local npm_cmd="${NPM_CMD:-npm}"
-
-  # npm 실행 가능 여부 확인 (node 미설치 시 npm 호출이 exit 127 반환)
-  if ! npm --version >/dev/null 2>&1; then
-    _warn "npm is not functional (is node installed?), skipping $package_name"
-    return 1
-  fi
-
-  # Check if package is installed
-  if npm list -g "$package_spec" >/dev/null 2>&1; then
-    local installed_version=$(npm list -g "$package_spec" --depth=0 2>/dev/null | grep "$package_name" | sed 's/.*@\([0-9.]*\).*/\1/')
-    local latest_version=$(npm view "$package_spec" version 2>/dev/null)
-
-    if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
-      if [ "$installed_version" != "$latest_version" ]; then
-        _run "Updating $package_name: $installed_version → $latest_version"
-        if $npm_cmd update -g "$package_spec" >/dev/null 2>&1; then
-          _ok "$package_name updated to $latest_version"
-        else
-          _warn "Failed to update $package_name"
-        fi
-      else
-        _skip "$package_name already up to date ($installed_version)"
-      fi
-    else
-      _run "Installing $package_name..."
-      if $npm_cmd install -g "$package_spec" >/dev/null 2>&1; then
-        _ok "$package_name installed"
-      else
-        _warn "Failed to install $package_name"
-      fi
-    fi
-  else
-    _run "Installing $package_name..."
-    if $npm_cmd install -g "$package_spec" >/dev/null 2>&1; then
-      _ok "$package_name installed"
-    else
-      _warn "Failed to install $package_name"
-    fi
-  fi
-}
-
 # pip install/upgrade를 4단계 fallback으로 시도
 _pip_try_install() {
   local package_name="$1"
   shift
-  local flags="$@"
 
-  python3 -m pip install $flags "$package_name" 2>/dev/null >/dev/null ||
-  python3 -m pip install --user $flags "$package_name" 2>/dev/null >/dev/null ||
-  python3 -m pip install --break-system-packages --user $flags "$package_name" 2>/dev/null >/dev/null ||
-  sudo python3 -m pip install $flags "$package_name" 2>/dev/null >/dev/null
+  python3 -m pip install "$@" "$package_name" >/dev/null 2>&1 ||
+  python3 -m pip install --user "$@" "$package_name" >/dev/null 2>&1 ||
+  python3 -m pip install --break-system-packages --user "$@" "$package_name" >/dev/null 2>&1 ||
+  sudo python3 -m pip install "$@" "$package_name" >/dev/null 2>&1
 }
 
-# PIP 패키지 설치 함수 (버전 체크 포함)
 _install_pip_package() {
   local package_name="$1"
-
-  # Python3 체크
   if ! command -v python3 >/dev/null 2>&1; then
     _skip "Python3 not found, skipping $package_name"
     return 1
   fi
 
-  # Check if package is installed
-  if python3 -m pip show "$package_name" >/dev/null 2>&1; then
-    local installed_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
-    local latest_version=$(python3 -m pip index versions "$package_name" 2>/dev/null | grep "LATEST:" | awk '{print $2}')
-
-    if [ -n "$installed_version" ] && [ -n "$latest_version" ]; then
-      if [ "$installed_version" != "$latest_version" ]; then
-        _run "Updating $package_name: $installed_version → $latest_version"
-        if _pip_try_install "$package_name" --upgrade; then
-          _ok "$package_name updated to $latest_version"
-        else
-          _warn "Failed to update $package_name after trying all methods"
-        fi
-      else
-        _skip "$package_name already up to date ($installed_version)"
-      fi
-    else
-      _run "Installing $package_name..."
-      if _pip_try_install "$package_name"; then
-        _ok "$package_name installed"
-      else
-        _warn "Failed to install $package_name after trying all methods"
-      fi
-    fi
+  # pip's resolver handles installed versions and upgrades in one invocation.
+  _run "Installing/updating $package_name..."
+  if _pip_try_install "$package_name" --upgrade; then
+    _ok "$package_name is installed and up to date"
   else
-    _run "Installing $package_name..."
-    if _pip_try_install "$package_name"; then
-      local new_version=$(python3 -m pip show "$package_name" 2>/dev/null | grep "Version:" | awk '{print $2}')
-      if [ -n "$new_version" ]; then
-        _ok "$package_name installed (v$new_version)"
-      else
-        _ok "$package_name installed"
-      fi
-    else
-      _warn "Failed to install $package_name after trying all methods"
-    fi
+    _warn "Failed to install/update $package_name after trying all methods"
+    return 1
   fi
 }
 
@@ -480,6 +419,8 @@ fi
 _download .gitconfig gitconfig
 _download .gitconfig-bruce gitconfig-bruce
 _download .gitconfig-nalbam gitconfig-nalbam
+_download .gitconfig-nalbam-me gitconfig-nalbam-me
+_download .gitconfig-nalbam-bot gitconfig-nalbam-bot
 _download .gitconfig-yujh404 gitconfig-yujh404
 _ok "Git configuration files downloaded"
 
@@ -503,11 +444,16 @@ if [ "${OS_NAME}" == "linux" ]; then
     _skip "APT update (last update was less than 6 hours ago)"
   fi
 
-  # 기본 패키지 설치 (없는 경우에만)
-  if ! command -v zsh >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+  # Query the complete package set, including unpacked but unconfigured packages.
+  APT_PACKAGES=(build-essential procps curl file git unzip jq zsh)
+  if ! APT_PACKAGE_STATUS=$(dpkg-query -W -f='${Status}\n' "${APT_PACKAGES[@]}" 2>/dev/null) ||
+     printf '%s\n' "$APT_PACKAGE_STATUS" | grep -Eqvx '(install|hold) ok installed'; then
     _run "Installing essential packages (build-essential, git, zsh, jq, etc.)..."
-    sudo apt install -y build-essential procps curl file git unzip jq zsh
-    _ok "Essential packages installed"
+    if sudo apt install -y "${APT_PACKAGES[@]}"; then
+      _ok "Essential packages installed"
+    else
+      _warn "Failed to install essential packages — retry after resolving the APT error"
+    fi
   else
     _skip "Essential packages already installed"
   fi
@@ -611,9 +557,8 @@ else
 fi
 
 # nvm 부트스트랩
-# brew 의 nvm formula 는 ~/.nvm 을 만들지 않고 node 도 딸려오지 않는다 (brew deps nvm 이 비어 있음).
-# zshrc 는 ~/.nvm 존재를 조건으로 nvm 을 로드하므로, 여기서 만들어주지 않으면 신규 머신에서
-# node/npm 이 영원히 없고 아래 NPM 패키지 설치가 통째로 skip 된다.
+# Homebrew의 nvm은 ~/.nvm 디렉터리와 Node.js를 설치하지 않는다.
+# 새 셸에서 nvm을 읽고 Node.js를 사용할 수 있도록 둘 다 준비한다.
 # 업데이트 스로틀 바깥에 둔다 — 부트스트랩은 1회성이고 Node.js 24 설치 여부로 가드된다.
 NVM_SH="$(brew --prefix nvm 2>/dev/null)/nvm.sh"
 if [ -s "$NVM_SH" ]; then
@@ -635,59 +580,6 @@ if [ -s "$NVM_SH" ]; then
       _warn "Failed to configure Node.js 24 as default"
     fi
   fi
-fi
-
-# NPM 패키지 설치 (버전 체크 포함)
-if command -v npm >/dev/null; then
-  NPM_TIMESTAMP_FILE=~/.toast/last_update_npm
-
-  if _should_update "$NPM_TIMESTAMP_FILE"; then
-    _info "Installing/updating NPM packages..."
-
-    # npm prefix 의 쓰기 권한 확인
-    # sudo npm 은 lib/node_modules 에 root 소유 파일을 남겨 이후의 npm install 을
-    # 영구 EACCES 로 망가뜨린다 (자가 강화 권한 오염 사이클).
-    # 권한이 깨졌으면 도망가지 말고 멈춘다.
-    NPM_PREFIX=$(npm config get prefix 2>/dev/null || echo "/usr/local")
-    NPM_CMD="npm"
-    NPM_OK=true
-    NPM_NODE_MODULES="$NPM_PREFIX/lib/node_modules"
-
-    # 컨테이너 디렉토리 자체의 쓰기 권한
-    if [ -d "$NPM_NODE_MODULES" ] && [ ! -w "$NPM_NODE_MODULES" ]; then
-      _warn "$NPM_NODE_MODULES is not user-writable."
-      NPM_OK=false
-    fi
-
-    # 컨테이너는 user 소유여도 그 안의 패키지가 root 소유인 케이스 (과거 sudo npm 의 후유증)
-    if [ "$NPM_OK" = true ] && [ -d "$NPM_NODE_MODULES" ]; then
-      while IFS= read -r pkg_dir; do
-        if [ ! -w "$pkg_dir" ]; then
-          _warn "$pkg_dir is not user-writable (root-owned from past sudo npm)."
-          NPM_OK=false
-          break
-        fi
-      done < <(find "$NPM_NODE_MODULES" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
-    fi
-
-    if [ "$NPM_OK" = false ]; then
-      _info "Do NOT use sudo npm — it permanently corrupts the node install."
-      _info "Fix with: sudo chown -R \$(whoami):staff $NPM_NODE_MODULES"
-      _info "Skipping NPM package install/update."
-    fi
-
-    # if [ "$NPM_OK" = true ]; then
-    #   # npm 자체는 nvm 의 node 가 관리하므로 self-update 시도하지 않음
-    #   _install_npm_package "corepack" "corepack"
-    #   _install_npm_package "serverless" "serverless"
-    #   _install_npm_package "ccusage" "ccusage"
-    #   date +%s > "$NPM_TIMESTAMP_FILE"
-    # fi
-  else
-    _skip "NPM packages update (last update was less than 6 hours ago)"
-  fi
-else
-  _skip "NPM not found"
 fi
 
 # Claude Code 업데이트
@@ -715,6 +607,7 @@ if command -v python3 >/dev/null; then
 
   if _should_update "$PIP_TIMESTAMP_FILE"; then
     _info "Installing/updating PIP packages..."
+    PIP_OK=true
 
     # 먼저 기본 도구들을 업데이트 (setuptools, wheel 등)
     _run "Ensuring pip, setuptools, and wheel are up to date..."
@@ -724,13 +617,17 @@ if command -v python3 >/dev/null; then
       _ok "pip, setuptools, and wheel updated"
     else
       _warn "Failed to update pip tools, continuing anyway..."
+      PIP_OK=false
     fi
 
     # 사용자 패키지 설치
-    _install_pip_package "toast-cli"
+    if ! _install_pip_package "toast-cli"; then
+      PIP_OK=false
+    fi
 
-    # Update timestamp
-    date +%s > "$PIP_TIMESTAMP_FILE"
+    if [ "$PIP_OK" = true ]; then
+      date +%s > "$PIP_TIMESTAMP_FILE"
+    fi
   else
     _skip "PIP packages update (last update was less than 6 hours ago)"
   fi
