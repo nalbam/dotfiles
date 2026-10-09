@@ -169,7 +169,7 @@ Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저�
 
 ### Claude 메모리와 지침 로딩
 
-[`claude/hooks/memory-sync.sh`](claude/hooks/memory-sync.sh)는 별도의 개인 메모리 저장소를 동기화한다. 최초 clone·프로젝트 연결·Git 작업은 백그라운드에서 실행되므로 완료 후 메모리 링크를 사용할 수 있다. Git 단계가 실패하면 후속 push를 중단한다. 네트워크 오류는 다음 실행에서 재시도하며, 남아 있는 rebase·merge 충돌은 메모리 저장소에서 해결한다. 이 훅의 자동 커밋·push는 메모리 저장소에 한정된다.
+[`claude/hooks/memory-sync.sh`](claude/hooks/memory-sync.sh)는 별도의 개인 메모리 저장소를 동기화한다. Python 표준 라이브러리의 파일 잠금으로 최초 clone·프로젝트 연결·Git 작업을 직렬화한다. 세션 훅은 이 작업을 백그라운드에서 실행하므로 완료 후 메모리 링크를 사용할 수 있다. Git 단계가 실패하면 후속 push를 중단한다. 네트워크 오류는 다음 실행에서 재시도하며, 남아 있는 rebase·merge 충돌은 메모리 저장소에서 해결한다. 이 훅의 자동 커밋·push는 메모리 저장소에 한정된다.
 
 설치기는 Codex 설정을 `~/.codex`에 배포한다. 별도 `CODEX_HOME`이나 `AGENTS.override.md`를 사용하면 실제 로딩 위치를 확인하고 새 세션에서 지침을 확인한다. [공식 지침 로딩 규칙](https://learn.chatgpt.com/docs/agent-configuration/agents-md)을 참고한다.
 

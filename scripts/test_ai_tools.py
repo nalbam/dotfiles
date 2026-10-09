@@ -7,6 +7,7 @@ import re
 import runpy
 from pathlib import Path
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -417,12 +418,126 @@ class MemoryHookTests(unittest.TestCase):
         return subprocess.run(["/bin/bash", str(self.hook), *args], env=self.env,
                               capture_output=True, text=True, timeout=5)
 
+    def start(self, *args):
+        process = subprocess.Popen(["/bin/bash", str(self.hook), *args], env=self.env,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   text=True, start_new_session=True)
+        def cleanup():
+            try:
+                os.killpg(process.pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            process.communicate(timeout=5)
+        self.addCleanup(cleanup)
+        return process
+
+    def wait_for(self, path):
+        deadline = time.monotonic() + 3
+        while not path.exists() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        self.assertTrue(path.exists(), f"Timed out waiting for {path.name}")
+
+    def block_first_pull(self):
+        self.fake_git('''case "$*" in
+  *"pull --rebase"*)
+    if mkdir "$HOME/first-pull" 2>/dev/null; then
+      touch "$HOME/pull-blocked"
+      while [ ! -e "$HOME/release-pull" ]; do sleep 0.01; done
+    fi ;;
+esac
+exit 0
+''')
+        process = self.start("sync")
+        self.wait_for(self.home / "pull-blocked")
+        return process
+
+    def finish(self, process):
+        stdout, stderr = process.communicate(timeout=5)
+        self.assertEqual(process.returncode, 0, stdout + stderr)
+
     def test_failed_pull_does_not_push(self):
         self.fake_git('case "$*" in *"pull --rebase"*) exit 1;; esac\nexit 0\n')
         self.assertNotEqual(self.invoke("sync").returncode, 0)
         self.assertNotIn("push", self.log.read_text())
         self.assertFalse((self.repo / ".sync.lock").exists())
         self.assertIn("exclude", self.log.read_text())
+        self.fake_git("exit 0\n")
+        self.assertEqual(self.invoke("sync").returncode, 0)
+
+    def test_active_sync_lock_does_not_expire(self):
+        first = self.block_first_pull()
+        for lock in (self.home / ".claude-memory.lock", self.repo / ".sync.lock"):
+            if lock.exists():
+                os.utime(lock, (time.time() - 601, time.time() - 601))
+        calls = self.log.read_text()
+        second = self.start("sync")
+        time.sleep(0.15)
+        self.assertIsNone(first.poll())
+        self.assertIsNone(second.poll())
+        self.assertEqual(self.log.read_text(), calls)
+        (self.home / "release-pull").touch()
+        self.finish(first)
+        self.finish(second)
+        self.assertEqual(self.log.read_text().count("push --quiet"), 2)
+
+    def test_link_waits_for_sync_before_migration(self):
+        first = self.block_first_pull()
+        project = self.home / "workspace/project"
+        project.mkdir(parents=True)
+        slug = re.sub(r"[^a-zA-Z0-9]", "-", str(project))
+        memory = self.home / ".claude/projects" / slug / "memory"
+        memory.mkdir(parents=True)
+        (memory / "MEMORY.md").write_text("project memory")
+        second = self.start("link", str(project))
+        time.sleep(0.15)
+        self.assertIsNone(second.poll())
+        self.assertFalse(memory.is_symlink())
+        self.assertFalse((self.repo / "workspace/project/MEMORY.md").exists())
+        (self.home / "release-pull").touch()
+        self.finish(first)
+        self.finish(second)
+        self.assertTrue(memory.is_symlink())
+        self.assertEqual((memory / "MEMORY.md").read_text(), "project memory")
+        self.assertTrue(memory.with_name("memory.backup").is_dir())
+
+    def test_first_clone_and_project_links_are_serialized(self):
+        shutil.rmtree(self.repo)
+        self.fake_git('''case "$*" in
+  clone*)
+    touch "$HOME/clone-blocked"
+    while [ ! -e "$HOME/release-clone" ]; do sleep 0.01; done
+    mkdir -p "$HOME/.claude-memory/.git" ;;
+esac
+exit 0
+''')
+        first = self.start("bootstrap", str(self.home / "workspace/one"))
+        self.wait_for(self.home / "clone-blocked")
+        second = self.start("bootstrap", str(self.home / "workspace/two"))
+        time.sleep(0.15)
+        self.assertIsNone(second.poll())
+        self.assertEqual(self.log.read_text().count("clone --quiet"), 1)
+        (self.home / "release-clone").touch()
+        self.finish(first)
+        self.finish(second)
+        for name in ("one", "two"):
+            project = self.home / "workspace" / name
+            slug = re.sub(r"[^a-zA-Z0-9]", "-", str(project))
+            self.assertTrue((self.home / ".claude/projects" / slug / "memory").is_symlink())
+        self.assertEqual(self.log.read_text().count("clone --quiet"), 1)
+
+    def test_terminated_worker_releases_lock(self):
+        first = self.block_first_pull()
+        os.killpg(first.pid, signal.SIGTERM)
+        first.communicate(timeout=5)
+        self.assertEqual(self.invoke("sync").returncode, 0)
+
+    def test_invalid_lock_file_fails_before_git(self):
+        (self.home / ".claude-memory.lock").mkdir()
+        self.fake_git("exit 0\n")
+        result = self.invoke("sync")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("Memory sync failed", result.stderr)
+        self.assertFalse(self.log.exists())
 
     def test_failed_stage_does_not_commit_or_pull(self):
         self.fake_git('case "$*" in *" add "*) exit 1;; esac\nexit 0\n')
