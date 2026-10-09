@@ -160,6 +160,28 @@ _install_pip_package toast-cli
         installs = [line for line in (self.home / "pip-calls").read_text().splitlines() if "pip install" in line]
         self.assertEqual(len(installs), 4)
 
+    def test_apt_checks_all_packages_and_reports_installation_failure(self):
+        for installed, install_status in [(True, 0), (False, 0), (False, 7)]:
+            with self.subTest(installed=installed, install_status=install_status):
+                log = self.home / "apt-calls"
+                log.unlink(missing_ok=True)
+                body = f'''OS_NAME=linux
+_should_update() {{ return 1; }}
+zsh() {{ :; }}
+jq() {{ :; }}
+dpkg-query() {{
+  printf 'install ok installed\\n'
+  return {0 if installed else 1}
+}}
+sudo() {{ printf '%s\\n' "$*" >> "$HOME/apt-calls"; return {install_status}; }}
+'''
+                result = self.run_shell(body + self.block("# Linux 설정 (APT 패키지 관리)", "# Homebrew 설치"))
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(log.exists(), not installed)
+                if not installed and install_status:
+                    self.assertIn("Failed to install essential packages", result.stdout)
+                    self.assertNotIn("✓ Essential packages installed", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

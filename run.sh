@@ -441,11 +441,16 @@ if [ "${OS_NAME}" == "linux" ]; then
     _skip "APT update (last update was less than 6 hours ago)"
   fi
 
-  # 기본 패키지 설치 (없는 경우에만)
-  if ! command -v zsh >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+  # Query the complete package set, including unpacked but unconfigured packages.
+  APT_PACKAGES=(build-essential procps curl file git unzip jq zsh)
+  if ! APT_PACKAGE_STATUS=$(dpkg-query -W -f='${Status}\n' "${APT_PACKAGES[@]}" 2>/dev/null) ||
+     printf '%s\n' "$APT_PACKAGE_STATUS" | grep -qvx 'install ok installed'; then
     _run "Installing essential packages (build-essential, git, zsh, jq, etc.)..."
-    sudo apt install -y build-essential procps curl file git unzip jq zsh
-    _ok "Essential packages installed"
+    if sudo apt install -y "${APT_PACKAGES[@]}"; then
+      _ok "Essential packages installed"
+    else
+      _warn "Failed to install essential packages — retry after resolving the APT error"
+    fi
   else
     _skip "Essential packages already installed"
   fi
