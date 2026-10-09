@@ -99,7 +99,7 @@ The startup-sound setting requests sudo only when it needs to change. Screen-loc
 
 The Python sync process acquires a lock, validates source paths and all merge results, then applies changes. It backs up changed or removed managed files and replaces each written file atomically. It updates target manifests after all file operations succeed.
 
-Existing JSON/TOML values and local Codex rules outside the managed block are preserved. A manifest lists previously deployed files; pruning affects only those files. Unmanaged files remain in place. Missing or empty source directories preserve the corresponding deployed files and manifest.
+Codex approval and sandbox selection follow the repository when its config declares `default_permissions`. Other existing JSON/TOML values and local Codex rules outside the managed block are preserved. A manifest lists previously deployed files; pruning affects only those files. Unmanaged files remain in place. Missing or empty source directories preserve the corresponding deployed files and manifest.
 
 A write failure can leave earlier files updated. There is no transaction across all files and manifests. Fix the reported cause and rerun the sync. See [preservation and failure handling](../README.md#기존-설정-보존과-실패-처리).
 
@@ -109,7 +109,7 @@ Global instructions live in `claude/CLAUDE.md` and `codex/AGENTS.md`. They apply
 
 `claude/skills/` is the source for shared skills. `scripts/gen-codex-skills.py` adapts tool-specific instructions and mirrors Markdown to `codex/skills/`. It preserves manually maintained Codex metadata. Its `--check` mode reports mismatches and stale generated files.
 
-Claude's memory hook uses a separate private Git repository. It links project memory and runs Git synchronization in the background for session hooks. A failed Git stage stops the following stages. This hook does not sync Codex transcripts or authorize commits in the current project.
+Claude's memory hook uses a separate private Git repository. An OS file lock serializes clone, project-memory migration, and Git synchronization. Session hooks launch this work in the background. A failed Git stage stops the following stages. This hook does not sync Codex transcripts or authorize commits in the current project.
 
 ## Failure diagnosis
 
@@ -124,21 +124,21 @@ Claude's memory hook uses a separate private Git repository. It links project me
 
 ## Verification
 
-Run these from the repository root before deploying instruction changes:
+Run the complete regression suite and generated-skill check from the repository root:
 
 ```bash
 python3 scripts/gen-codex-skills.py --check
-python3 scripts/test_ai_tools.py
+python3 -m unittest discover -s scripts -p 'test_*.py'
 bash -n run.sh
 bash -n claude/hooks/memory-sync.sh
 git diff --check
 ```
 
-For changes to macOS preferences or their installer step, also run:
+For a focused macOS check, use:
 
 ```bash
 python3 scripts/test_macos.py
 bash -n macos
 ```
 
-Tests use temporary homes and mocked system or Git commands. They do not validate real package installation, live OS preferences, or external accounts. Deployment comparisons are documented in [AI Tools Sync](../README.md#배포와-결과-확인).
+Tests use temporary homes and mocked system or Git commands. Server tests also start a temporary local HTTP server. PowerShell tests are skipped when its runtime is absent. Tests do not validate real package installation, live OS preferences, or external accounts. Deployment comparisons are documented in [AI Tools Sync](../README.md#배포와-결과-확인).

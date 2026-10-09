@@ -70,6 +70,8 @@ For Codex instruction changes:
 3. Run `python3 scripts/test_ai_tools.py`, `bash -n run.sh`, `bash -n claude/hooks/memory-sync.sh`, and `git diff --check`. Tests use temporary homes and fake Git commands; no live deployment or remote push is required. Check referenced paths, instruction sections, and tool compatibility.
 4. Deploy using the README procedure when deployment is in scope. Do not run the installer merely to validate documentation.
 
+For installer, shell, or platform changes, run `python3 -m unittest discover -s scripts -p 'test_*.py'` and syntax checks for the changed shell files. Report skipped platform runtimes separately from passing tests.
+
 ## Working rules for agents
 
 - Apply the ISO 24495-1 and ASD-STE100 writing principles in [the shared documentation workflow](./claude/skills/docs-sync/SKILL.md#작성-품질). Match the reader's task, preserve technical meaning, and verify examples against code. Do not claim full standard compliance from these checks alone.

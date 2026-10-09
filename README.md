@@ -142,6 +142,8 @@ git diff --check
 
 `--check`는 생성 파일의 내용과 오래된 잔여 파일을 검사한다. 테스트는 임시 홈과 가짜 Git 명령을 사용하며 실제 설정 배포나 원격 push를 하지 않는다. macOS 설치 단계를 변경했다면 `python3 scripts/test_macos.py`와 `bash -n macos`도 실행한다.
 
+설치기·셸·플랫폼 설정을 함께 변경했다면 `python3 -m unittest discover -s scripts -p 'test_*.py'`로 전체 회귀 검사를 실행한다. 서버 검사는 임시 로컬 HTTP 서버도 실행한다. PowerShell이 없는 환경에서는 Windows 검사만 건너뛰며, 실제 OS 설정 적용과 패키지 설치는 별도 검증이 필요하다.
+
 ### 배포와 결과 확인
 
 각 머신의 `~/.dotfiles`에 원하는 변경을 반영한 뒤 실행한다. `--vibe`는 checkout을 갱신하지 않으며, 다른 경로에서 호출해도 원본은 항상 `~/.dotfiles`에서 읽는다.
