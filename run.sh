@@ -557,9 +557,8 @@ else
 fi
 
 # nvm 부트스트랩
-# brew 의 nvm formula 는 ~/.nvm 을 만들지 않고 node 도 딸려오지 않는다 (brew deps nvm 이 비어 있음).
-# zshrc 는 ~/.nvm 존재를 조건으로 nvm 을 로드하므로, 여기서 만들어주지 않으면 신규 머신에서
-# node/npm 이 영원히 없고 아래 NPM 패키지 설치가 통째로 skip 된다.
+# Homebrew의 nvm은 ~/.nvm 디렉터리와 Node.js를 설치하지 않는다.
+# 새 셸에서 nvm을 읽고 Node.js를 사용할 수 있도록 둘 다 준비한다.
 # 업데이트 스로틀 바깥에 둔다 — 부트스트랩은 1회성이고 Node.js 24 설치 여부로 가드된다.
 NVM_SH="$(brew --prefix nvm 2>/dev/null)/nvm.sh"
 if [ -s "$NVM_SH" ]; then
