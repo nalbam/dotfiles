@@ -447,7 +447,7 @@ if [ "${OS_NAME}" == "linux" ]; then
   # Query the complete package set, including unpacked but unconfigured packages.
   APT_PACKAGES=(build-essential procps curl file git unzip jq zsh)
   if ! APT_PACKAGE_STATUS=$(dpkg-query -W -f='${Status}\n' "${APT_PACKAGES[@]}" 2>/dev/null) ||
-     printf '%s\n' "$APT_PACKAGE_STATUS" | grep -qvx 'install ok installed'; then
+     printf '%s\n' "$APT_PACKAGE_STATUS" | grep -Eqvx '(install|hold) ok installed'; then
     _run "Installing essential packages (build-essential, git, zsh, jq, etc.)..."
     if sudo apt install -y "${APT_PACKAGES[@]}"; then
       _ok "Essential packages installed"

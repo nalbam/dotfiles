@@ -186,8 +186,10 @@ _install_pip_package toast-cli
         self.assertEqual(len(installs), 4)
 
     def test_apt_checks_all_packages_and_reports_installation_failure(self):
-        for installed, install_status in [(True, 0), (False, 0), (False, 7)]:
-            with self.subTest(installed=installed, install_status=install_status):
+        for installed, install_status, package_status in [
+                (True, 0, "install ok installed"), (True, 0, "hold ok installed"),
+                (False, 0, "install ok installed"), (False, 7, "install ok installed")]:
+            with self.subTest(installed=installed, install_status=install_status, package_status=package_status):
                 log = self.home / "apt-calls"
                 log.unlink(missing_ok=True)
                 body = f'''OS_NAME=linux
@@ -195,7 +197,7 @@ _should_update() {{ return 1; }}
 zsh() {{ :; }}
 jq() {{ :; }}
 dpkg-query() {{
-  printf 'install ok installed\\n'
+  printf '{package_status}\\n'
   return {0 if installed else 1}
 }}
 sudo() {{ printf '%s\\n' "$*" >> "$HOME/apt-calls"; return {install_status}; }}
