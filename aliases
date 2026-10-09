@@ -256,20 +256,47 @@ $pids
 EOF
   return "$result"
 }
+_server_update() {
+  # Lock a stable file: replacing the registry must not replace its lock inode.
+  python3 - "$DEV_SERVERS" "$@" <<'PY'
+import fcntl, os, sys, tempfile
+from pathlib import Path
+
+registry = Path(sys.argv[1])
+action, port = sys.argv[2:4]
+fields = sys.argv[3:]
+temporary = None
+try:
+    if any("\t" in field or "\n" in field or "\r" in field for field in fields):
+        raise ValueError("server fields cannot contain tabs or newlines")
+    registry.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(registry) + ".lock", os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if registry.is_symlink():
+            raise ValueError("server registry must not be a symlink")
+        rows = registry.read_text().splitlines() if registry.exists() else []
+        rows = [row for row in rows if row.split("\t", 1)[0] != port]
+        if action == "add":
+            rows.append("\t".join(fields))
+        fd, temporary = tempfile.mkstemp(prefix=registry.name + ".", dir=registry.parent)
+        with os.fdopen(fd, "w") as stream:
+            stream.writelines(row + "\n" for row in rows)
+        os.replace(temporary, registry)
+        temporary = None
+except (OSError, ValueError) as error:
+    sys.exit(f"Cannot update server registry: {error}")
+finally:
+    if temporary is not None:
+        os.unlink(temporary)
+PY
+}
 _server_del() {
   [ -f "$DEV_SERVERS" ] || return 0
-  local tmp
-  tmp=$(mktemp "$DEV_SERVERS.XXXXXX") || return
-  if awk -F'\t' -v p="$1" '$1 != p' "$DEV_SERVERS" > "$tmp" && mv "$tmp" "$DEV_SERVERS"; then
-    return 0
-  fi
-  rm -f "$tmp"
-  return 1
+  _server_update delete "$1"
 }
 _server_add() {
-  mkdir -p "$(dirname "$DEV_SERVERS")" || return
-  _server_del "$1" || return
-  printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$DEV_SERVERS"
+  _server_update add "$1" "$2" "$3"
 }
 ss() {
   # Server start - node dev (package.json) or python http.server

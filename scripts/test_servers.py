@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Check server helper state and real Python HTTP startup in isolated homes."""
 
+import fcntl
 import os
 from pathlib import Path
 import re
@@ -9,6 +10,7 @@ import socket
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 import urllib.request
 
@@ -91,16 +93,69 @@ ss 1-65535
                 self.assertNotIn("unexpected lookup", result.stderr)
                 self.assertFalse(self.registry.exists())
 
-    def test_registry_filter_failure_preserves_original(self):
+    def test_registry_tool_failure_preserves_original(self):
         for shell in SHELLS:
             with self.subTest(shell=shell):
                 self.write_registry()
                 result = self.run_shell(shell, '''
-awk() { return 1; }
+python3() { return 1; }
 _server_del 8123
 ''')
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("8123", self.registry.read_text())
+
+    def test_concurrent_registry_updates_are_serialized(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                self.registry.parent.mkdir(exist_ok=True)
+                self.registry.write_text("")
+                processes = []
+                lock_path = self.registry.with_name("servers.lock")
+                with lock_path.open("w") as lock:
+                    fcntl.flock(lock, fcntl.LOCK_EX)
+                    args = ["--noprofile", "--norc"] if shell.endswith("bash") else ["-f"]
+                    try:
+                        for port in ("8123", "8124"):
+                            process = subprocess.Popen(
+                                [shell, *args, "-c", '. "$1"; _server_add "$2" python /example',
+                                 "server-test", str(ROOT / "aliases"), port],
+                                cwd=self.home, env=self.env, stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE, text=True,
+                            )
+                            processes.append(process)
+                        time.sleep(0.15)
+                        self.assertTrue(all(process.poll() is None for process in processes))
+                        self.assertEqual(self.registry.read_text(), "")
+                        fcntl.flock(lock, fcntl.LOCK_UN)
+                        for process in processes:
+                            stdout, stderr = process.communicate(timeout=5)
+                            self.assertEqual(process.returncode, 0, stdout + stderr)
+                    finally:
+                        fcntl.flock(lock, fcntl.LOCK_UN)
+                        for process in processes:
+                            if process.poll() is None:
+                                process.kill()
+                            process.communicate(timeout=5)
+                self.assertEqual({row.split("\t")[0] for row in self.registry.read_text().splitlines()},
+                                 {"8123", "8124"})
+
+    def test_invalid_registry_record_preserves_original(self):
+        self.write_registry()
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                result = self.run_shell(shell, "_server_add 8124 python $'bad\\npath'\n")
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(self.registry.read_text(), "8123\tpython\t/example\n")
+
+    def test_registry_missing_final_newline_does_not_join_records(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                self.write_registry()
+                self.registry.write_text("8123\tpython\t/example")
+                result = self.run_shell(shell, "_server_add 8124 python /second\n")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(self.registry.read_text().splitlines(),
+                                 ["8123\tpython\t/example", "8124\tpython\t/second"])
 
     def test_python_startup_failure_is_visible(self):
         (self.home / "docs").mkdir()
