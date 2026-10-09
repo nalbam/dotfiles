@@ -228,59 +228,118 @@ alias dff='colordiff'
 # Local development servers
 # Registry of servers started by ss(): one "port<TAB>type<TAB>path" per line
 DEV_SERVERS="$HOME/.toast/servers"
+_server_port_valid() {
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  [ "${#1}" -le 5 ] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
+}
 _port_kill() {
-  # Kill whatever listens on a port; 0 if killed, 1 if nothing found
+  # 0: signalled every listener, 1: no listener, 2: lookup or signal failed.
   local port="$1"
-  local pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null | sort -u)
+  _server_port_valid "$port" || { echo "Invalid TCP port: $port" >&2; return 2; }
+  command -v lsof >/dev/null 2>&1 || { echo "lsof is required" >&2; return 2; }
+  local pids result=0 pid cmd
+  pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null)
+  result=$?
+  [ "$result" -le 1 ] || { echo "Could not inspect TCP port $port" >&2; return 2; }
   [ -z "$pids" ] && return 1
-  echo "$pids" | while read pid; do
-    local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
-    kill $pid 2>/dev/null && echo "  Killed $cmd (PID $pid) on port $port"
-  done
-  return 0
+  result=0
+  pids=$(printf '%s\n' "$pids" | sort -u)
+  while IFS= read -r pid; do
+    cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+    if kill "$pid"; then
+      echo "  Sent TERM to $cmd (PID $pid) on port $port"
+    else
+      result=2
+    fi
+  done <<EOF
+$pids
+EOF
+  return "$result"
 }
 _server_del() {
   [ -f "$DEV_SERVERS" ] || return 0
-  awk -F'\t' -v p="$1" '$1 != p' "$DEV_SERVERS" > "$DEV_SERVERS.tmp" 2>/dev/null
-  mv "$DEV_SERVERS.tmp" "$DEV_SERVERS"
+  local tmp
+  tmp=$(mktemp "$DEV_SERVERS.XXXXXX") || return
+  if awk -F'\t' -v p="$1" '$1 != p' "$DEV_SERVERS" > "$tmp" && mv "$tmp" "$DEV_SERVERS"; then
+    return 0
+  fi
+  rm -f "$tmp"
+  return 1
 }
 _server_add() {
-  mkdir -p "$(dirname "$DEV_SERVERS")"
-  _server_del "$1"
+  mkdir -p "$(dirname "$DEV_SERVERS")" || return
+  _server_del "$1" || return
   printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$DEV_SERVERS"
 }
 ss() {
   # Server start - node dev (package.json) or python http.server
+  local port result
+  if [ -f "package.json" ]; then port="${1:-3000}"; else port="${1:-8000}"; fi
+  _server_port_valid "$port" || { echo "Invalid TCP port: $port" >&2; return 2; }
   if [ -f "package.json" ]; then
-    local port="${1:-3000}"
-    _port_kill "$port" > /dev/null 2>&1
-    _server_add "$port" "node" "$(pwd)"
+    _port_kill "$port" >/dev/null
+    result=$?
+    [ "$result" -le 1 ] || return "$result"
+    _server_add "$port" "node" "$(pwd)" || return
     echo "Starting node dev server on port $port..."
     case "$(np)" in
       pnpm) PORT="$port" pnpm dev ;;
       yarn) PORT="$port" yarn dev ;;
       *) PORT="$port" npm run dev ;;
     esac
-    _server_del "$port"
+    result=$?
+    _server_del "$port" || return
+    return "$result"
   else
-    local port="${1:-8000}"
     local dir="${2:-docs}"
-    local abs_dir=$(cd "$dir" 2>/dev/null && pwd)
-    if [ -z "$abs_dir" ]; then
+    local abs_dir startup pid ready
+    if ! abs_dir=$(cd "$dir" 2>/dev/null && pwd); then
       echo "Directory '$dir' not found"
       return 1
     fi
-    _port_kill "$port" > /dev/null 2>&1
-    python3 -m http.server "$port" --directory "$abs_dir" > /dev/null 2>&1 & disown
-    _server_add "$port" "python" "$abs_dir"
-    echo "Serving $abs_dir at http://localhost:$port"
+    _port_kill "$port" >/dev/null
+    result=$?
+    [ "$result" -le 1 ] || return "$result"
+    startup=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-http.XXXXXX") || return
+    if ! mkfifo "$startup/ready"; then rmdir "$startup"; return 1; fi
+    # The child acknowledges its PID only after bind/listen succeeds. EOF means startup failed.
+    python3 -u -c '
+import functools, http.server, os, sys
+handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=sys.argv[2])
+with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
+    with open(os.devnull, "w") as sink:
+        os.dup2(sink.fileno(), 1)
+        os.dup2(sink.fileno(), 2)
+    with os.fdopen(3, "w") as ready:
+        ready.write(str(os.getpid()) + "\n")
+    server.serve_forever()
+' "$port" "$abs_dir" 3>"$startup/ready" >"$startup/log" 2>&1 &
+    pid=$!
+    IFS= read -r ready < "$startup/ready"
+    if [ "$ready" != "$pid" ]; then
+      wait "$pid"
+      result=$?
+      cat "$startup/log" >&2
+      rm -f "$startup/ready" "$startup/log"
+      rmdir "$startup"
+      [ "$result" -ne 0 ] || result=1
+      return "$result"
+    fi
+    rm -f "$startup/ready" "$startup/log"
+    rmdir "$startup"
+    if ! _server_add "$port" "python" "$abs_dir"; then
+      kill "$pid"
+      wait "$pid" 2>/dev/null
+      return 1
+    fi
+    disown "$pid"
+    echo "Serving $abs_dir at http://localhost:$port (PID $pid)"
   fi
 }
 sl() {
   # Server list - show servers started by ss(), pruning dead ones
   [ -f "$DEV_SERVERS" ] || { echo "No servers running"; return 0; }
-  local tmp="$DEV_SERVERS.tmp"
-  : > "$tmp"
+  command -v lsof >/dev/null 2>&1 || { echo "lsof is required" >&2; return 1; }
   local found=""
   while IFS="$(printf '\t')" read -r port type dir; do
     [ -z "$port" ] && continue
@@ -289,12 +348,13 @@ sl() {
       local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
       [ -z "$found" ] && echo "Local servers:"
       echo "  [$type] $cmd (PID $pid) on port $port  $dir"
-      printf '%s\t%s\t%s\n' "$port" "$type" "$dir" >> "$tmp"
       found="1"
+    else
+      _server_del "$port" || return
     fi
   done < "$DEV_SERVERS"
-  mv "$tmp" "$DEV_SERVERS"
   [ -z "$found" ] && echo "No servers running"
+  return 0
 }
 sk() {
   # Server kill - kill a tracked port, or all servers started by ss()
@@ -307,19 +367,27 @@ sk() {
   case "$1" in
     a|all)
       [ -f "$DEV_SERVERS" ] || { echo "No servers running"; return 0; }
-      local any=""
+      local any="" result=0 stopped
       while IFS="$(printf '\t')" read -r port type dir; do
         [ -z "$port" ] && continue
-        _port_kill "$port" && any="1"
+        _port_kill "$port"
+        stopped=$?
+        case "$stopped" in
+          0) any=1; _server_del "$port" || result=1 ;;
+          1) _server_del "$port" || result=1 ;;
+          *) result="$stopped" ;;
+        esac
       done < "$DEV_SERVERS"
-      : > "$DEV_SERVERS"
-      [ -z "$any" ] && echo "No servers running"
+      [ -n "$any" ] || [ "$result" -ne 0 ] || echo "No servers running"
+      return "$result"
       ;;
     *)
       if _port_kill "$1"; then
         _server_del "$1"
       else
-        echo "No process found on port $1"
+        local result=$?
+        [ "$result" -ne 1 ] || echo "No process found on port $1"
+        return "$result"
       fi
       ;;
   esac
