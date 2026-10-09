@@ -35,4 +35,6 @@ swapon --show
 
 The script stops when a command fails. Read the failing command, resolve its cause, and review any existing Docker configuration before rerunning. AWS CLI downloads use a separate temporary directory for each attempt, which is removed on success or failure. Package upgrades and replaced files are not rolled back.
 
+New swap files are allocated and formatted before appearing at `/swapfile`. A failed attempt leaves that final path available for a retry. Existing `/swapfile` contents are preserved; if activation fails, inspect the file before replacing or formatting it.
+
 If the `ubuntu` user exists, log in with a new session before using its Docker group membership. Install the user-level dotfiles separately under that user.

@@ -95,5 +95,122 @@ curl() {
         self.assert_clean()
 
 
+class SwapSetupTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="dotfiles-swap-")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.swapfile = self.root / "swapfile"
+        self.fstab = self.root / "fstab"
+        self.fstab.touch()
+        self.log = self.root / "commands"
+        self.active = self.root / "active"
+        source = (ROOT / "linux/init.sh").read_text()
+        section = source[source.index("# swap"):source.index("mkdir -p /opt/compose")]
+        section = section.replace("/swapfile", str(self.swapfile))
+        section = section.replace("/etc/fstab", str(self.fstab))
+        self.script = r'''set -e
+fallocate() {
+  printf 'allocate\n' >> "$TEST_LOG"
+  printf 'unformatted\n' > "$3"
+  return "${TEST_ALLOCATE_STATUS:-0}"
+}
+mkswap() {
+  printf 'format\n' >> "$TEST_LOG"
+  if [ "${TEST_FORMAT_STATUS:-0}" != 0 ]; then return "$TEST_FORMAT_STATUS"; fi
+  if [ "${TEST_INTERRUPT:-0}" = 1 ]; then
+    /bin/sh -c 'kill -TERM "$PPID"'
+    return 1
+  fi
+  printf 'formatted\n' > "$1"
+}
+swapon() {
+  if [ "$1" = --show=NAME ]; then
+    if [ -f "$TEST_ACTIVE" ]; then printf '%s\n' "$TEST_SWAPFILE"; fi
+  else
+    printf 'activate\n' >> "$TEST_LOG"
+    if [ "$(cat "$1")" != formatted ]; then return 9; fi
+    touch "$TEST_ACTIVE"
+  fi
+}
+''' + section + '\nprintf "NEXT_STEP\\n"\n'
+        self.env = dict(os.environ, TEST_LOG=str(self.log), TEST_ACTIVE=str(self.active),
+                        TEST_SWAPFILE=str(self.swapfile))
+
+    def invoke(self, **overrides):
+        return subprocess.run(["/bin/bash", "-c", self.script],
+                              env=dict(self.env, **overrides), cwd=self.root,
+                              stdin=subprocess.DEVNULL, capture_output=True,
+                              text=True, timeout=5)
+
+    def assert_no_partial_files(self):
+        self.assertEqual(list(self.root.glob("swapfile.*")), [])
+
+    def test_fresh_swap_is_formatted_private_and_registered_once(self):
+        result = self.invoke()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.swapfile.read_text(), "formatted\n")
+        self.assertEqual(self.swapfile.stat().st_mode & 0o777, 0o600)
+        self.assertTrue(self.active.exists())
+        self.assertEqual(self.log.read_text().splitlines(), ["allocate", "format", "activate"])
+        self.assertEqual(self.fstab.read_text(), f"{self.swapfile} none swap sw 0 0\n")
+        self.assert_no_partial_files()
+        stamp = self.swapfile.stat().st_mtime_ns
+        repeated = self.invoke()
+        self.assertEqual(repeated.returncode, 0, repeated.stderr)
+        self.assertEqual(self.swapfile.stat().st_mtime_ns, stamp)
+        self.assertEqual(self.log.read_text().splitlines(), ["allocate", "format", "activate"])
+        self.assertEqual(self.fstab.read_text().count(str(self.swapfile)), 1)
+
+    def test_failed_preparation_leaves_no_swapfile_and_can_retry(self):
+        for failure in ("TEST_ALLOCATE_STATUS", "TEST_FORMAT_STATUS"):
+            with self.subTest(failure=failure):
+                self.swapfile.unlink(missing_ok=True)
+                self.active.unlink(missing_ok=True)
+                self.fstab.write_text("")
+                failed = self.invoke(**{failure: "7"})
+                self.assertEqual(failed.returncode, 7, failed.stderr)
+                self.assertFalse(self.swapfile.exists())
+                self.assertFalse(self.active.exists())
+                self.assertEqual(self.fstab.read_text(), "")
+                self.assert_no_partial_files()
+                recovered = self.invoke()
+                self.assertEqual(recovered.returncode, 0, recovered.stderr)
+                self.assertEqual(self.swapfile.read_text(), "formatted\n")
+                self.assertTrue(self.active.exists())
+                self.assert_no_partial_files()
+
+    def test_existing_swap_is_activated_without_reformatting(self):
+        self.swapfile.write_text("formatted\n")
+        before = self.swapfile.stat().st_mtime_ns
+        result = self.invoke()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.swapfile.stat().st_mtime_ns, before)
+        self.assertEqual(self.log.read_text().splitlines(), ["activate"])
+        self.assertTrue(self.active.exists())
+        self.assert_no_partial_files()
+
+    def test_interrupted_preparation_does_not_publish_a_swapfile(self):
+        interrupted = self.invoke(TEST_INTERRUPT="1")
+        self.assertNotEqual(interrupted.returncode, 0)
+        self.assertFalse(self.swapfile.exists())
+        self.assertFalse(self.active.exists())
+        self.assertEqual(self.fstab.read_text(), "")
+        recovered = self.invoke()
+        self.assertEqual(recovered.returncode, 0, recovered.stderr)
+        self.assertEqual(self.swapfile.read_text(), "formatted\n")
+        self.assertTrue(self.active.exists())
+
+    def test_existing_non_swap_file_is_preserved_and_failure_is_visible(self):
+        self.swapfile.write_text("existing user data\n")
+        result = self.invoke()
+        self.assertEqual(result.returncode, 9, result.stderr)
+        self.assertEqual(self.swapfile.read_text(), "existing user data\n")
+        self.assertEqual(self.log.read_text().splitlines(), ["activate"])
+        self.assertEqual(self.fstab.read_text(), "")
+        self.assertNotIn("NEXT_STEP", result.stdout)
+        self.assert_no_partial_files()
+
+
 if __name__ == "__main__":
     unittest.main()

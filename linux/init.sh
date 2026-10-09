@@ -49,9 +49,15 @@ fi
 
 # swap
 if [[ ! -e /swapfile ]]; then
-  fallocate -l 4G /swapfile
-  chmod 600 /swapfile
-  mkswap /swapfile >/dev/null
+  (
+    SWAP_TEMP_FILE=$(mktemp /swapfile.XXXXXX)
+    trap 'rm -f "$SWAP_TEMP_FILE"' EXIT
+    fallocate -l 4G "$SWAP_TEMP_FILE"
+    chmod 600 "$SWAP_TEMP_FILE"
+    mkswap "$SWAP_TEMP_FILE" >/dev/null
+    # Publish only a complete swap file and never replace an existing path.
+    ln "$SWAP_TEMP_FILE" /swapfile
+  )
 fi
 swapon --show=NAME --noheadings | tr -d ' ' | grep -qx /swapfile || swapon /swapfile
 grep -qE '^/swapfile[[:space:]]' /etc/fstab || echo '/swapfile none swap sw 0 0' >>/etc/fstab
