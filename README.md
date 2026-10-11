@@ -125,7 +125,9 @@ Claude Code·Codex·Kiro의 공통 지침과 설정을 저장소에서 관리하
 
 루트 [AGENTS.md](AGENTS.md)는 이 저장소 작업용이며 `CLAUDE.md`는 이를 가리키는 심볼릭 링크다. 모든 프로젝트에 배포할 지침은 [codex/AGENTS.md](codex/AGENTS.md)와 [claude/CLAUDE.md](claude/CLAUDE.md)에서 수정한다. Claude의 언어·Git·보안 규칙은 `claude/rules/`에서 관리한다.
 
-Codex 기본값은 `approval_policy = "never"`, `default_permissions = ":danger-full-access"`다. 로컬 명령의 승인 프롬프트와 샌드박스 제한을 해제한다. 에이전트는 요청한 작업을 자율 수행하며, `main`에 push하거나 merge하기 전에만 사용자 승인을 받는다. 이 승인 규칙은 에이전트 지침이며 Git 서버의 브랜치 보호를 설정하지 않는다. 실행 환경의 강제 정책은 이 설정보다 우선한다. [공식 권한 프로필 안내](https://learn.chatgpt.com/docs/permissions)를 참고한다.
+Codex 기본값은 `approval_policy = "never"`, `default_permissions = ":danger-full-access"`다. 로컬 명령의 승인 프롬프트와 샌드박스 제한을 해제한다. 실행 환경의 강제 정책은 이 설정보다 우선한다. [공식 권한 프로필 안내](https://learn.chatgpt.com/docs/permissions)를 참고한다.
+
+Codex와 Claude는 요청 범위에서 문제가 없음을 검증한 `main` push·merge·릴리즈·배포를 별도 사용자 승인 없이 수행한다. 해당 커밋의 필수 검사·CI·리뷰 통과, 미해결 차단 문제·충돌 부재, 대상과 영향을 확인한다. 릴리즈 완료와 대상 환경의 정상 동작을 확인한 뒤 merge된 해당 작업의 로컬·원격 브랜치를 정리하며, 미반영 작업과 다른 worktree는 보존한다. 상세 조건은 [Codex Git Safety](codex/AGENTS.md#git-safety)와 [Claude Git Workflow](claude/rules/git-workflow.md)를 따른다. 이 지침은 Git 서버의 브랜치 보호나 필수 환경 승인을 해제하지 않는다.
 
 기술 문서는 ISO 24495-1처럼 쉽게 찾고 이해하고 사용할 수 있게, ASD-STE100처럼 짧고 명확하며 모호하지 않게 작성한다. 필요한 정보·문서 구조·표현·작업과 판단에 사용할 수 있는 설명을 함께 검토한다. 구체적인 점검 항목은 [docs-sync](claude/skills/docs-sync/SKILL.md#작성-품질)에 있다. 이는 자체 작성 규칙이며 표준 전체 준수 선언은 아니다. [ISO 개요](https://www.iso.org/standard/78907.html)와 [IPLF의 네 원칙 설명](https://www.iplfederation.org/iso-standard/), [ASD-STE100 소개](https://www.asd-ste100.org/about_STE.html)를 참고한다.
 
@@ -198,7 +200,7 @@ op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~
 
 ## Contributing
 
-별도 브랜치에서 변경하고 관련 검사를 실행한 뒤 PR을 만든다. 커밋은 Conventional Commits 형식을 권장한다. 에이전트는 요청 범위의 commit·작업 브랜치 push·PR 생성을 자율 수행한다. `main`에 push하거나 merge하기 전에는 사용자 승인을 받는다.
+별도 브랜치에서 변경하고 관련 검사를 실행한 뒤 PR을 만든다. 커밋은 Conventional Commits 형식을 권장한다. 에이전트는 요청 범위의 commit·push·PR 생성을 자율 수행하며, [Git Safety](codex/AGENTS.md#git-safety)의 검증 조건을 충족하면 merge·릴리즈·배포와 완료 후 브랜치 정리까지 진행한다.
 
 ## License
 
