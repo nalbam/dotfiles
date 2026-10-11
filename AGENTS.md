@@ -75,7 +75,9 @@ For installer, shell, or platform changes, run `python3 -m unittest discover -s 
 ## Working rules for agents
 
 - Apply the ISO 24495-1 and ASD-STE100 writing principles in [the shared documentation workflow](./claude/skills/docs-sync/SKILL.md#작성-품질). Match the reader's task, preserve technical meaning, and verify examples against code. Do not claim full standard compliance from these checks alone.
-- **Get user approval only before pushing to `main` or merging into `main`, including PR merges and auto-merge enrollment.** Within the requested task, autonomously edit, validate, commit, push work branches, create PRs, and resolve conflicts. Preserve unrelated user changes and check the push destination, not just the current branch name.
+- **Autonomously merge, release, and deploy within the requested task when verification shows no blocking issues.** This includes pushes to `main`, PR merges, and auto-merge enrollment. Confirm the exact commit passes required checks, CI, and reviews; resolve conflicts and verify the destination and impact. Do not treat pending or missing results as success or bypass branch protection, required reviews, environment approvals, or tool restrictions. Honor read-only requests and explicit stopping points.
+- Fix and recheck issues within scope before continuing. Ask the user only when their decision or authority is required. Verify the released version, artifacts, deployment state, and normal operation before reporting completion.
+- After release completion, clean up the task's local and remote branches. Confirm their changes are merged and no unmerged commits, uncommitted changes, or other worktrees need them. Preserve the default branch, unrelated branches, and user changes.
 - **Shell changes are live the next time `run.sh` runs on any machine.** Test locally before recommending risky changes.
 - **Check both `darwin/` and `linux/` paths** when touching platform logic — one branch is easy to miss.
 - **Prefer editing `aliases` or `Brewfile` over adding logic to `run.sh`.** The installer should stay declarative.
