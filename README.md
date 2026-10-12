@@ -37,6 +37,25 @@ bash ~/.dotfiles/run.sh
 
 완료 메시지와 함께 경고가 표시되면 해당 단계의 로그를 확인한다. 오류나 경고의 원인을 해결한 뒤 같은 명령을 다시 실행한다. 새 터미널에서 `command -v git zsh`와 `type cx`로 도구 경로와 셸 별칭 로딩을 확인할 수 있다. 별칭이 있다는 사실만으로 해당 AI CLI가 설치됐다고 판단하지 않는다.
 
+### Node.js 버전 확인
+
+전체 설치는 nvm의 기본 버전을 Node.js 24로 설정한다. Bash와 Zsh는 공통 설정
+`~/.config/dotfiles/nvm.sh`를 읽어 nvm이 선택한 실행 파일을 Homebrew의 Node보다 먼저 찾는다.
+터미널 시작 시 Node를 설치하거나 다른 버전을 강제로 선택하지 않는다.
+프로젝트가 `.nvmrc`를 제공하면 해당 디렉터리에서 `nvm use`로 버전을 선택한다.
+
+동기화 후 새 터미널에서 확인한다.
+
+```bash
+node --version
+command -v node
+nvm current
+```
+
+다른 버전을 선택하지 않았다면 `v24.x.x`와 nvm 디렉터리의 실행 파일이 표시된다.
+기존 터미널에서 Homebrew Node가 계속 실행되면 `nvm deactivate` 후 `nvm use default`를
+실행한다. 설치 중 실제 버전이 24가 아니면 성공 대신 경고를 출력한다.
+
 ### Windows (PowerShell)
 
 저장소를 `$HOME\.dotfiles`에 준비하고, `winget`과 심볼릭 링크 생성 권한이 있는 PowerShell에서 실행한다.
@@ -64,7 +83,7 @@ bash ~/.dotfiles/run.sh
 
 | 구성 | 설치 동작 |
 |------|-----------|
-| 셸 | Zsh·Oh My Zsh·Dracula 테마, 별칭과 플랫폼별 프로필 |
+| 셸 | Zsh·Oh My Zsh·Dracula 테마, 별칭·공통 nvm 초기화·플랫폼별 프로필 |
 | 개발 도구 | 플랫폼별 Brewfile, nvm을 통한 Node.js 24, pip를 통한 `toast-cli` |
 | 터미널·앱 | macOS Brewfile의 Ghostty·VS Code 등. iTerm2 프로필은 복사하지만 iTerm2 앱 설치는 포함하지 않음 |
 | AI 설정 | Claude Code·Codex·Kiro 지침·설정·스킬 배포 |

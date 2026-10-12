@@ -560,11 +560,11 @@ fi
 # Homebrew의 nvm은 ~/.nvm 디렉터리와 Node.js를 설치하지 않는다.
 # 새 셸에서 nvm을 읽고 Node.js를 사용할 수 있도록 둘 다 준비한다.
 # 업데이트 스로틀 바깥에 둔다 — 부트스트랩은 1회성이고 Node.js 24 설치 여부로 가드된다.
-NVM_SH="$(brew --prefix nvm 2>/dev/null)/nvm.sh"
-if [ -s "$NVM_SH" ]; then
-  export NVM_DIR="$HOME/.nvm"
-  [ -d "$NVM_DIR" ] || mkdir -p "$NVM_DIR"
-  . "$NVM_SH"
+_download .config/dotfiles/nvm.sh shell/nvm.sh
+export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+[ -d "$NVM_DIR" ] || mkdir -p "$NVM_DIR" || _error "Failed to create $NVM_DIR"
+. "$HOME/.config/dotfiles/nvm.sh"
+if command -v nvm >/dev/null 2>&1; then
 
   if [ "$(nvm version 24)" = "N/A" ]; then
     # stderr 는 가리지 않는다 — 프리빌트 바이너리가 없는 아키텍처(예: armv7l)에서는 nvm 이
@@ -575,11 +575,18 @@ if [ -s "$NVM_SH" ]; then
 
   if [ "$(nvm version 24)" != "N/A" ]; then
     if nvm alias default 24 >/dev/null 2>&1 && nvm use default >/dev/null 2>&1; then
-      _ok "Node.js $(node -v) configured as default"
+      . "$HOME/.config/dotfiles/nvm.sh"
+      NODE_VERSION="$(node --version 2>/dev/null)"
+      case "$NODE_VERSION" in
+        v24.*) _ok "Node.js $NODE_VERSION configured as default" ;;
+        *) _warn "Node.js 24 was selected, but node resolves to $(command -v node): ${NODE_VERSION:-unavailable}" ;;
+      esac
     else
       _warn "Failed to configure Node.js 24 as default"
     fi
   fi
+else
+  _skip "nvm not found — Node.js 24 was not configured"
 fi
 
 # Claude Code 업데이트
