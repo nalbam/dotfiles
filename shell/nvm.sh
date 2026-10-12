@@ -9,6 +9,13 @@ if [ -d "$NVM_DIR" ]; then
       "/opt/homebrew/opt/nvm/nvm.sh" \
       "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"; do
       if [ -s "$_dotfiles_nvm_script" ]; then
+        # Restore the inherited selection before nvm auto-use inspects PATH.
+        if [ -n "${NVM_BIN:-}" ] && [ -x "$NVM_BIN/node" ]; then
+          case "${PATH:-}" in
+            "$NVM_BIN" | "$NVM_BIN":*) ;;
+            *) export PATH="$NVM_BIN${PATH:+:$PATH}" ;;
+          esac
+        fi
         . "$_dotfiles_nvm_script"
         for _dotfiles_nvm_completion in \
           "${_dotfiles_nvm_script%/*}/bash_completion" \

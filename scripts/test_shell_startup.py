@@ -56,17 +56,27 @@ class ShellStartupTests(unittest.TestCase):
                     platform="/opt/homebrew"):
         nvm_dir = self.home / ("custom nvm" if custom_dir else ".nvm")
         node_bin = nvm_dir / "versions/node" / f"v{version}" / "bin"
-        node_bin.mkdir(parents=True)
-        (node_bin / "node").write_text(f'#!/bin/sh\nprintf "v{version}\\n"\n')
-        (node_bin / "node").chmod(0o755)
+        default_bin = nvm_dir / "versions/node/v24.21.0/bin"
+        for bin_dir, node_version in ((node_bin, version), (default_bin, "24.21.0")):
+            bin_dir.mkdir(parents=True, exist_ok=True)
+            (bin_dir / "node").write_text(f'#!/bin/sh\nprintf "v{node_version}\\n"\n')
+            (bin_dir / "node").chmod(0o755)
         system_bin = self.brew_prefixes[platform] / "bin"
         system_bin.mkdir(parents=True)
         (system_bin / "node").write_text('#!/bin/sh\nprintf "v26.11.1\\n"\n')
         (system_bin / "node").chmod(0o755)
         loader = (self.brew_prefixes[platform] / "opt/nvm/nvm.sh") if installation == "brew" else nvm_dir / "nvm.sh"
         loader.parent.mkdir(parents=True, exist_ok=True)
-        loader.write_text('nvm() { :; }\nexport NVM_BIN=' + shlex.quote(str(node_bin)) + '\n')
+        # nvm auto-use keeps the current nvm Node, but chooses the default when
+        # PATH resolves to a system Node, even if NVM_BIN names another version.
+        loader.write_text('''nvm() { :; }
+case "$(command -v node)" in
+  "$NVM_DIR"/versions/node/*/bin/node) export NVM_BIN="$(dirname "$(command -v node)")" ;;
+  *) export NVM_BIN="$NVM_DIR/versions/node/v24.21.0/bin" ;;
+esac
+''')
         self.env["PATH"] = str(system_bin) + ":" + str(node_bin) + ":/usr/bin:/bin"
+        self.env["NVM_BIN"] = str(node_bin)
         if custom_dir:
             self.env["NVM_DIR"] = str(nvm_dir)
         return node_bin
@@ -97,10 +107,29 @@ class ShellStartupTests(unittest.TestCase):
             if not Path(shell).is_file():
                 continue
             with self.subTest(shell=shell):
-                result = self.startup(shell, config, 'node --version; command -v node; printf "%s\\n" "$NVM_DIR"')
+                result = self.startup(shell, config, 'node --version; . "$1"; node --version; command -v node; printf "%s\\n" "$NVM_DIR"')
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(result.stderr, "")
-                self.assertEqual(result.stdout.splitlines(), ["v22.20.0", str(node_bin / "node"), str(self.home / "custom nvm")])
+                self.assertEqual(result.stdout.splitlines(), ["v22.20.0", "v22.20.0", str(node_bin / "node"), str(self.home / "custom nvm")])
+
+    def test_default_node_is_loaded_without_a_valid_inherited_selection(self):
+        node_bin = self.nvm_fixture()
+        stale_bin = self.home / ".nvm/versions/node/v20.0.0/bin"
+        stale_bin.mkdir(parents=True)
+        (stale_bin / "node").write_text("not executable\n")
+        for inherited_bin in (None, str(stale_bin), str(stale_bin / "missing")):
+            if inherited_bin is None:
+                self.env.pop("NVM_BIN", None)
+            else:
+                self.env["NVM_BIN"] = inherited_bin
+            for shell, config in (("/bin/bash", "bashrc"), ("/bin/zsh", "zshrc")):
+                if not Path(shell).is_file():
+                    continue
+                with self.subTest(shell=shell, inherited_bin=inherited_bin):
+                    result = self.startup(shell, config, 'node --version; command -v node')
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(result.stderr, "")
+                    self.assertEqual(result.stdout.splitlines(), ["v24.21.0", str(node_bin / "node")])
 
     def test_path_prepend_does_not_search_current_directory(self):
         with tempfile.TemporaryDirectory(prefix="dotfiles-shell-") as temporary:
