@@ -42,6 +42,7 @@ Both full installation and `--vibe` read deployment sources from `~/.dotfiles`. 
 | `darwin/Brewfile`, `linux/Brewfile` | Package selection; commented entries are inactive |
 | `aliases` | Shared shell aliases and helper functions |
 | `zshrc`, `bashrc`, `profile`, platform `zprofile.*.sh` | Shell initialization |
+| `shell/nvm.sh` | Shared nvm loading and selected Node PATH priority for Bash, Zsh, and the installer |
 | `gitconfig*` | Base Git settings and directory-specific identities |
 | `ssh/`, `aws/` | Templates; only the files selected by `run.sh` are deployed |
 | `macos` | macOS preferences applied in Step 7 |
@@ -70,6 +71,13 @@ Read the source file for exact packages and configuration values. The [AI settin
 | 11 | Deploy AI settings | Run `scripts/sync-ai-tools.py`; a failure stops installation |
 
 Step 6 does not install global npm packages. Node.js is managed through nvm; package selection otherwise comes from the Brewfile and pip setup.
+
+Step 6 also deploys `shell/nvm.sh` to `~/.config/dotfiles/nvm.sh`. The installer selects
+Node.js 24 as the nvm default, applies its PATH priority, and checks the actual `node --version`
+before reporting success. Bash and Zsh source the same initializer. It loads an existing user
+or supported-platform Homebrew nvm installation, preserves an explicit `NVM_DIR` and selected
+version, and puts the selected executable ahead of an inherited system Node path. Shell startup
+does not install Node or change the default alias. Missing nvm remains optional at startup.
 
 ## Updates and retries
 

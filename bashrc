@@ -21,6 +21,11 @@ if [ -f ~/.aliases ]; then
   source ~/.aliases
 fi
 
+# nvm
+if [ -r "$HOME/.config/dotfiles/nvm.sh" ]; then
+  . "$HOME/.config/dotfiles/nvm.sh"
+fi
+
 # Optional editor shell integration.
 case "$TERM_PROGRAM" in
   vscode) _editor_cli=code ;;

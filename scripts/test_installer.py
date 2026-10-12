@@ -21,6 +21,9 @@ class InstallerTests(unittest.TestCase):
         self.source = (ROOT / "run.sh").read_text()
         self.declarations = self.source.split("# 실행 영역", 1)[0] + "\n}\nTPUT=\ncurl() { return 99; }\nsleep() { :; }\n"
         self.env = dict(os.environ, HOME=str(self.home), TERM="dumb", BASH_ENV="")
+        for key in ("NVM_DIR", "NVM_BIN", "NVM_INC", "BREWPATH"):
+            self.env.pop(key, None)
+        self.env = {key: value for key, value in self.env.items() if not key.startswith("BASH_FUNC_")}
 
     def run_shell(self, body):
         return subprocess.run(["/bin/bash", "-c", self.declarations + body],
@@ -29,6 +32,60 @@ class InstallerTests(unittest.TestCase):
     def block(self, start, end):
         execution = self.source[self.source.index("# 실행 영역"):]
         return execution[execution.index(start):execution.index(end)]
+
+    def nvm_fixture(self, actual_version="24.21.0", alias_status=0, installed=True):
+        (self.repo / "shell").mkdir()
+        shutil.copy(ROOT / "shell/nvm.sh", self.repo / "shell/nvm.sh")
+        node_bin = self.home / ".nvm/versions/node/v24.21.0/bin"
+        node_bin.mkdir(parents=True)
+        (node_bin / "node").write_text(f'#!/bin/sh\nprintf "v{actual_version}\\n"\n')
+        (node_bin / "node").chmod(0o755)
+        system_bin = self.home / "system/bin"
+        system_bin.mkdir(parents=True)
+        (system_bin / "node").write_text('#!/bin/sh\nprintf "v26.11.1\\n"\n')
+        (system_bin / "node").chmod(0o755)
+        self.env["PATH"] = str(system_bin) + ":" + str(node_bin) + ":/usr/bin:/bin"
+        if installed:
+            (self.home / ".nvm/installed").touch()
+        (self.home / ".nvm/nvm.sh").write_text('''nvm() {
+  printf '%s\\n' "$*" >> "$NVM_DIR/calls"
+  case "$1" in
+    version) if [ -f "$NVM_DIR/installed" ]; then printf 'v24.21.0\\n'; else printf 'N/A\\n'; fi ;;
+    install) touch "$NVM_DIR/installed" ;;
+    alias) return ''' + str(alias_status) + ''' ;;
+    use) export NVM_BIN="$NVM_DIR/versions/node/v24.21.0/bin" ;;
+    *) return 99 ;;
+  esac
+}
+''')
+        return node_bin
+
+    def test_nvm_bootstrap_reports_the_actual_node_24_and_deploys_shared_startup(self):
+        node_bin = self.nvm_fixture(installed=False)
+        result = self.run_shell(self.block("# nvm 부트스트랩", "# Claude Code 업데이트") + '\nnode --version; command -v node\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Node.js v24.21.0 configured as default", result.stdout)
+        self.assertEqual(result.stdout.splitlines()[-2:], ["v24.21.0", str(node_bin / "node")])
+        self.assertEqual((self.home / ".config/dotfiles/nvm.sh").read_text(), (ROOT / "shell/nvm.sh").read_text())
+        self.assertEqual((self.home / ".nvm/calls").read_text().splitlines(),
+                         ["version 24", "install 24", "version 24", "alias default 24", "use default"])
+
+    def test_nvm_success_does_not_hide_a_wrong_executable_version(self):
+        self.nvm_fixture(actual_version="26.11.1")
+        result = self.run_shell(self.block("# nvm 부트스트랩", "# Claude Code 업데이트") + '\nprintf "warnings=%s\\n" "$WARN_COUNT"\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("configured as default", result.stdout)
+        self.assertIn("Node.js 24 was selected, but node resolves to", result.stdout)
+        self.assertIn("v26.11.1", result.stdout)
+        self.assertIn("warnings=1", result.stdout)
+
+    def test_nvm_alias_failure_stays_visible(self):
+        self.nvm_fixture(alias_status=7)
+        result = self.run_shell(self.block("# nvm 부트스트랩", "# Claude Code 업데이트"))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Failed to configure Node.js 24 as default", result.stdout)
+        self.assertNotIn("configured as default", result.stdout)
+        self.assertNotIn("use default", (self.home / ".nvm/calls").read_text())
 
     def test_every_git_identity_include_is_deployed_and_effective(self):
         for source in ROOT.glob("gitconfig*"):
