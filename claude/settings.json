@@ -25,6 +25,7 @@
       "Bash(parted:*)",
       "Bash(poweroff:*)",
       "Bash(reboot:*)",
+      "Bash(terraform:*)",
       "Bash(rm -rf $HOME/*)",
       "Bash(rm -rf /)",
       "Bash(rm -rf /*)",
@@ -37,8 +38,7 @@
       "Bash(systemctl halt:*)",
       "Bash(systemctl poweroff:*)",
       "Bash(systemctl reboot:*)",
-      "Bash(systemctl stop:*)",
-      "Bash(terraform *)"
+      "Bash(systemctl stop:*)"
     ],
     "defaultMode": "auto"
   },
