@@ -201,6 +201,13 @@ def file_content(source, destination, source_name, relative):
             if not isinstance(defaults, dict) or not isinstance(local, dict):
                 raise ValueError("Settings must be JSON objects")
             merged = fill_missing(local, defaults)
+            # The repository owns Claude deny rules: fill_missing keeps local arrays,
+            # so an obsolete or corrected rule would otherwise never leave a machine.
+            deny = defaults.get("permissions", {}).get("deny") if source_name == "claude" else None
+            if deny is not None:
+                if not isinstance(merged["permissions"], dict):
+                    raise ValueError("Claude permissions must be a JSON object")
+                merged["permissions"] = merged["permissions"] | {"deny": deny}
             if old is not None and merged == local:
                 return old
             return (json.dumps(merged, ensure_ascii=False, indent=2) + "\n").encode()

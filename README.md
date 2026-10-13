@@ -186,7 +186,9 @@ diff -qr ~/.dotfiles/codex/skills ~/.agents/skills
 
 Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저장소 값을 따른다. `approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`를 원본과 맞추고, 원본에 없는 키는 제거한다. 따라서 기존 설치도 동기화 후 같은 승인 정책을 사용하며, 예전 샌드박스 설정이 새 권한 프로필을 가리지 않는다. 변경 후 새 세션에서 권한 모드를 확인한다.
 
-나머지 Codex TOML 설정·hooks, Claude `settings.json`, Kiro `agents/default.json`은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 기존 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다.
+Claude `settings.json`의 `permissions.deny`도 원본에 있으면 저장소 목록으로 교체한다. 머신에서 직접 추가한 deny 규칙은 다음 동기화 때 `.backup`에만 남으므로, 유지할 규칙은 `claude/settings.json`에 추가한다. 셸 연산자(`|`, `&&`)로 이은 명령은 부분 명령별로 검사되므로 deny 규칙은 부분 명령 하나를 기준으로 쓴다.
+
+나머지 Codex TOML 설정·hooks, Claude `settings.json`의 다른 키, Kiro `agents/default.json`은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 기존 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다.
 
 [`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과를 확인한 뒤 배포한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
 

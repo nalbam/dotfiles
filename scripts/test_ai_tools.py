@@ -117,6 +117,22 @@ class DeploymentTests(unittest.TestCase):
         self.sync()
         self.assertEqual(json.loads(target.read_text()), {"env":{"NEW":"yes","CUSTOM":"local"},"hooks":{"SessionStart":[]},"flag":False})
 
+    def test_claude_deny_rules_follow_repository(self):
+        self.put(".dotfiles/claude/settings.json", '{"permissions":{"allow":["WebFetch"],"deny":["Bash(sh)"]}}\n')
+        target = self.put(".claude/settings.json",
+                          '{"permissions":{"allow":["Read"],"deny":["Bash(curl * | sh:*)"],"defaultMode":"plan"}}\n')
+        self.sync()
+        self.assertEqual(json.loads(target.read_text()),
+                         {"permissions":{"allow":["Read"],"deny":["Bash(sh)"],"defaultMode":"plan"}})
+        self.assertIn("curl", target.with_name("settings.json.backup").read_text())
+        self.assertNotIn("SYNC: ~/.claude/settings.json", self.sync().stdout)
+
+    def test_claude_local_deny_rules_stay_without_repository_list(self):
+        self.put(".dotfiles/claude/settings.json", '{"permissions":{"allow":["WebFetch"]}}\n')
+        target = self.put(".claude/settings.json", '{"permissions":{"deny":["Bash(local)"]}}\n')
+        self.sync()
+        self.assertEqual(json.loads(target.read_text()), {"permissions":{"allow":["WebFetch"],"deny":["Bash(local)"]}})
+
     def test_codex_permission_profile_replaces_local_policy_and_legacy_sandbox(self):
         self.put(".dotfiles/codex/config.toml", 'approval_policy = "never"\ndefault_permissions = ":danger-full-access"\n[features]\nhooks = true\n')
         original = '''# Machine preferences
