@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import shlex
 import stat
 import tempfile
 import tomllib
@@ -25,6 +26,11 @@ BEGIN = "# BEGIN dotfiles managed codex rules"
 END = "# END dotfiles managed codex rules"
 CODEX_PERMISSION_KEYS = {"approval_policy", "approvals_reviewer", "default_permissions",
                          "sandbox_mode", "sandbox_workspace_write"}
+# These files moved to the VibeMon installer. Release old manifest entries
+# without deleting the current installation or copying an obsolete source.
+VIBEMON_FILES = {("claude", "statusline.py"), ("claude", "hooks/vibemon.py"),
+                 ("codex", "hooks/vibemon.py"), ("kiro", "hooks/vibemon.py"),
+                 ("kiro", "hooks/vibemon.json")}
 
 
 def regular_path(path, boundary):
@@ -43,6 +49,79 @@ def fill_missing(local, defaults):
         return local
     return {key: fill_missing(value, defaults[key]) if key in defaults else value
             for key, value in local.items()} | {key: value for key, value in defaults.items() if key not in local}
+
+
+def merge_machine_hooks(local, defaults, scripts, home):
+    """Refresh only hooks invoking dotfiles-owned scripts, including removed ones."""
+    if not isinstance(local, dict) or not isinstance(defaults, dict):
+        raise ValueError("Hooks must be JSON objects")
+
+    def owned(hook):
+        if not isinstance(hook, dict):
+            raise ValueError("Hook must be a JSON object")
+        command = hook.get("command", "")
+        args = hook.get("args", [])
+        if not isinstance(command, str) or not isinstance(args, list):
+            raise ValueError("Invalid hook command")
+        try:
+            tokens = shlex.split(command) + args
+        except ValueError:
+            return False
+        # Match an invoked file, not a path merely mentioned by echo/another hook.
+        if tokens and Path(tokens[0]).name in {"bash", "sh", "zsh", "python", "python3", "node"}:
+            interpreter = Path(tokens[0]).name
+            tokens = tokens[1:]
+            while tokens and isinstance(tokens[0], str) and tokens[0].startswith("-"):
+                if tokens[0] in {"-c", "-m", "--eval"} or (interpreter == "node" and tokens[0] == "-e"):
+                    return False
+                tokens = tokens[1:]
+        for token in tokens[:1]:
+            if not isinstance(token, str):
+                raise ValueError("Invalid hook argument")
+            for prefix in ("~/", "$HOME/", "${HOME}/"):
+                if token.startswith(prefix):
+                    token = str(home / token[len(prefix):])
+                    break
+            if Path(token).is_absolute() and str(Path(token).resolve()) in scripts:
+                return True
+        return False
+
+    result = {}
+    for event, entries in local.items():
+        if not isinstance(entries, list):
+            raise ValueError("Hook event must be an array")
+        kept_entries = []
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise ValueError("Hook entry must be a JSON object")
+            if "hooks" in entry:
+                if not isinstance(entry["hooks"], list):
+                    raise ValueError("Hook group must be an array")
+                kept = [hook for hook in entry["hooks"] if not owned(hook)]
+                if kept or not entry["hooks"]:
+                    kept_entries.append(entry | {"hooks": kept})
+            elif not owned(entry):
+                kept_entries.append(entry)
+        # Preserve explicitly empty local events and all foreign metadata.
+        if kept_entries or not entries:
+            result[event] = kept_entries
+    for event, entries in defaults.items():
+        if not isinstance(entries, list):
+            raise ValueError("Hook event must be an array")
+        target = result.setdefault(event, [])
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise ValueError("Hook entry must be a JSON object")
+            if "hooks" in entry:
+                if not isinstance(entry["hooks"], list):
+                    raise ValueError("Hook group must be an array")
+                for hook in entry["hooks"]:
+                    owned(hook)
+            else:
+                owned(entry)
+            if entry not in target:
+                target.append(entry)
+    return result
 
 
 def toml_value(value):
@@ -187,7 +266,7 @@ def merge_rules(source, old):
     return "".join(lines[:span[0]]) + managed + "".join(lines[span[1]:])
 
 
-def file_content(source, destination, source_name, relative):
+def file_content(source, destination, source_name, relative, scripts, home):
     data = source.read_bytes()
     old = destination.read_bytes() if destination.exists() else None
     try:
@@ -201,6 +280,9 @@ def file_content(source, destination, source_name, relative):
             if not isinstance(defaults, dict) or not isinstance(local, dict):
                 raise ValueError("Settings must be JSON objects")
             merged = fill_missing(local, defaults)
+            if "hooks" in defaults or "hooks" in local:
+                merged["hooks"] = merge_machine_hooks(
+                    local.get("hooks", {}), defaults.get("hooks", {}), scripts, home)
             # The repository owns Claude deny rules: fill_missing keeps local arrays,
             # so an obsolete or corrected rule would otherwise never leave a machine.
             deny = defaults.get("permissions", {}).get("deny") if source_name == "claude" else None
@@ -261,23 +343,32 @@ def plan_target(home, repo, source_name, target_name):
         print(f"SKIP: {source_name} (source missing; deployed files preserved)")
         return [], None
     files = [path for path in source_files(source)
-             if source_name != "codex" or path.relative_to(source).parts[0] != "skills"]
+             if (source_name != "codex" or path.relative_to(source).parts[0] != "skills")
+             and (source_name, path.relative_to(source).as_posix()) not in VIBEMON_FILES]
     if not files:
         print(f"SKIP: {source_name} (source empty; deployed files preserved)")
         return [], None
     destination = home / target_name
     manifest = home / ".toast" / ("vibe_manifest_" + source_name.replace("/", "_"))
     regular_path(manifest, home)
-    changes, names = [], set()
+    previous = set(manifest.read_text().splitlines()) if manifest.exists() else set()
+    for relative in previous:
+        parts = PurePosixPath(relative).parts
+        if not parts or PurePosixPath(relative).is_absolute() or ".." in parts or "\\" in relative:
+            raise ValueError(f"Invalid managed path in {manifest}")
+    names = {path.relative_to(source).as_posix() for path in files}
+    scripts = {str(destination / relative) for relative in names | previous
+               if relative.startswith("hooks/") and relative.endswith((".sh", ".py", ".js"))
+               and (source_name, relative) not in VIBEMON_FILES}
+    changes = []
     for path in files:
         relative = path.relative_to(source).as_posix()
         if "\n" in relative or "\r" in relative or "\\" in relative:
             raise ValueError(f"Filename cannot be represented in a manifest: {source_name}")
-        names.add(relative)
         target = destination / relative
         regular_path(target, home)
         regular_path(target.with_name(target.name + ".backup"), home)
-        content = file_content(path, target, source_name, relative)
+        content = file_content(path, target, source_name, relative, scripts, home)
         executable = path.stat().st_mode & 0o100
         mode = (stat.S_IMODE(target.stat().st_mode) if target.exists() else 0o600) | executable
         if (target.exists() and stat.S_IMODE(target.stat().st_mode) == mode
@@ -285,10 +376,11 @@ def plan_target(home, repo, source_name, target_name):
             continue
         changes.append((target, content, mode))
     if manifest.exists():
-        for relative in sorted(set(manifest.read_text().splitlines()) - names):
-            parts = PurePosixPath(relative).parts
-            if not parts or PurePosixPath(relative).is_absolute() or ".." in parts or "\\" in relative:
-                raise ValueError(f"Invalid managed path in {manifest}")
+        for relative in sorted(previous - names):
+            if ((source_name, relative) in VIBEMON_FILES
+                    or (source_name, relative) in JSON_SETTINGS
+                    or (source_name == "codex" and relative == "config.toml")):
+                continue
             target = destination / relative
             regular_path(target, home)
             regular_path(target.with_name(target.name + ".backup"), home)
