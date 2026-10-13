@@ -112,10 +112,104 @@ class DeploymentTests(unittest.TestCase):
         self.sync()
 
     def test_json_preserves_existing_values(self):
-        self.put(".dotfiles/claude/settings.json", '{"env":{"NEW":"yes"},"hooks":{"SessionStart":[1]},"flag":true}\n')
-        target = self.put(".claude/settings.json", '{"env":{"CUSTOM":"local"},"hooks":{"SessionStart":[]},"flag":false}\n')
+        self.put(".dotfiles/claude/settings.json", '{"env":{"NEW":"yes"},"list":[1],"flag":true}\n')
+        target = self.put(".claude/settings.json", '{"env":{"CUSTOM":"local"},"list":[],"flag":false}\n')
         self.sync()
-        self.assertEqual(json.loads(target.read_text()), {"env":{"NEW":"yes","CUSTOM":"local"},"hooks":{"SessionStart":[]},"flag":False})
+        self.assertEqual(json.loads(target.read_text()), {"env":{"NEW":"yes","CUSTOM":"local"},"list":[],"flag":False})
+
+    def machine_hook(self, command="bash ~/.claude/hooks/memory-sync.sh start", timeout=5):
+        return {"type": "command", "command": command, "timeout": timeout}
+
+    def configure_machine_hooks(self):
+        self.put(".dotfiles/claude/hooks/memory-sync.sh", "#!/bin/bash\nexit 0\n")
+        desired = {"hooks": [self.machine_hook()]}
+        self.put(".dotfiles/claude/settings.json", json.dumps({"hooks": {"SessionStart": [desired]}}))
+        return desired
+
+    def test_machine_hooks_join_existing_vibemon_event(self):
+        desired = self.configure_machine_hooks()
+        foreign = {"matcher": "startup|resume|clear", "hooks": [
+            {"type": "command", "command": "python3 ~/.claude/hooks/vibemon.py", "async": True}]}
+        target = self.put(".claude/settings.json", json.dumps({"hooks": {"SessionStart": [foreign]}}))
+        self.sync()
+        self.assertEqual(json.loads(target.read_text())["hooks"]["SessionStart"], [foreign, desired])
+        first = target.read_bytes(), target.stat().st_mtime_ns
+        self.sync()
+        self.assertEqual((target.read_bytes(), target.stat().st_mtime_ns), first)
+
+    def test_machine_hooks_refresh_only_owned_script_across_matchers_and_events(self):
+        desired = self.configure_machine_hooks()
+        foreign = {"type": "command", "command": "python3 ~/.claude/hooks/vibemon.py"}
+        other_path = self.machine_hook("bash /another/memory-sync.sh start")
+        mention = self.machine_hook("echo ~/.claude/hooks/memory-sync.sh")
+        stale = self.machine_hook('bash "${HOME}/.claude/hooks/memory-sync.sh" old', 99)
+        target = self.put(".claude/settings.json", json.dumps({"hooks": {
+            "SessionStart": [{"matcher": "startup", "hooks": [foreign, stale, other_path, mention]}],
+            "Stop": [{"hooks": [stale]}]}}))
+        self.sync()
+        self.assertEqual(json.loads(target.read_text())["hooks"], {"SessionStart": [
+            {"matcher": "startup", "hooks": [foreign, other_path, mention]}, desired]})
+
+    def test_exec_form_kiro_hooks_preserve_foreign_args(self):
+        self.put(".dotfiles/kiro/hooks/machine.py", "pass\n")
+        desired = {"command": "python3", "args": ["~/.kiro/hooks/machine.py", "new"]}
+        foreign = {"command": "python3", "args": ["~/.kiro/hooks/vibemon.py", "stop"]}
+        stale = {"command": "python3", "args": [str(self.home / ".kiro/hooks/machine.py"), "old"]}
+        self.put(".dotfiles/kiro/agents/default.json", json.dumps({"hooks": {"stop": [desired]}}))
+        target = self.put(".kiro/agents/default.json", json.dumps({"hooks": {"stop": [foreign, stale]}}))
+        self.sync()
+        self.assertEqual(json.loads(target.read_text())["hooks"]["stop"], [foreign, desired])
+
+    def test_machine_hooks_are_registered_in_empty_event(self):
+        desired = self.configure_machine_hooks()
+        target = self.put(".claude/settings.json", '{"hooks":{"SessionStart":[]}}')
+        self.sync()
+        self.assertEqual(json.loads(target.read_text())["hooks"]["SessionStart"], [desired])
+
+    def test_removed_machine_script_registration_is_pruned_with_file(self):
+        self.configure_machine_hooks()
+        self.sync()
+        (self.repo / "claude/hooks/memory-sync.sh").unlink()
+        self.put(".dotfiles/claude/settings.json", '{"hooks": {}}')
+        self.sync()
+        self.assertEqual(json.loads((self.home / ".claude/settings.json").read_text())["hooks"], {})
+        self.assertFalse((self.home / ".claude/hooks/memory-sync.sh").exists())
+
+    def test_vibemon_files_are_released_without_overwrite_or_prune(self):
+        for tool, relative in (("claude", "statusline.py"), ("claude", "hooks/vibemon.py"),
+                               ("codex", "hooks/vibemon.py"), ("kiro", "hooks/vibemon.py"),
+                               ("kiro", "hooks/vibemon.json")):
+            self.put(f".{tool}/{relative}", "current VibeMon payload\n")
+            self.put(f".dotfiles/{tool}/{relative}", "obsolete copy\n")
+            manifest = self.home / f".toast/vibe_manifest_{tool}"
+            manifest.parent.mkdir(exist_ok=True)
+            with manifest.open("a") as stream:
+                stream.write(relative + "\n")
+        self.sync()
+        for tool in ("claude", "codex", "kiro"):
+            self.assertNotIn("vibemon", (self.home / f".toast/vibe_manifest_{tool}").read_text())
+            path = self.home / f".{tool}/hooks/vibemon.py"
+            self.assertEqual(path.read_text(), "current VibeMon payload\n")
+            self.assertFalse(path.with_suffix(".py.backup").exists())
+            (self.repo / tool / "hooks/vibemon.py").unlink()
+        self.sync()
+        self.assertEqual((self.home / ".claude/statusline.py").read_text(), "current VibeMon payload\n")
+
+    def test_removed_shared_config_is_released_without_deleting_foreign_settings(self):
+        self.sync()
+        path = self.put(".codex/hooks.json", '{"hooks":{"Stop":[{"hooks":[{"command":"romty hook codex"}]}]}}')
+        original = path.read_bytes()
+        (self.repo / "codex/hooks.json").unlink()
+        self.sync()
+        self.assertEqual(path.read_bytes(), original)
+        self.assertNotIn("hooks.json", (self.home / ".toast/vibe_manifest_codex").read_text())
+
+    def test_malformed_hook_map_fails_without_writes(self):
+        self.configure_machine_hooks()
+        target = self.put(".claude/settings.json", '{"hooks":{"SessionStart":false}}')
+        self.sync(ok=False)
+        self.assertEqual(target.read_text(), '{"hooks":{"SessionStart":false}}')
+        self.assertFalse((self.home / ".claude/hooks/memory-sync.sh").exists())
 
     def test_claude_deny_rules_follow_repository(self):
         self.put(".dotfiles/claude/settings.json", '{"permissions":{"allow":["WebFetch"],"deny":["Bash(sh)"]}}\n')

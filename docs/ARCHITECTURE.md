@@ -107,7 +107,9 @@ The startup-sound setting requests sudo only when it needs to change. Screen-loc
 
 The Python sync process acquires a lock, validates source paths and all merge results, then applies changes. It backs up changed or removed managed files and replaces each written file atomically. It updates target manifests after all file operations succeed.
 
-Codex approval and sandbox selection follow the repository when its config declares `default_permissions`. Other existing JSON/TOML values and local Codex rules outside the managed block are preserved. A manifest lists previously deployed files; pruning affects only those files. Unmanaged files remain in place. Missing or empty source directories preserve the corresponding deployed files and manifest.
+Codex approval and sandbox selection follow the repository when its config declares `default_permissions`. Hook registrations that invoke dotfiles-owned scripts are refreshed individually; other hooks under the same event retain their commands and matchers. Removed machine scripts also lose their registrations. Other existing JSON/TOML values and local Codex rules outside the managed block are preserved.
+
+A manifest lists previously deployed files; pruning affects only those files. VibeMon scripts belong to its installer: legacy entries are released without copying or deleting those files. Shared settings files are also preserved when their source disappears. Unmanaged files remain in place. Missing or empty source directories preserve the corresponding deployed files and manifest. Generic Codex terminal defaults belong to dotfiles; VibeMon does not edit `config.toml`.
 
 A write failure can leave earlier files updated. There is no transaction across all files and manifests. Fix the reported cause and rerun the sync. See [preservation and failure handling](../README.md#기존-설정-보존과-실패-처리).
 

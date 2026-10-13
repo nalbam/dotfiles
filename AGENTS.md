@@ -63,6 +63,8 @@ The root `AGENTS.md` guides work on this repository. `codex/AGENTS.md` is the gl
 
 Auto-memory sync belongs to Claude Code: see `claude/hooks/memory-sync.sh` and its registration in `claude/settings.json`. Do not treat these as Codex hooks or transcript sync.
 
+Hook ownership follows deployed script paths, not whole event arrays. Sync refreshes dotfiles-owned hook registrations while preserving VibeMon, romty, and user hooks. VibeMon scripts and Claude `statusline.py` belong to the VibeMon installer; old manifest entries must be released without deleting those files. Shared settings files must never be pruned wholesale. Generic Codex `tui.status_line` defaults belong here and preserve existing machine choices.
+
 **`codex/skills/*/SKILL.md` and mirrored Markdown references are generated — do not edit directly.** `claude/skills/` is the single source; regenerate with `python3 scripts/gen-codex-skills.py` (verify with `--check`). Codex-only files like `agents/openai.yaml` are hand-maintained and preserved by the generator. Tool-specific instructions must be adapted by the generator, not copied into the other tool's workflow.
 
 For Codex instruction changes:

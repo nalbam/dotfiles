@@ -23,6 +23,16 @@ local_thread_store_compression = true
 generate_memories = true
 use_memories = true
 
+# Terminal display defaults; existing machine choices are preserved.
+[tui]
+status_line = [
+  "model-with-reasoning",
+  "current-dir",
+  "git-branch",
+  "context-used",
+  "context-window-size",
+]
+
 # Optional workspace profile; select with default_permissions = "git-write".
 [permissions.git-write]
 extends = ":workspace"

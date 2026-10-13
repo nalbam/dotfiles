@@ -138,7 +138,7 @@ Claude Code·Codex·Kiro의 공통 지침과 설정을 저장소에서 관리하
 | `claude/skills/` → `codex/skills/` | `~/.agents/skills/` | Claude 원본에서 생성한 Codex 스킬·참조 문서 |
 | `codex/skills/*/agents/openai.yaml` | 해당 배포 스킬의 `agents/openai.yaml` | 직접 관리하는 Codex 메타데이터 |
 | `codex/config.toml` | `~/.codex/config.toml` | 승인·권한 선택은 원본 우선, 나머지는 없는 키만 추가 |
-| `codex/hooks.json` | `~/.codex/hooks.json` | 없는 키만 추가하고 기존 값 유지 |
+| `codex/hooks.json` | `~/.codex/hooks.json` | dotfiles 소유 훅만 갱신하고 다른 훅 유지 |
 | `codex/rules/default.rules` | `~/.codex/rules/default.rules` | 관리 마커 내부만 갱신하고 로컬 규칙 유지 |
 | `claude/`, `kiro/` | `~/.claude/`, `~/.kiro/` | 각 도구의 지침·설정 |
 
@@ -188,7 +188,18 @@ Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저�
 
 Claude `settings.json`의 `permissions.deny`도 원본에 있으면 저장소 목록으로 교체한다. 머신에서 직접 추가한 deny 규칙은 다음 동기화 때 `.backup`에만 남으므로, 유지할 규칙은 `claude/settings.json`에 추가한다. 셸 연산자(`|`, `&&`)로 이은 명령은 부분 명령별로 검사되므로 deny 규칙은 부분 명령 하나를 기준으로 쓴다.
 
-나머지 Codex TOML 설정·hooks, Claude `settings.json`의 다른 키, Kiro `agents/default.json`은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 기존 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다.
+Claude·Codex·Kiro의 훅은 이벤트 전체가 아니라 실행 스크립트별로 관리한다. dotfiles가 배포하는 `hooks/` 스크립트의 등록만 원본에 맞춰 갱신한다. 같은 이벤트의 VibeMon·romty·사용자 훅과 matcher는 보존한다. 이벤트 배열이 이미 있거나 비어 있어도 머신에 필요한 훅을 추가하며, 재실행해도 중복 등록하지 않는다. 원본에서 제거한 머신 스크립트는 기존 manifest를 기준으로 훅 등록도 정리한다.
+
+VibeMon 전송·사용량 스크립트와 전용 훅, Claude `statusline.py`는 VibeMon 설치기가 관리한다. dotfiles는 이를 복사하거나 삭제하지 않으며, 과거 manifest에 남은 경로는 파일을 보존하고 목록에서만 제외한다. 공유 JSON 설정과 Codex `config.toml`도 원본에서 빠졌다는 이유로 파일 전체를 삭제하지 않는다. Codex의 일반 `tui.status_line` 기본값은 dotfiles에서 관리하고 기존 머신의 선택은 보존한다.
+
+그 외 Codex TOML, Claude `settings.json`, Kiro `agents/default.json` 설정은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 일반 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다.
+
+VibeMon 저장소가 있으면 두 실제 설치기의 실행 순서·재설치·제거를 임시 홈에서 검증할 수 있다. 이 검사는 네트워크나 실제 머신 설정을 사용하지 않는다.
+
+```bash
+DOTFILES_VIBEMON_INSTALLER=/path/to/vibemon-app/public/install/install.py \
+  python3 scripts/test_vibemon_integration.py
+```
 
 [`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과를 확인한 뒤 배포한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
 
