@@ -57,6 +57,8 @@ Edit repository sources, not deployed copies. `run.sh --vibe` reads from `~/.dot
 
 When the source Codex config selects `default_permissions`, sync owns approval and sandbox selection (`approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`). These keys follow the repository, including removal of obsolete selectors. Other local settings keep their existing values.
 
+Sync also owns `permissions.deny` in `claude/settings.json`: the deployed list is replaced with the repository list. Claude Code checks each subcommand of a compound command separately, so write a deny rule for one subcommand; a rule that contains `|` never matches. A rule that mixes `*` with a trailing `:*` is a literal prefix and also never matches.
+
 The root `AGENTS.md` guides work on this repository. `codex/AGENTS.md` is the global template deployed to `~/.codex/AGENTS.md`; keep it independent of machine paths and project-specific commands.
 
 Auto-memory sync belongs to Claude Code: see `claude/hooks/memory-sync.sh` and its registration in `claude/settings.json`. Do not treat these as Codex hooks or transcript sync.
