@@ -5,7 +5,7 @@ description: Evaluate CodeRabbit PR comments, fix valid issues, and resolve thre
 
 # Resolve CodeRabbit Reviews
 
-미해결 CodeRabbit 리뷰를 현재 코드와 대조해 처리한다. 이 호출은 유효한 수정의 검증·원격 반영·thread resolve를 포함하며 Git 작업은 AGENTS.md 의 Git Safety를 따른다. 요청하지 않은 답글·리뷰 메시지는 게시하지 않는다.
+미해결 CodeRabbit 리뷰를 현재 코드와 대조해 처리한다. 이 호출은 유효한 수정의 검증·원격 반영·thread resolve를 포함하며 Git 작업은 AGENTS.md의 Git Workflow를 따른다. 요청하지 않은 답글·리뷰 메시지는 게시하지 않는다.
 
 ## 대상과 조회
 

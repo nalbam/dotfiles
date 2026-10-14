@@ -5,7 +5,7 @@ description: Create git commit and push to remote. 커밋 생성 후 리모트�
 
 # Commit and Push
 
-요청 범위의 변경을 커밋하고 원격에 푸시한다. 커밋은 `skills/commit/SKILL.md`, Git 권한과 안전은 AGENTS.md 의 Git Safety를 따른다.
+요청 범위의 변경을 커밋하고 원격에 푸시한다. 커밋은 `skills/commit/SKILL.md`, Git 권한과 안전은 AGENTS.md의 Git Workflow를 따른다.
 
 ## Workflow
 
