@@ -159,11 +159,10 @@ python3 scripts/gen-codex-skills.py
 python3 scripts/gen-codex-skills.py --check
 python3 scripts/test_ai_tools.py
 bash -n run.sh
-bash -n claude/hooks/memory-sync.sh
 git diff --check
 ```
 
-`--check`는 생성 파일의 내용과 오래된 잔여 파일을 검사한다. 테스트는 임시 홈과 가짜 Git 명령을 사용하며 실제 설정 배포나 원격 push를 하지 않는다. macOS 설치 단계를 변경했다면 `python3 scripts/test_macos.py`와 `bash -n macos`도 실행한다.
+`--check`는 생성 파일의 내용과 오래된 잔여 파일을 검사한다. 테스트는 임시 홈을 사용하며 실제 설정 배포나 원격 push를 하지 않는다. macOS 설치 단계를 변경했다면 `python3 scripts/test_macos.py`와 `bash -n macos`도 실행한다.
 
 설치기·셸·플랫폼 설정을 함께 변경했다면 `python3 -m unittest discover -s scripts -p 'test_*.py'`로 전체 회귀 검사를 실행한다. 서버 검사는 임시 로컬 HTTP 서버도 실행한다. PowerShell이 없는 환경에서는 Windows 검사만 건너뛰며, 실제 OS 설정 적용과 패키지 설치는 별도 검증이 필요하다.
 
@@ -205,9 +204,7 @@ DOTFILES_VIBEMON_INSTALLER=/path/to/vibemon-app/public/install/install.py \
 
 파일 배포 중 I/O 오류가 나면 일부 파일이 이미 반영되었을 수 있다. 실패한 쓰기는 원본을 보존하며, 모든 파일 배포가 성공해야 대상별 manifest를 갱신한다. 오류를 해결한 뒤 재실행한다. 생성기는 원본에서 삭제된 Markdown을 미러에서 정리하고, 수동 관리하는 `agents/openai.yaml`은 보존한다.
 
-### Claude 메모리와 지침 로딩
-
-[`claude/hooks/memory-sync.sh`](claude/hooks/memory-sync.sh)는 별도의 개인 메모리 저장소를 동기화한다. Python 표준 라이브러리의 파일 잠금으로 최초 clone·프로젝트 연결·Git 작업을 직렬화한다. 세션 훅은 이 작업을 백그라운드에서 실행하므로 완료 후 메모리 링크를 사용할 수 있다. Git 단계가 실패하면 후속 push를 중단한다. 네트워크 오류는 다음 실행에서 재시도하며, 남아 있는 rebase·merge 충돌은 메모리 저장소에서 해결한다. 이 훅의 자동 커밋·push는 메모리 저장소에 한정된다.
+### 지침 로딩
 
 설치기는 Codex 설정을 `~/.codex`에 배포한다. 별도 `CODEX_HOME`이나 `AGENTS.override.md`를 사용하면 실제 로딩 위치를 확인하고 새 세션에서 지침을 확인한다. [공식 지침 로딩 규칙](https://learn.chatgpt.com/docs/agent-configuration/agents-md)을 참고한다.
 

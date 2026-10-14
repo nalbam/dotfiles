@@ -60,10 +60,9 @@ class InstallerCoexistenceTests(unittest.TestCase):
                             commands = [hook["command"] for entry in settings["hooks"].get(event, [])
                                         for hook in entry["hooks"]]
                             self.assertEqual(sum("vibemon.py" in c for c in commands), int(installed))
-                            self.assertEqual(sum("memory-sync.sh" in c for c in commands), int(tool == "claude"))
+                            self.assertFalse(any("memory-sync.sh" in c for c in commands))
                     self.assertEqual((home / ".kiro/hooks/vibemon.json").exists(), installed)
-                    self.assertEqual((home / ".claude/hooks/memory-sync.sh").read_bytes(),
-                                     (repo / "claude/hooks/memory-sync.sh").read_bytes())
+                    self.assertFalse((home / ".claude/hooks/memory-sync.sh").exists())
 
                 for kind in order:
                     run(kind)

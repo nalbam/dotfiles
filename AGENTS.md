@@ -61,8 +61,6 @@ Sync also owns `permissions.deny` in `claude/settings.json`: the deployed list i
 
 The root `AGENTS.md` guides work on this repository. `codex/AGENTS.md` is the global template deployed to `~/.codex/AGENTS.md`; keep it independent of machine paths and project-specific commands.
 
-Auto-memory sync belongs to Claude Code: see `claude/hooks/memory-sync.sh` and its registration in `claude/settings.json`. Do not treat these as Codex hooks or transcript sync.
-
 Hook ownership follows deployed script paths, not whole event arrays. Sync refreshes dotfiles-owned hook registrations while preserving VibeMon, romty, and user hooks. VibeMon scripts and Claude `statusline.py` belong to the VibeMon installer; old manifest entries must be released without deleting those files. Shared settings files must never be pruned wholesale. Generic Codex `tui.status_line` defaults belong here and preserve existing machine choices.
 
 **`codex/skills/*/SKILL.md` and mirrored Markdown references are generated — do not edit directly.** `claude/skills/` is the single source; regenerate with `python3 scripts/gen-codex-skills.py` (verify with `--check`). Codex-only files like `agents/openai.yaml` are hand-maintained and preserved by the generator. Tool-specific instructions must be adapted by the generator, not copied into the other tool's workflow.
@@ -71,7 +69,7 @@ For Codex instruction changes:
 
 1. Edit global instructions in `codex/AGENTS.md`, shared skills in `claude/skills/`, and Codex configuration in `codex/`.
 2. Regenerate changed skills and run `python3 scripts/gen-codex-skills.py --check`.
-3. Run `python3 scripts/test_ai_tools.py`, `bash -n run.sh`, `bash -n claude/hooks/memory-sync.sh`, and `git diff --check`. Tests use temporary homes and fake Git commands; no live deployment or remote push is required. Check referenced paths, instruction sections, and tool compatibility.
+3. Run `python3 scripts/test_ai_tools.py`, `bash -n run.sh`, and `git diff --check`. Tests use temporary homes; no live deployment or remote push is required. Check referenced paths, instruction sections, and tool compatibility.
 4. Deploy using the README procedure when deployment is in scope. Do not run the installer merely to validate documentation.
 
 For installer, shell, or platform changes, run `python3 -m unittest discover -s scripts -p 'test_*.py'` and syntax checks for the changed shell files. Report skipped platform runtimes separately from passing tests.

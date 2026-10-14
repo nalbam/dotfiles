@@ -7,11 +7,9 @@ import re
 import runpy
 from pathlib import Path
 import shutil
-import signal
 import subprocess
 import sys
 import tempfile
-import time
 import tomllib
 import unittest
 
@@ -117,11 +115,11 @@ class DeploymentTests(unittest.TestCase):
         self.sync()
         self.assertEqual(json.loads(target.read_text()), {"env":{"NEW":"yes","CUSTOM":"local"},"list":[],"flag":False})
 
-    def machine_hook(self, command="bash ~/.claude/hooks/memory-sync.sh start", timeout=5):
+    def machine_hook(self, command="bash ~/.claude/hooks/machine.sh start", timeout=5):
         return {"type": "command", "command": command, "timeout": timeout}
 
     def configure_machine_hooks(self):
-        self.put(".dotfiles/claude/hooks/memory-sync.sh", "#!/bin/bash\nexit 0\n")
+        self.put(".dotfiles/claude/hooks/machine.sh", "#!/bin/bash\nexit 0\n")
         desired = {"hooks": [self.machine_hook()]}
         self.put(".dotfiles/claude/settings.json", json.dumps({"hooks": {"SessionStart": [desired]}}))
         return desired
@@ -140,9 +138,9 @@ class DeploymentTests(unittest.TestCase):
     def test_machine_hooks_refresh_only_owned_script_across_matchers_and_events(self):
         desired = self.configure_machine_hooks()
         foreign = {"type": "command", "command": "python3 ~/.claude/hooks/vibemon.py"}
-        other_path = self.machine_hook("bash /another/memory-sync.sh start")
-        mention = self.machine_hook("echo ~/.claude/hooks/memory-sync.sh")
-        stale = self.machine_hook('bash "${HOME}/.claude/hooks/memory-sync.sh" old', 99)
+        other_path = self.machine_hook("bash /another/machine.sh start")
+        mention = self.machine_hook("echo ~/.claude/hooks/machine.sh")
+        stale = self.machine_hook('bash "${HOME}/.claude/hooks/machine.sh" old', 99)
         target = self.put(".claude/settings.json", json.dumps({"hooks": {
             "SessionStart": [{"matcher": "startup", "hooks": [foreign, stale, other_path, mention]}],
             "Stop": [{"hooks": [stale]}]}}))
@@ -169,11 +167,46 @@ class DeploymentTests(unittest.TestCase):
     def test_removed_machine_script_registration_is_pruned_with_file(self):
         self.configure_machine_hooks()
         self.sync()
-        (self.repo / "claude/hooks/memory-sync.sh").unlink()
+        (self.repo / "claude/hooks/machine.sh").unlink()
         self.put(".dotfiles/claude/settings.json", '{"hooks": {}}')
         self.sync()
         self.assertEqual(json.loads((self.home / ".claude/settings.json").read_text())["hooks"], {})
-        self.assertFalse((self.home / ".claude/hooks/memory-sync.sh").exists())
+        self.assertFalse((self.home / ".claude/hooks/machine.sh").exists())
+
+    def test_memory_sync_removal_preserves_other_hooks_and_memory(self):
+        self.put(".dotfiles/claude/settings.json", (ROOT / "claude/settings.json").read_text())
+        script = self.put(".claude/hooks/memory-sync.sh", "#!/bin/bash\nexit 0\n")
+        manifest = self.put(".toast/vibe_manifest_claude", "hooks/memory-sync.sh\nsettings.json\n")
+        foreign = {"type": "command", "command": "python3 ~/.claude/hooks/vibemon.py"}
+        custom = {"type": "command", "command": "romty hook claude"}
+        target = self.put(".claude/settings.json", json.dumps({"custom": False, "hooks": {
+            "SessionStart": [{"matcher": "startup", "hooks": [foreign,
+                self.machine_hook('bash "${HOME}/.claude/hooks/memory-sync.sh" start')]}],
+            "SessionEnd": [{"hooks": [self.machine_hook("bash ~/.claude/hooks/memory-sync.sh end")]}],
+            "Stop": [{"hooks": [custom]}]}}))
+        memory = self.put(".claude-memory/workspace/project/MEMORY.md", "existing memory\n")
+        link = self.home / ".claude/projects/project/memory"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(memory.parent, target_is_directory=True)
+
+        self.sync()
+
+        settings = json.loads(target.read_text())
+        self.assertFalse(settings["custom"])
+        self.assertEqual(settings["hooks"], {
+            "SessionStart": [{"matcher": "startup", "hooks": [foreign]}],
+            "Stop": [{"hooks": [custom]}]})
+        self.assertFalse(script.exists())
+        backup = script.with_name(script.name + ".backup")
+        self.assertEqual(backup.read_text(), "#!/bin/bash\nexit 0\n")
+        self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("hooks/memory-sync.sh", manifest.read_text().splitlines())
+        self.assertTrue(link.is_symlink())
+        self.assertEqual((link / "MEMORY.md").read_text(), "existing memory\n")
+        first = target.read_bytes(), target.stat().st_mtime_ns
+        self.sync()
+        self.assertEqual((target.read_bytes(), target.stat().st_mtime_ns), first)
+        self.assertEqual(memory.read_text(), "existing memory\n")
 
     def test_vibemon_files_are_released_without_overwrite_or_prune(self):
         for tool, relative in (("claude", "statusline.py"), ("claude", "hooks/vibemon.py"),
@@ -209,7 +242,7 @@ class DeploymentTests(unittest.TestCase):
         target = self.put(".claude/settings.json", '{"hooks":{"SessionStart":false}}')
         self.sync(ok=False)
         self.assertEqual(target.read_text(), '{"hooks":{"SessionStart":false}}')
-        self.assertFalse((self.home / ".claude/hooks/memory-sync.sh").exists())
+        self.assertFalse((self.home / ".claude/hooks/machine.sh").exists())
 
     def test_claude_deny_rules_follow_repository(self):
         self.put(".dotfiles/claude/settings.json", '{"permissions":{"allow":["WebFetch"],"deny":["Bash(sh)"]}}\n')
@@ -504,194 +537,6 @@ class SkillReferenceTests(unittest.TestCase):
                 for target in references:
                     with self.subTest(source=source.relative_to(ROOT), target=target):
                         self.assertTrue(target.is_file(), f"Missing reference: {target}")
-
-
-class MemoryHookTests(unittest.TestCase):
-    def setUp(self):
-        self.temp = tempfile.TemporaryDirectory(prefix="dotfiles-memory-")
-        self.addCleanup(self.temp.cleanup)
-        self.home = Path(self.temp.name)
-        self.repo = self.home / ".claude-memory"
-        (self.repo / ".git").mkdir(parents=True)
-        self.bin = self.home / "bin"
-        self.bin.mkdir()
-        self.env = dict(os.environ, HOME=str(self.home), PATH=str(self.bin) + os.pathsep + os.environ["PATH"])
-        self.log = self.home / "git-calls"
-        self.hook = ROOT / "claude/hooks/memory-sync.sh"
-
-    def fake_git(self, body):
-        script = self.bin / "git"
-        script.write_text('#!/bin/bash\nprintf "%s\\n" "$*" >> "$HOME/git-calls"\n' + body)
-        script.chmod(0o700)
-
-    def invoke(self, *args):
-        return subprocess.run(["/bin/bash", str(self.hook), *args], env=self.env,
-                              capture_output=True, text=True, timeout=5)
-
-    def start(self, *args):
-        process = subprocess.Popen(["/bin/bash", str(self.hook), *args], env=self.env,
-                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                   text=True, start_new_session=True)
-        def cleanup():
-            try:
-                os.killpg(process.pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-            process.communicate(timeout=5)
-        self.addCleanup(cleanup)
-        return process
-
-    def wait_for(self, path):
-        deadline = time.monotonic() + 3
-        while not path.exists() and time.monotonic() < deadline:
-            time.sleep(0.01)
-        self.assertTrue(path.exists(), f"Timed out waiting for {path.name}")
-
-    def block_first_pull(self):
-        self.fake_git('''case "$*" in
-  *"pull --rebase"*)
-    if mkdir "$HOME/first-pull" 2>/dev/null; then
-      touch "$HOME/pull-blocked"
-      while [ ! -e "$HOME/release-pull" ]; do sleep 0.01; done
-    fi ;;
-esac
-exit 0
-''')
-        process = self.start("sync")
-        self.wait_for(self.home / "pull-blocked")
-        return process
-
-    def finish(self, process):
-        stdout, stderr = process.communicate(timeout=5)
-        self.assertEqual(process.returncode, 0, stdout + stderr)
-
-    def test_failed_pull_does_not_push(self):
-        self.fake_git('case "$*" in *"pull --rebase"*) exit 1;; esac\nexit 0\n')
-        self.assertNotEqual(self.invoke("sync").returncode, 0)
-        self.assertNotIn("push", self.log.read_text())
-        self.assertFalse((self.repo / ".sync.lock").exists())
-        self.assertIn("exclude", self.log.read_text())
-        self.fake_git("exit 0\n")
-        self.assertEqual(self.invoke("sync").returncode, 0)
-
-    def test_active_sync_lock_does_not_expire(self):
-        first = self.block_first_pull()
-        for lock in (self.home / ".claude-memory.lock", self.repo / ".sync.lock"):
-            if lock.exists():
-                os.utime(lock, (time.time() - 601, time.time() - 601))
-        calls = self.log.read_text()
-        second = self.start("sync")
-        time.sleep(0.15)
-        self.assertIsNone(first.poll())
-        self.assertIsNone(second.poll())
-        self.assertEqual(self.log.read_text(), calls)
-        (self.home / "release-pull").touch()
-        self.finish(first)
-        self.finish(second)
-        self.assertEqual(self.log.read_text().count("push --quiet"), 2)
-
-    def test_link_waits_for_sync_before_migration(self):
-        first = self.block_first_pull()
-        project = self.home / "workspace/project"
-        project.mkdir(parents=True)
-        slug = re.sub(r"[^a-zA-Z0-9]", "-", str(project))
-        memory = self.home / ".claude/projects" / slug / "memory"
-        memory.mkdir(parents=True)
-        (memory / "MEMORY.md").write_text("project memory")
-        second = self.start("link", str(project))
-        time.sleep(0.15)
-        self.assertIsNone(second.poll())
-        self.assertFalse(memory.is_symlink())
-        self.assertFalse((self.repo / "workspace/project/MEMORY.md").exists())
-        (self.home / "release-pull").touch()
-        self.finish(first)
-        self.finish(second)
-        self.assertTrue(memory.is_symlink())
-        self.assertEqual((memory / "MEMORY.md").read_text(), "project memory")
-        self.assertTrue(memory.with_name("memory.backup").is_dir())
-
-    def test_first_clone_and_project_links_are_serialized(self):
-        shutil.rmtree(self.repo)
-        self.fake_git('''case "$*" in
-  clone*)
-    touch "$HOME/clone-blocked"
-    while [ ! -e "$HOME/release-clone" ]; do sleep 0.01; done
-    mkdir -p "$HOME/.claude-memory/.git" ;;
-esac
-exit 0
-''')
-        first = self.start("bootstrap", str(self.home / "workspace/one"))
-        self.wait_for(self.home / "clone-blocked")
-        second = self.start("bootstrap", str(self.home / "workspace/two"))
-        time.sleep(0.15)
-        self.assertIsNone(second.poll())
-        self.assertEqual(self.log.read_text().count("clone --quiet"), 1)
-        (self.home / "release-clone").touch()
-        self.finish(first)
-        self.finish(second)
-        for name in ("one", "two"):
-            project = self.home / "workspace" / name
-            slug = re.sub(r"[^a-zA-Z0-9]", "-", str(project))
-            self.assertTrue((self.home / ".claude/projects" / slug / "memory").is_symlink())
-        self.assertEqual(self.log.read_text().count("clone --quiet"), 1)
-
-    def test_terminated_worker_releases_lock(self):
-        first = self.block_first_pull()
-        os.killpg(first.pid, signal.SIGTERM)
-        first.communicate(timeout=5)
-        self.assertEqual(self.invoke("sync").returncode, 0)
-
-    def test_invalid_lock_file_fails_before_git(self):
-        (self.home / ".claude-memory.lock").mkdir()
-        self.fake_git("exit 0\n")
-        result = self.invoke("sync")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Memory sync failed", result.stderr)
-        self.assertFalse(self.log.exists())
-
-    def test_failed_stage_does_not_commit_or_pull(self):
-        self.fake_git('case "$*" in *" add "*) exit 1;; esac\nexit 0\n')
-        self.assertNotEqual(self.invoke("sync").returncode, 0)
-        self.assertNotIn("commit", self.log.read_text())
-        self.assertNotIn("pull", self.log.read_text())
-
-    def test_failed_diff_does_not_commit(self):
-        self.fake_git('case "$*" in *" diff "*) exit 128;; esac\nexit 0\n')
-        self.assertNotEqual(self.invoke("sync").returncode, 0)
-        self.assertNotIn("commit", self.log.read_text())
-        self.assertNotIn("pull", self.log.read_text())
-
-    def test_unfinished_rebase_is_not_committed(self):
-        self.fake_git("exit 0\n")
-        (self.repo / ".git/rebase-merge").mkdir()
-        self.assertNotEqual(self.invoke("sync").returncode, 0)
-        self.assertFalse(self.log.exists())
-        self.assertFalse((self.repo / ".sync.lock").exists())
-
-    def test_existing_migration_backup_is_preserved(self):
-        self.fake_git("exit 0\n")
-        project = self.home / "workspace/project"
-        project.mkdir(parents=True)
-        import re
-        slug = re.sub(r"[^a-zA-Z0-9]", "-", str(project))
-        memory = self.home / ".claude/projects" / slug / "memory"
-        memory.mkdir(parents=True)
-        (memory / "MEMORY.md").write_text("current memory")
-        old = memory.with_name("memory.backup")
-        old.mkdir()
-        (old / "MEMORY.md").write_text("previous backup")
-        self.assertNotEqual(self.invoke("link", str(project)).returncode, 0)
-        self.assertFalse(memory.is_symlink())
-        self.assertEqual((old / "MEMORY.md").read_text(), "previous backup")
-        self.assertEqual((memory / "MEMORY.md").read_text(), "current memory")
-
-    def test_start_does_not_wait_for_first_clone(self):
-        shutil.rmtree(self.repo)
-        self.fake_git('case "$*" in "clone "*) sleep 1; exit 1;; esac\nexit 0\n')
-        started = time.monotonic()
-        self.assertEqual(self.invoke("start").returncode, 0)
-        self.assertLess(time.monotonic() - started, 0.8)
-        time.sleep(1.1)
 
 
 if __name__ == "__main__":
