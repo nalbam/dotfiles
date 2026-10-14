@@ -119,8 +119,6 @@ Global instructions live in `claude/CLAUDE.md` and `codex/AGENTS.md`. They apply
 
 `claude/skills/` is the source for shared skills. `scripts/gen-codex-skills.py` adapts tool-specific instructions and mirrors Markdown to `codex/skills/`. It preserves manually maintained Codex metadata. Its `--check` mode reports mismatches and stale generated files.
 
-Claude's memory hook uses a separate private Git repository. An OS file lock serializes clone, project-memory migration, and Git synchronization. Session hooks launch this work in the background. A failed Git stage stops the following stages. This hook does not sync Codex transcripts or authorize commits in the current project.
-
 ## Failure diagnosis
 
 | Symptom | Check and next action |
@@ -140,7 +138,6 @@ Run the complete regression suite and generated-skill check from the repository 
 python3 scripts/gen-codex-skills.py --check
 python3 -m unittest discover -s scripts -p 'test_*.py'
 bash -n run.sh
-bash -n claude/hooks/memory-sync.sh
 git diff --check
 ```
 
