@@ -19,7 +19,8 @@ import tempfile
 import tomllib
 
 TARGETS = (("claude", ".claude"), ("codex", ".codex"),
-           ("codex/skills", ".agents/skills"), ("kiro", ".kiro"))
+           ("codex/skills", ".agents/skills"), ("kiro", ".kiro"),
+           ("opencode", ".config/opencode"))
 JSON_SETTINGS = {("claude", "settings.json"), ("codex", "hooks.json"),
                  ("kiro", "agents/default.json")}
 BEGIN = "# BEGIN dotfiles managed codex rules"

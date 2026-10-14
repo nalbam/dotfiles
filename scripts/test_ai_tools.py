@@ -384,12 +384,14 @@ status_line = [
 
 
     def test_real_repository_payload(self):
-        for name, _ in (("claude", ".claude"), ("codex", ".codex"), ("kiro", ".kiro")):
-            shutil.rmtree(self.repo / name)
+        for name, _ in (("claude", ".claude"), ("codex", ".codex"), ("kiro", ".kiro"), ("opencode", ".config/opencode")):
+            if (self.repo / name).exists():
+                shutil.rmtree(self.repo / name)
             shutil.copytree(ROOT / name, self.repo / name)
         self.sync()
         self.sync()
-        for source_name, destination in (("claude", ".claude"), ("codex", ".codex"), ("codex/skills", ".agents/skills")):
+        for source_name, destination in (("claude", ".claude"), ("codex", ".codex"), ("codex/skills", ".agents/skills"),
+                                         ("opencode", ".config/opencode")):
             for source in (self.repo / source_name).rglob("*.md"):
                 relative = source.relative_to(self.repo / source_name)
                 if source_name == "codex" and relative.parts[0] == "skills":
@@ -397,6 +399,20 @@ status_line = [
                 self.assertEqual(source.read_bytes(), (self.home / destination / relative).read_bytes())
         self.assertEqual(tomllib.loads((self.repo / "codex/config.toml").read_text()),
                          tomllib.loads((self.home / ".codex/config.toml").read_text()))
+
+    def test_opencode_sync_keeps_machine_config(self):
+        self.put(".dotfiles/opencode/AGENTS.md", "shared OpenCode instructions\n")
+        self.put(".dotfiles/opencode/agents/reviewer.md", "reviewer\n")
+        config = self.put(".config/opencode/opencode.jsonc", '{"providers": {"local": {"apiKey": "secret"}}}\n')
+        plugin = self.put(".config/opencode/plugins/vibemon.js", "plugin\n")
+        self.sync()
+        self.assertEqual((self.home / ".config/opencode/AGENTS.md").read_text(), "shared OpenCode instructions\n")
+        (self.repo / "opencode/agents/reviewer.md").unlink()
+        self.sync()
+        self.assertFalse((self.home / ".config/opencode/agents/reviewer.md").exists())
+        self.assertEqual(config.read_text(), '{"providers": {"local": {"apiKey": "secret"}}}\n')
+        self.assertEqual(plugin.read_text(), "plugin\n")
+        self.assertFalse(config.with_name("opencode.jsonc.backup").exists())
 
     def test_corrupt_manifest_cannot_escape_target(self):
         self.sync()
@@ -471,58 +487,99 @@ status_line = [
 
 class GeneratorTests(unittest.TestCase):
     def setUp(self):
-        self.module = runpy.run_path(str(ROOT / "scripts/gen-codex-skills.py"))
+        self.module = runpy.run_path(str(ROOT / "scripts/gen-ai-tools.py"))
 
     def test_multiline_frontmatter_is_removed(self):
         source = "---\nname: example\nallowed-tools:\n  - Read\n  - Bash\ndescription: example\n---\nbody\n"
         expected = "---\nname: example\ndescription: example\n---\nbody\n"
-        self.assertEqual(self.module["strip_claude_frontmatter"](source), expected)
+        self.assertEqual(self.module["strip_frontmatter"](source, ("allowed-tools",)), expected)
 
     def test_tool_specific_instructions_and_project_names(self):
         transform = self.module["transform"]
         source = "---\nname: sample\ndescription: sample\ndisable-model-invocation: true\n---\n"
-        source += "CLAUDE.md / AGENTS.md\n`rules/git-workflow.md`\n`/validate`\n"
+        source += "CLAUDE.md / AGENTS.md\n`rules/git-workflow.md`\n`/validate`\nskills/validate/SKILL.md\n"
         source += "PR 번호 인자: `$ARGUMENTS`\n"
-        result = transform(source)
-        self.assertNotIn("disable-model-invocation:", result)
-        self.assertNotIn("rules/git-workflow.md", result)
-        self.assertNotIn("$ARGUMENTS", result)
-        self.assertIn("CLAUDE.md / AGENTS.md", result)
-        self.assertIn("AGENTS.md 의 Git Safety", result)
-        self.assertIn("`$validate`", result)
+        codex = transform(source, self.module["CODEX"], ["validate"])
+        opencode = transform(source, self.module["OPENCODE_TOOL"], ["validate"])
+        self.assertNotIn("disable-model-invocation:", codex)
+        self.assertIn("disable-model-invocation: true", opencode)
+        for result, invocation in ((codex, "`$validate`"), (opencode, "`@validate`")):
+            self.assertNotIn("rules/git-workflow.md", result)
+            self.assertNotIn("$ARGUMENTS", result)
+            self.assertIn("CLAUDE.md / AGENTS.md", result)
+            self.assertIn("AGENTS.md 의 Git Safety", result)
+            self.assertIn(invocation, result)
+            self.assertIn("skills/validate/SKILL.md", result)
 
-    def test_committed_mirror_is_current(self):
+    def test_agent_tools_become_permission_allowlist(self):
+        with tempfile.TemporaryDirectory(prefix="dotfiles-agent-") as tmp:
+            agent = Path(tmp) / "reviewer.md"
+            agent.write_text("---\nname: reviewer\ndescription: Review; see /validate\ntools: Read, Bash\n---\n\nBody\n")
+            result = self.module["convert_agent"](agent, ["validate"])
+            self.assertTrue(result.startswith('---\ndescription: "Review; see @validate"\nmode: subagent\n'))
+            rules = re.findall(r'action: "([^"]+)", resource: "([^"]+)", effect: "(\w+)"', result)
+            self.assertEqual(rules[0], ("*", "*", "deny"))
+            self.assertIn(("shell", "*", "allow"), rules)
+            # The read allowance must not bypass the .env prompt.
+            self.assertLess(rules.index(("read", "*", "allow")), rules.index(("read", "*.env", "ask")))
+            self.assertNotIn(("edit", "*", "allow"), rules)
+            self.assertTrue(result.endswith("---\n\nBody\n"))
+            for frontmatter in ("name: other\ndescription: x\ntools: Read", "name: reviewer\ndescription: x\ntools: Task",
+                                "name: reviewer\ndescription: x\ntools: Read\nmodel: opus"):
+                agent.write_text(f"---\n{frontmatter}\n---\nBody\n")
+                with self.subTest(frontmatter=frontmatter), self.assertRaises(ValueError):
+                    self.module["convert_agent"](agent, [])
+
+    def test_committed_files_are_current(self):
         result = subprocess.run(
-            [sys.executable, str(ROOT / "scripts/gen-codex-skills.py"), "--check"],
+            [sys.executable, str(ROOT / "scripts/gen-ai-tools.py"), "--check"],
             capture_output=True, text=True,
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def test_stale_references_and_deleted_skills(self):
+    def test_stale_files_and_deleted_sources(self):
         with tempfile.TemporaryDirectory(prefix="dotfiles-generator-") as tmp:
             fixture = Path(tmp)
             shutil.copytree(ROOT / "scripts", fixture / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
-            shutil.copytree(ROOT / "claude/skills", fixture / "claude/skills")
-            shutil.copytree(ROOT / "codex/skills", fixture / "codex/skills")
-            command = [sys.executable, str(fixture / "scripts/gen-codex-skills.py")]
+            for name in ("claude/skills", "claude/agents", "codex/skills", "opencode"):
+                shutil.copytree(ROOT / name, fixture / name)
+            shutil.copy(ROOT / "codex/AGENTS.md", fixture / "codex/AGENTS.md")
+            command = [sys.executable, str(fixture / "scripts/gen-ai-tools.py")]
             metadata = {p: p.read_bytes() for p in (fixture / "codex/skills").rglob("*.yaml")}
-            stale = fixture / "codex/skills/nextjs-init/references/setup.md"
+            stale = [fixture / tool / "skills/nextjs-init/references/setup.md" for tool in ("codex", "opencode")]
             (fixture / "claude/skills/nextjs-init/references/setup.md").unlink()
             shutil.rmtree(fixture / "claude/skills/commit")
+            (fixture / "claude/agents/debugger.md").unlink()
             result = subprocess.run(command + ["--check"], capture_output=True, text=True)
             self.assertNotEqual(result.returncode, 0)
-            self.assertTrue(stale.exists())
+            self.assertTrue(all(path.exists() for path in stale))
             result = subprocess.run(command, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertFalse(stale.exists())
+            self.assertFalse(any(path.exists() for path in stale))
             self.assertFalse((fixture / "codex/skills/commit/SKILL.md").exists())
+            self.assertFalse((fixture / "opencode/skills/commit").exists())
+            self.assertFalse((fixture / "opencode/agents/debugger.md").exists())
             self.assertTrue(all(p.read_bytes() == data for p, data in metadata.items()))
             self.assertEqual(subprocess.run(command + ["--check"], capture_output=True).returncode, 0)
+
+    def test_changed_codex_instructions_fail_loudly(self):
+        with tempfile.TemporaryDirectory(prefix="dotfiles-generator-") as tmp:
+            fixture = Path(tmp)
+            shutil.copytree(ROOT / "scripts", fixture / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
+            for name in ("claude/skills", "claude/agents"):
+                shutil.copytree(ROOT / name, fixture / name)
+            (fixture / "codex").mkdir()
+            (fixture / "codex/AGENTS.md").write_text("# AGENTS.md\n")
+            result = subprocess.run([sys.executable, str(fixture / "scripts/gen-ai-tools.py")],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("codex/AGENTS.md no longer contains", result.stderr)
+            self.assertFalse((fixture / "opencode").exists())
 
 
 class SkillReferenceTests(unittest.TestCase):
     def test_referenced_files_exist(self):
-        for tool in ("claude", "codex"):
+        for tool in ("claude", "codex", "opencode"):
             root = ROOT / tool
             for source in root.rglob("*.md"):
                 body = source.read_text()

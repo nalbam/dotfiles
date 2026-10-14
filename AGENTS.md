@@ -51,7 +51,7 @@ Don't duplicate the alias list here — read `aliases` directly. When adding new
 - Keep functions small; prefer POSIX-compatible syntax so `bashrc` can source them too.
 - Preserve Korean keyboard aliases when refactoring.
 
-## AI tool settings (claude/, codex/, kiro/)
+## AI tool settings (claude/, codex/, opencode/, kiro/)
 
 Edit repository sources, not deployed copies. `run.sh --vibe` reads from `~/.dotfiles`, even when invoked from another checkout. See [AI Tools Sync](./README.md#ai-tools-sync) for targets, local-state exceptions, and deployment checks.
 
@@ -59,16 +59,16 @@ When the source Codex config selects `default_permissions`, sync owns approval a
 
 Sync also owns `permissions.deny` in `claude/settings.json`: the deployed list is replaced with the repository list. Claude Code checks each subcommand of a compound command separately, so write a deny rule for one subcommand; a rule that contains `|` never matches. A rule that mixes `*` with a trailing `:*` is a literal prefix and also never matches.
 
-The root `AGENTS.md` guides work on this repository. `codex/AGENTS.md` is the global template deployed to `~/.codex/AGENTS.md`; keep it independent of machine paths and project-specific commands.
+The root `AGENTS.md` guides work on this repository. `codex/AGENTS.md` is the global template deployed to `~/.codex/AGENTS.md` and, through `opencode/AGENTS.md`, to `~/.config/opencode/AGENTS.md`; keep it independent of machine paths and project-specific commands.
 
 Hook ownership follows deployed script paths, not whole event arrays. Sync refreshes dotfiles-owned hook registrations while preserving VibeMon, romty, and user hooks. VibeMon scripts and Claude `statusline.py` belong to the VibeMon installer; old manifest entries must be released without deleting those files. Shared settings files must never be pruned wholesale. Generic Codex `tui.status_line` defaults belong here and preserve existing machine choices.
 
-**`codex/skills/*/SKILL.md` and mirrored Markdown references are generated — do not edit directly.** `claude/skills/` is the single source; regenerate with `python3 scripts/gen-codex-skills.py` (verify with `--check`). Codex-only files like `agents/openai.yaml` are hand-maintained and preserved by the generator. Tool-specific instructions must be adapted by the generator, not copied into the other tool's workflow.
+**`codex/skills/` Markdown and everything under `opencode/` are generated — do not edit directly.** Sources: `claude/skills/` for skills, `claude/agents/` for OpenCode subagents, and `codex/AGENTS.md` for OpenCode global instructions. Regenerate with `python3 scripts/gen-ai-tools.py` (verify with `--check`). Codex-only files like `agents/openai.yaml` are hand-maintained and preserved by the generator. OpenCode V2 reads only `AGENTS.md` instructions and registers every root-level `*.md` in a skills directory as a skill, so keep skill directories free of guide files. Tool-specific instructions must be adapted by the generator, not copied into the other tool's workflow.
 
-For Codex instruction changes:
+For Codex and OpenCode instruction changes:
 
-1. Edit global instructions in `codex/AGENTS.md`, shared skills in `claude/skills/`, and Codex configuration in `codex/`.
-2. Regenerate changed skills and run `python3 scripts/gen-codex-skills.py --check`.
+1. Edit global instructions in `codex/AGENTS.md`, shared skills in `claude/skills/`, subagents in `claude/agents/`, and Codex configuration in `codex/`.
+2. Regenerate with `python3 scripts/gen-ai-tools.py` and run `python3 scripts/gen-ai-tools.py --check`.
 3. Run `python3 scripts/test_ai_tools.py`, `bash -n run.sh`, and `git diff --check`. Tests use temporary homes; no live deployment or remote push is required. Check referenced paths, instruction sections, and tool compatibility.
 4. Deploy using the README procedure when deployment is in scope. Do not run the installer merely to validate documentation.
 
