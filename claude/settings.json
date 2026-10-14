@@ -63,5 +63,36 @@
   "theme": "auto",
   "skillOverrides": {
     "find-skills": "off"
+  },
+  "autoMode": {
+    "environment": [
+      "### Org-wide",
+      "**Organization**: Personal workspace of one developer. GitHub accounts: `nalbam` (personal) and `opspresso` (org). Repositories live under `~/workspace/<host>/<owner>/<repo>`.",
+      "**Cloud provider(s)**: AWS (ECR, Amplify, EKS, S3) through the `aws` CLI; Kubernetes clusters managed with ArgoCD and Helm.",
+      "**Repository visibility**: Mixed. Check the remote before assuming — for example `nalbam/dotfiles` is public and most `opspresso` service repos are private. Treat an unchecked repo as possibly public.",
+      "**Internal sharing / snippet hosting**: None configured — treat public paste/gist services as outside the trust boundary",
+      "**Secrets management**: Local env files (`.env*`), `~/.aws`, `~/.ssh`, Kubernetes Secrets/ExternalSecrets, GitHub Actions secrets, and the 1Password CLI. Never print, commit, or send their values.",
+      "**Default / protected branches**: `main` in each repository. The user allows merge, release, and deploy without a separate prompt only after required checks and reviews pass; never bypass branch protection or required checks.",
+      "**CI/CD deploy targets**: GitHub Actions; AWS ECR images, AWS Amplify apps, GitHub Pages and releases; GitOps deploys through ArgoCD environment repos (`argocd-env-*`).",
+      "**Network posture**: None configured",
+      "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine or CI runner with open internet",
+      "**Source control**: github.com under `nalbam` and `opspresso`, plus `gitlab.clush.net` (internal mirror reachable only from the internal network). Other orgs are outside the trust boundary.",
+      "**Trusted internal domains**: `opspresso.com`, `agrt.dev`, and their subdomains (for example `memory.agrt.dev`, `studio.opspresso.com`).",
+      "**Trusted cloud buckets**: None configured",
+      "**Key internal services**: agent-memory, agent-studio, agent-forge, agent-librio, vibemon (app, web, collector)",
+      "**Internal package registry**: None configured",
+      "**Sensitive data locations & audiences**: `.env*` files, `~/.aws`, `~/.ssh`, kubeconfig files, Kubernetes Secret manifests, and Terraform state. Only the user may see their values.",
+      "**Data retention / declassification**: None configured",
+      "**Sensitive remote targets**: any cluster, namespace, host, or environment whose name carries `prod` or `production` as a whole word or name segment (for example `values-prod.yaml`, `versions-prod.json`).",
+      "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
+      "**Protected IaC scopes**: IAM, RBAC, networking (VPC), quota, and node-pool resources, and anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "### User-specific",
+      "**Primary use of Claude Code**: software development and DevOps (Kubernetes, Helm, ArgoCD, Terraform, AWS, GitHub Actions)",
+      "**Trusted repo**: The git repository the agent started in and its configured remote(s). When started in a workspace folder that holds several repositories, each repository under it with a `nalbam` or `opspresso` remote is trusted.",
+      "**Org-specific CLIs**: None configured"
+    ],
+    "soft_deny": [
+      "$defaults"
+    ]
   }
 }
