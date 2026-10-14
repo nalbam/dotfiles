@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Create Pull Request
 
-요청 범위의 PR을 생성한다. Git 권한은 AGENTS.md 의 Git Safety, 커밋·푸시가 필요하면 해당 스킬의 절차를 따른다. PR title/body의 공통 형식은 이 파일에서 관리한다.
+요청 범위의 PR을 생성한다. Git 권한은 AGENTS.md의 Git Workflow, 커밋·푸시가 필요하면 해당 스킬의 절차를 따른다. PR title/body의 공통 형식은 이 파일에서 관리한다.
 
 ## Workflow
 

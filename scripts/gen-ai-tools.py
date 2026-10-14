@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
-"""Generate Codex and OpenCode files from the shared sources.
+"""Generate Codex and OpenCode files from the Claude sources.
 
 Sources (edit these):
-    claude/skills/<name>/  shared skills and their Markdown references
-    claude/agents/*.md     Claude Code subagents
-    codex/AGENTS.md        global instructions
+    claude/CLAUDE.md, claude/rules/*.md  global instructions
+    claude/skills/<name>/                shared skills and their Markdown references
+    claude/agents/*.md                   subagents
+    claude/settings.json                 `permissions.deny` shell rules
 
 Generated (do not edit):
-    codex/skills/          Codex skills; hand-maintained agents/openai.yaml is kept
-    opencode/              OpenCode AGENTS.md, agents/, and skills/
+    codex/AGENTS.md, codex/skills/       Codex; hand-maintained agents/openai.yaml is kept
+    opencode/                            OpenCode AGENTS.md, opencode.json, agents/, skills/
 
 Each tool gets its own copy because tool-specific syntax differs: skill
-invocation (`/name`, `$name`, `@name`), the Git rules location, and the
-frontmatter fields each tool understands.
+invocation (`/name`, `$name`, `@name`), where the rules live, and the
+frontmatter fields and permission formats each tool understands.
 
 Usage:
     python3 scripts/gen-ai-tools.py          # regenerate
@@ -26,26 +27,21 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CLAUDE_SKILLS = REPO_ROOT / "claude" / "skills"
-CLAUDE_AGENTS = REPO_ROOT / "claude" / "agents"
-CODEX_INSTRUCTIONS = REPO_ROOT / "codex" / "AGENTS.md"
-CODEX_SKILLS = REPO_ROOT / "codex" / "skills"
+CLAUDE = REPO_ROOT / "claude"
+CODEX = REPO_ROOT / "codex"
 OPENCODE = REPO_ROOT / "opencode"
 
 # drop: frontmatter fields the tool does not understand.
 # invoke: prefix that replaces Claude's `/` in skill invocations.
-Tool = namedtuple("Tool", "drop replacements invoke")
-
-SHARED_REPLACEMENTS = (
-    ("`rules/git-workflow.md`", "AGENTS.md 의 Git Safety"),
-    ("PR 번호 인자: `$ARGUMENTS`", "PR 번호 인자: 사용자가 스킬 호출 시 함께 제공한 값"),
-)
-CODEX = Tool(("allowed-tools", "argument-hint", "disable-model-invocation"), SHARED_REPLACEMENTS, "$")
+Tool = namedtuple("Tool", "drop invoke")
+CODEX_TOOL = Tool(("allowed-tools", "argument-hint", "disable-model-invocation"), "$")
 # OpenCode V2 honors disable-model-invocation, so manual-only skills stay manual.
-OPENCODE_TOOL = Tool(("allowed-tools", "argument-hint"), SHARED_REPLACEMENTS, "@")
+OPENCODE_TOOL = Tool(("allowed-tools", "argument-hint"), "@")
 
-# Codex instructions name Codex invocation syntax; each entry must match.
-OPENCODE_INSTRUCTION_REPLACEMENTS = (("명시 호출은 `$<name>`을", "명시 호출은 `@<name>`을"),)
+# skills: skill names; rules: {rule file stem: rule title}.
+Sources = namedtuple("Sources", "skills rules")
+
+ARGUMENTS = ("PR 번호 인자: `$ARGUMENTS`", "PR 번호 인자: 사용자가 스킬 호출 시 함께 제공한 값")
 
 # Claude Code tool name -> OpenCode V2 permission action.
 AGENT_TOOL_ACTIONS = {
@@ -53,6 +49,8 @@ AGENT_TOOL_ACTIONS = {
     "Edit": "edit", "Write": "edit", "WebFetch": "webfetch", "WebSearch": "websearch",
 }
 AGENT_FIELDS = {"name", "description", "tools"}
+# OpenCode's default .env guard, which a later read allowance would override.
+ENV_GUARD = [("read", "*.env", "ask"), ("read", "*.env.*", "ask"), ("read", "*.env.example", "allow")]
 
 
 def split_frontmatter(text):
@@ -81,20 +79,81 @@ def strip_frontmatter(text, fields):
     return "\n".join(["---", *kept, "---", body])
 
 
-def translate(text, tool, skills):
-    for old, new in tool.replacements:
-        text = text.replace(old, new)
+def translate(text, tool, sources, rule_prefix="AGENTS.md의 "):
+    text = text.replace(*ARGUMENTS)
+
+    # Claude loads rules from separate files; the other tools get them as AGENTS.md sections.
+    def rule(match):
+        if match.group(1) not in sources.rules:
+            raise ValueError(f"Unknown rule reference: {match.group(0)}")
+        return rule_prefix + sources.rules[match.group(1)]
+
+    text = re.sub(r"`rules/([\w-]+)\.md`", rule, text)
     # `/name` invokes a skill only when it is not part of a path or word.
-    pattern = r"(?<![\w./-])/(" + "|".join(map(re.escape, skills)) + r")(?![\w-])"
+    pattern = r"(?<![\w./-])/(" + "|".join(map(re.escape, sources.skills)) + r")(?![\w-])"
     return re.sub(pattern, lambda match: tool.invoke + match.group(1), text)
 
 
-def transform(text, tool, skills):
-    return translate(strip_frontmatter(text, tool.drop), tool, skills)
+def transform(text, tool, sources):
+    return translate(strip_frontmatter(text, tool.drop), tool, sources)
 
 
-def agent_permissions(tools):
-    """Allowlist the agent's Claude tools; OpenCode applies the last matching rule."""
+def require_replace(text, old, new, source):
+    if old not in text:
+        raise ValueError(f"{source} no longer contains: {old}")
+    return text.replace(old, new)
+
+
+def instructions(tool, sources):
+    """Compose AGENTS.md from CLAUDE.md followed by the rules, in Claude's load order."""
+    source = "claude/CLAUDE.md"
+    text = (CLAUDE / "CLAUDE.md").read_text(encoding="utf-8")
+    text = require_replace(text, "# CLAUDE.md\n", "# AGENTS.md\n", source)
+    text = require_replace(text, " 언어·Git·보안 규칙은 자동 로드되는 `rules/`에서 관리한다.", "", source)
+    text = require_replace(text, "`/<name>` 호출은 제공된 Skill 도구로 실행한다.",
+                           f"명시 호출은 `{tool.invoke}<name>`을 사용한다.", source)
+    parts = [text.rstrip("\n")]
+    for path in sorted((CLAUDE / "rules").glob("*.md")):
+        # Each rule file becomes a second-level section.
+        rule = re.sub(r"^(#+ )", r"#\1", path.read_text(encoding="utf-8"), flags=re.MULTILINE)
+        parts.append(rule.rstrip("\n"))
+    # Inside AGENTS.md, a rule reference names its section only.
+    return translate("\n\n".join(parts) + "\n", tool, sources, rule_prefix="")
+
+
+def rule_title(path):
+    match = re.match(r"# (.+)\n", path.read_text(encoding="utf-8"))
+    if not match:
+        raise ValueError(f"{path.relative_to(REPO_ROOT)} must start with a '# ' title")
+    return match.group(1)
+
+
+def shell_denies():
+    """Translate Claude `Bash(...)` deny rules into OpenCode shell patterns."""
+    settings = json.loads((CLAUDE / "settings.json").read_text(encoding="utf-8"))
+    patterns = []
+    for entry in settings.get("permissions", {}).get("deny", []):
+        match = re.fullmatch(r"Bash\((.+)\)", entry)
+        if not match:
+            raise ValueError(f"claude/settings.json deny rule has no OpenCode equivalent: {entry}")
+        # Claude `cmd:*` is a prefix rule; an OpenCode pattern ending in ` *` also matches bare `cmd`.
+        pattern = match.group(1)
+        patterns.append(pattern[:-2] + " *" if pattern.endswith(":*") else pattern)
+    return patterns
+
+
+def opencode_config(denies):
+    rules = [{"action": "shell", "resource": pattern, "effect": "deny"} for pattern in denies]
+    return json.dumps({"$schema": "https://opencode.ai/config.json", "permissions": rules},
+                      ensure_ascii=False, indent=2) + "\n"
+
+
+def agent_permissions(tools, denies):
+    """Allowlist the agent's Claude tools.
+
+    OpenCode applies agent rules after global rules and uses the last match, so an
+    allowance overrides earlier guards for its action. Restate the guards after it.
+    """
     actions = []
     for name in tools:
         if name not in AGENT_TOOL_ACTIONS:
@@ -103,14 +162,14 @@ def agent_permissions(tools):
             actions.append(AGENT_TOOL_ACTIONS[name])
     rules = [("*", "*", "deny")] + [(action, "*", "allow") for action in actions]
     if "read" in actions:
-        # The read allowance overrides OpenCode's default .env guard; restate it
-        # as OpenCode's built-in explore agent does.
-        rules += [("read", "*.env", "ask"), ("read", "*.env.*", "ask"), ("read", "*.env.example", "allow")]
+        rules += ENV_GUARD
+    if "shell" in actions:
+        rules += [("shell", pattern, "deny") for pattern in denies]
     # Restore the default prompt for paths outside the project.
     return rules + [("external_directory", "*", "ask")]
 
 
-def convert_agent(path, skills):
+def convert_agent(path, sources, denies):
     """Convert a Claude Code subagent into an OpenCode V2 subagent."""
     frontmatter, body = split_frontmatter(path.read_text(encoding="utf-8"))
     if frontmatter is None:
@@ -130,48 +189,44 @@ def convert_agent(path, skills):
     if not tools:
         raise ValueError(f"{path.name}: tools is required")
     lines = ["---",
-             "description: " + json.dumps(translate(fields["description"], OPENCODE_TOOL, skills), ensure_ascii=False),
+             "description: " + json.dumps(translate(fields["description"], OPENCODE_TOOL, sources), ensure_ascii=False),
              "mode: subagent",
              "permissions:"]
     lines += [f"  - {{action: {json.dumps(action)}, resource: {json.dumps(resource)}, effect: {json.dumps(effect)}}}"
-              for action, resource, effect in agent_permissions(tools)]
-    return "\n".join(lines + ["---"]) + "\n" + translate(body, OPENCODE_TOOL, skills)
-
-
-def opencode_instructions():
-    text = CODEX_INSTRUCTIONS.read_text(encoding="utf-8")
-    for old, new in OPENCODE_INSTRUCTION_REPLACEMENTS:
-        if old not in text:
-            raise ValueError(f"codex/AGENTS.md no longer contains: {old}")
-        text = text.replace(old, new)
-    return text
+              for action, resource, effect in agent_permissions(tools, denies)]
+    return "\n".join(lines + ["---"]) + "\n" + translate(body, OPENCODE_TOOL, sources)
 
 
 def generated_files():
     """Return {path: content} for every generated file."""
-    skill_dirs = sorted(path for path in CLAUDE_SKILLS.iterdir() if (path / "SKILL.md").is_file())
+    skill_dirs = sorted(path for path in (CLAUDE / "skills").iterdir() if (path / "SKILL.md").is_file())
     if not skill_dirs:
-        raise ValueError(f"No skills found under {CLAUDE_SKILLS}")
-    skills = [path.name for path in skill_dirs]
-    files = {}
+        raise ValueError("No skills found under claude/skills")
+    sources = Sources([path.name for path in skill_dirs],
+                      {path.stem: rule_title(path) for path in (CLAUDE / "rules").glob("*.md")})
+    denies = shell_denies()
+    files = {CODEX / "AGENTS.md": instructions(CODEX_TOOL, sources),
+             OPENCODE / "AGENTS.md": instructions(OPENCODE_TOOL, sources),
+             OPENCODE / "opencode.json": opencode_config(denies)}
     for skill_dir in skill_dirs:
         for source in sorted(path for path in skill_dir.rglob("*") if path.is_file()):
             if source.suffix != ".md":
                 raise ValueError(f"Only Markdown skill files are generated: {source.relative_to(REPO_ROOT)}")
-            relative = source.relative_to(CLAUDE_SKILLS)
+            relative = source.relative_to(CLAUDE / "skills")
             text = source.read_text(encoding="utf-8")
-            files[CODEX_SKILLS / relative] = transform(text, CODEX, skills)
-            files[OPENCODE / "skills" / relative] = transform(text, OPENCODE_TOOL, skills)
-    for agent in sorted(CLAUDE_AGENTS.glob("*.md")):
-        files[OPENCODE / "agents" / agent.name] = convert_agent(agent, skills)
-    files[OPENCODE / "AGENTS.md"] = opencode_instructions()
+            files[CODEX / "skills" / relative] = transform(text, CODEX_TOOL, sources)
+            files[OPENCODE / "skills" / relative] = transform(text, OPENCODE_TOOL, sources)
+    for agent in sorted((CLAUDE / "agents").glob("*.md")):
+        files[OPENCODE / "agents" / agent.name] = convert_agent(agent, sources, denies)
     return files
 
 
 def owned_files():
     """Existing files the generator owns; Codex metadata such as openai.yaml is excluded."""
-    codex = [path for path in CODEX_SKILLS.rglob("*.md") if len(path.relative_to(CODEX_SKILLS).parts) > 1]
-    return set(codex) | {path for path in OPENCODE.rglob("*") if path.is_file()}
+    skills = CODEX / "skills"
+    codex = {path for path in skills.rglob("*.md") if len(path.relative_to(skills).parts) > 1}
+    codex |= {CODEX / "AGENTS.md"} if (CODEX / "AGENTS.md").is_file() else set()
+    return codex | {path for path in OPENCODE.rglob("*") if path.is_file()}
 
 
 def main():

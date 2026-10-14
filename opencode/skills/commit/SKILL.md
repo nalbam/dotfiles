@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Create Commit
 
-요청 범위의 변경을 conventional 형식으로 커밋한다. Git 권한·기존 변경 보존·귀속 푸터 금지는 AGENTS.md 의 Git Safety를 따른다. 이 스킬은 push하지 않는다.
+요청 범위의 변경을 conventional 형식으로 커밋한다. Git 권한·기존 변경 보존·귀속 푸터 금지는 AGENTS.md의 Git Workflow를 따른다. 이 스킬은 push하지 않는다.
 
 ## Workflow
 

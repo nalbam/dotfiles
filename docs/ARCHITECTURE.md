@@ -49,7 +49,7 @@ Both full installation and `--vibe` read deployment sources from `~/.dotfiles`. 
 | `iterm2/`, `ghostty/`, `tmux.conf`, `vimrc` | Terminal and editor settings copied by the installer |
 | `nvim/` | Separately installed Neovim configuration |
 | `claude/`, `codex/`, `kiro/` | AI settings sources |
-| `opencode/` | Generated OpenCode instructions, subagents, and skills |
+| `opencode/` | Generated OpenCode instructions, shell deny rules, subagents, and skills |
 | `scripts/` | Skill generation, AI settings deployment, and isolated tests |
 | `AGENTS.md`, `CLAUDE.md` | Repository instructions; `CLAUDE.md` links to `AGENTS.md` |
 
@@ -116,9 +116,9 @@ A write failure can leave earlier files updated. There is no transaction across 
 
 ## AI instructions and skills
 
-Global instructions live in `claude/CLAUDE.md` and `codex/AGENTS.md`; `opencode/AGENTS.md` is generated from the Codex file. They apply ISO 24495-1 principles for reader needs, navigation, understanding, and use, together with ASD-STE100 principles for short, clear, unambiguous wording. Project-specific commands belong in repository instructions.
+Global instructions live in `claude/CLAUDE.md` and `claude/rules/`; `codex/AGENTS.md` and `opencode/AGENTS.md` are generated from them. They apply ISO 24495-1 principles for reader needs, navigation, understanding, and use, together with ASD-STE100 principles for short, clear, unambiguous wording. Project-specific commands belong in repository instructions.
 
-`claude/skills/` is the source for shared skills, and `claude/agents/` is the source for subagents. `scripts/gen-ai-tools.py` adapts tool-specific syntax and writes `codex/skills/` and `opencode/`. It converts Claude subagent `tools` lists into OpenCode permission allowlists. It preserves manually maintained Codex metadata. Its `--check` mode reports mismatches and stale generated files. The generator stops without writing files when a source no longer fits its conversion rules.
+`claude/skills/` is the source for shared skills, and `claude/agents/` is the source for subagents. `scripts/gen-ai-tools.py` adapts tool-specific syntax and writes `codex/skills/` and `opencode/`. It converts Claude subagent `tools` lists into OpenCode permission allowlists and Claude `Bash(...)` deny rules into `opencode/opencode.json`. It preserves manually maintained Codex metadata. Its `--check` mode reports mismatches and stale generated files. The generator stops without writing files when a source no longer fits its conversion rules.
 
 ## Failure diagnosis
 

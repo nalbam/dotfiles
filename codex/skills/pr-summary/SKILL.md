@@ -5,7 +5,7 @@ description: Analyze all PR changes and update PR description with accurate summ
 
 # PR Summary Update
 
-기존 PR 설명을 최종 변경사항에 맞게 갱신한다. 형식은 `skills/pr-create/SKILL.md`를 따르고 Git 권한은 AGENTS.md 의 Git Safety를 따른다.
+기존 PR 설명을 최종 변경사항에 맞게 갱신한다. 형식은 `skills/pr-create/SKILL.md`를 따르고 Git 권한은 AGENTS.md의 Git Workflow를 따른다.
 
 ## 대상과 맥락
 

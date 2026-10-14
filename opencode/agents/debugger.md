@@ -11,6 +11,33 @@ permissions:
   - {action: "read", resource: "*.env", effect: "ask"}
   - {action: "read", resource: "*.env.*", effect: "ask"}
   - {action: "read", resource: "*.env.example", effect: "allow"}
+  - {action: "shell", resource: "chmod -R 777 / *", effect: "deny"}
+  - {action: "shell", resource: "bash -s *", effect: "deny"}
+  - {action: "shell", resource: "bash", effect: "deny"}
+  - {action: "shell", resource: "chown -R * /", effect: "deny"}
+  - {action: "shell", resource: "dd if=/dev/zero *", effect: "deny"}
+  - {action: "shell", resource: "fdisk *", effect: "deny"}
+  - {action: "shell", resource: "gdisk *", effect: "deny"}
+  - {action: "shell", resource: "halt *", effect: "deny"}
+  - {action: "shell", resource: "init 0 *", effect: "deny"}
+  - {action: "shell", resource: "init 6 *", effect: "deny"}
+  - {action: "shell", resource: "mkfs *", effect: "deny"}
+  - {action: "shell", resource: "parted *", effect: "deny"}
+  - {action: "shell", resource: "poweroff *", effect: "deny"}
+  - {action: "shell", resource: "reboot *", effect: "deny"}
+  - {action: "shell", resource: "rm -rf $HOME/*", effect: "deny"}
+  - {action: "shell", resource: "rm -rf /", effect: "deny"}
+  - {action: "shell", resource: "rm -rf /*", effect: "deny"}
+  - {action: "shell", resource: "rm -rf ~/*", effect: "deny"}
+  - {action: "shell", resource: "sh -s *", effect: "deny"}
+  - {action: "shell", resource: "sh", effect: "deny"}
+  - {action: "shell", resource: "shutdown *", effect: "deny"}
+  - {action: "shell", resource: "sudo rm -rf *", effect: "deny"}
+  - {action: "shell", resource: "systemctl disable *", effect: "deny"}
+  - {action: "shell", resource: "systemctl halt *", effect: "deny"}
+  - {action: "shell", resource: "systemctl poweroff *", effect: "deny"}
+  - {action: "shell", resource: "systemctl reboot *", effect: "deny"}
+  - {action: "shell", resource: "systemctl stop *", effect: "deny"}
   - {action: "external_directory", resource: "*", effect: "ask"}
 ---
 

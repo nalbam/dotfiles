@@ -22,7 +22,11 @@ TARGETS = (("claude", ".claude"), ("codex", ".codex"),
            ("codex/skills", ".agents/skills"), ("kiro", ".kiro"),
            ("opencode", ".config/opencode"))
 JSON_SETTINGS = {("claude", "settings.json"), ("codex", "hooks.json"),
-                 ("kiro", "agents/default.json")}
+                 ("kiro", "agents/default.json"), ("opencode", "opencode.json")}
+# The repository owns these keys: fill_missing keeps local arrays, so an obsolete
+# or corrected rule would otherwise never leave a machine.
+OWNED_JSON_KEYS = {("claude", "settings.json"): ("permissions", "deny"),
+                   ("opencode", "opencode.json"): ("permissions",)}
 BEGIN = "# BEGIN dotfiles managed codex rules"
 END = "# END dotfiles managed codex rules"
 CODEX_PERMISSION_KEYS = {"approval_policy", "approvals_reviewer", "default_permissions",
@@ -123,6 +127,22 @@ def merge_machine_hooks(local, defaults, scripts, home):
             if entry not in target:
                 target.append(entry)
     return result
+
+
+def replace_key(merged, defaults, path):
+    """Set merged[path] to defaults[path] when defaults has it; merged is a fresh copy."""
+    value = defaults
+    for key in path:
+        if not isinstance(value, dict) or key not in value:
+            return merged
+        value = value[key]
+    target = merged
+    for key in path[:-1]:
+        target = target[key]
+        if not isinstance(target, dict):
+            raise ValueError(f"Settings key {key} must be a JSON object")
+    target[path[-1]] = value
+    return merged
 
 
 def toml_value(value):
@@ -284,13 +304,9 @@ def file_content(source, destination, source_name, relative, scripts, home):
             if "hooks" in defaults or "hooks" in local:
                 merged["hooks"] = merge_machine_hooks(
                     local.get("hooks", {}), defaults.get("hooks", {}), scripts, home)
-            # The repository owns Claude deny rules: fill_missing keeps local arrays,
-            # so an obsolete or corrected rule would otherwise never leave a machine.
-            deny = defaults.get("permissions", {}).get("deny") if source_name == "claude" else None
-            if deny is not None:
-                if not isinstance(merged["permissions"], dict):
-                    raise ValueError("Claude permissions must be a JSON object")
-                merged["permissions"] = merged["permissions"] | {"deny": deny}
+            owned = OWNED_JSON_KEYS.get((source_name, relative))
+            if owned:
+                merged = replace_key(merged, defaults, owned)
             if old is not None and merged == local:
                 return old
             return (json.dumps(merged, ensure_ascii=False, indent=2) + "\n").encode()
