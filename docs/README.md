@@ -7,7 +7,7 @@ Choose a guide by the task you want to complete.
 | Install or rerun dotfiles | [Quick Start](../README.md#quick-start) |
 | Understand installation order, backups, or failures | [Architecture](ARCHITECTURE.md) |
 | Edit, verify, or deploy AI settings | [AI Tools Sync](../README.md#ai-tools-sync) |
-| Choose a shared AI skill | [Skills](../claude/skills/README.md) |
+| Choose a shared AI skill | [Skills](SKILLS.md) |
 | Prepare a fresh Ubuntu server as root | [Linux setup](../linux/README.md) |
 | Install the separate Neovim configuration | [Neovim setup](../nvim/README.md) |
 | Change shell helpers | [aliases](../aliases) |
