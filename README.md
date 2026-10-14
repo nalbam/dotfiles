@@ -218,9 +218,9 @@ DOTFILES_VIBEMON_INSTALLER=/path/to/vibemon-app/public/install/install.py \
 
 Codex CLI에서는 `/skills` 또는 `$<name>`으로 스킬을 지정한다. `skills/<name>/...` 참조는 세션에 표시된 해당 스킬 경로를 기준으로 해석한다. [공식 스킬 안내](https://learn.chatgpt.com/docs/build-skills)를 참고한다.
 
-OpenCode V2는 `AGENTS.md`만 지침으로 읽으며 `CLAUDE.md`와 `~/.claude/rules/`는 읽지 않는다. 설정의 `instructions` 항목도 아직 적용하지 않으므로 공통 지침은 `~/.config/opencode/AGENTS.md`로 배포한다. 스킬은 `~/.claude/skills`, `~/.agents/skills`, `~/.config/opencode/skills` 순서로 읽고 같은 이름이면 나중 경로가 우선하므로, OpenCode 전용 생성본이 Claude·Codex 사본을 대체한다. 스킬은 `@<name>`으로 지정한다. Claude.ai에서 동기화한 `~/.claude/skills/synced/` 스킬도 함께 표시되며 dotfiles는 이를 관리하지 않는다.
+OpenCode V2는 `AGENTS.md`만 지침으로 읽으며 `CLAUDE.md`와 `~/.claude/rules/`는 읽지 않는다. 설정의 `instructions` 항목도 아직 적용하지 않으므로 공통 지침은 `~/.config/opencode/AGENTS.md`로 배포한다. 같은 이름의 스킬은 `.claude/skills` → `.agents/skills` → `~/.config/opencode/skills` → 프로젝트 `.opencode/skills` 순서로 나중 경로가 우선한다. `.claude/skills`와 `.agents/skills`는 전역 경로 다음에 프로젝트 경로를 읽는다. 따라서 OpenCode 전용 생성본이 Claude·Codex 사본을 대체하고, 프로젝트의 `.opencode/skills`는 생성본보다 우선한다. 스킬은 `@<name>`으로 지정한다. Claude.ai에서 동기화한 `~/.claude/skills/synced/` 스킬도 함께 표시되며 dotfiles는 이를 관리하지 않는다.
 
-OpenCode 서브에이전트는 Claude `tools` 목록을 권한 허용 목록으로 바꾼다. 모든 작업을 거부한 뒤 목록의 도구만 허용하고, `.env` 읽기와 프로젝트 밖 경로는 확인을 요청한다. 변환하는 frontmatter는 `name`(파일명과 일치), `description`, `tools`뿐이다. 설정 위치는 `opencode debug paths`의 `config`로, 배포된 서브에이전트는 `opencode debug agents`로 확인한다. [공식 지침](https://opencode.ai/v2/docs/instructions/), [스킬](https://opencode.ai/v2/docs/skills/), [에이전트](https://opencode.ai/v2/docs/agents/) 문서를 참고한다.
+OpenCode 서브에이전트는 Claude `tools` 목록을 권한 허용 목록으로 바꾼다. 모든 작업을 거부한 뒤 목록의 도구만 허용하고, `.env` 읽기와 프로젝트 밖 경로는 확인을 요청한다. OpenCode는 에이전트 규칙을 전역 `permissions` 뒤에 적용하므로, 허용한 도구에서는 전역 규칙보다 에이전트 허용이 우선한다. 예를 들어 `code-reviewer`와 `debugger`의 셸 명령은 전역 셸 규칙과 관계없이 허용된다. 변환하는 frontmatter는 `name`(파일명과 일치), `description`, `tools`뿐이다. 설정 위치는 `opencode debug paths`의 `config`로, 배포된 서브에이전트는 `opencode debug agents`로 확인한다. [공식 지침](https://opencode.ai/v2/docs/instructions/), [스킬](https://opencode.ai/v2/docs/skills/), [에이전트](https://opencode.ai/v2/docs/agents/) 문서를 참고한다.
 
 ## Security
 
