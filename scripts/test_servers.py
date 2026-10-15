@@ -238,6 +238,7 @@ ss 8123
         for shell in SHELLS:
             with self.subTest(shell=shell):
                 child_pid_file.unlink(missing_ok=True)
+                server_pid = None
                 with socket.socket() as reservation:
                     reservation.bind(("127.0.0.1", 0))
                     port = reservation.getsockname()[1]
@@ -252,15 +253,16 @@ python3() {
 }
 ss ''' + str(port))
                     self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                    pid = int(child_pid_file.read_text())
-                    self.assertIn(f"(PID {pid})", result.stdout)
+                    server_pid = int(re.search(r"\(PID (\d+)\)", result.stdout).group(1))
+                    os.kill(server_pid, 0)
                     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
                     with opener.open(f"http://127.0.0.1:{port}/", timeout=3) as response:
                         self.assertEqual(response.read(), b"spawned server ready")
                 finally:
-                    if child_pid_file.exists():
+                    cleanup_pid = server_pid or (int(child_pid_file.read_text()) if child_pid_file.exists() else None)
+                    if cleanup_pid:
                         try:
-                            os.kill(int(child_pid_file.read_text()), signal.SIGTERM)
+                            os.kill(cleanup_pid, signal.SIGTERM)
                         except ProcessLookupError:
                             pass
 
