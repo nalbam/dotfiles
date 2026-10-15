@@ -192,6 +192,8 @@ diff -qr ~/.dotfiles/opencode/agents ~/.config/opencode/agents
 
 AI 설정은 병합에 읽은 대상 바이트를 재사용해 결과와 직접 비교하고, 변경된 파일을 원자적으로 교체한다. 덮어쓰기·manifest 기반 삭제 전에는 같은 경로의 `.backup`에 직전 내용을 보관하고 권한을 `600`으로 설정한다. manifest는 이전에 배포한 파일 목록이다. 목록에 없는 파일은 삭제하지 않으며, 원본 디렉터리가 없거나 비어 있으면 해당 대상과 목록을 보존한다.
 
+manifest에는 정규화된 상대 경로만 허용한다. `./config.toml`이나 `rules//default.rules`처럼 같은 파일의 다른 표기는 배포 전에 오류로 처리한다.
+
 Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저장소 값을 따른다. `approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`를 원본과 맞추고, 원본에 없는 키는 제거한다. 따라서 기존 설치도 동기화 후 같은 승인 정책을 사용하며, 예전 샌드박스 설정이 새 권한 프로필을 가리지 않는다. 변경 후 새 세션에서 권한 모드를 확인한다.
 
 Claude `settings.json`의 `permissions.deny`와 `autoMode`도 원본에 있으면 저장소 값으로 교체한다. `autoMode`는 권한 분류기가 읽는 환경·정책 설명이므로 머신에서 생성된 예전 값이 남으면 안 된다. 머신에서 직접 추가한 deny 규칙은 다음 동기화 때 `.backup`에만 남으므로, 유지할 규칙은 `claude/settings.json`에 추가한다. OpenCode `opencode.json`의 `permissions`도 같은 방식으로 저장소 목록으로 교체한다. 셸 연산자(`|`, `&&`)로 이은 명령은 부분 명령별로 검사되므로 deny 규칙은 부분 명령 하나를 기준으로 쓴다.

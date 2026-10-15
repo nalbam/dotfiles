@@ -554,6 +554,19 @@ status_line = [
         self.sync(ok=False)
         self.assertEqual(protected.read_text(), "personal data")
 
+    def test_noncanonical_manifest_cannot_prune_current_config(self):
+        for entry in ("./config.toml", "config.toml/", "rules//default.rules"):
+            with self.subTest(entry=entry):
+                target = self.put(".codex/config.toml", 'model = "machine-model"\n')
+                rules = self.put(".codex/rules/default.rules", "local rules\n")
+                instructions = self.put(".claude/CLAUDE.md", "local instructions\n")
+                manifest = self.put(".toast/vibe_manifest_codex", entry + "\n")
+                self.sync(ok=False)
+                self.assertEqual(target.read_text(), 'model = "machine-model"\n')
+                self.assertEqual(rules.read_text(), "local rules\n")
+                self.assertEqual(instructions.read_text(), "local instructions\n")
+                self.assertEqual(manifest.read_text(), entry + "\n")
+
     def test_locked_sync_fails_before_deployment(self):
         import fcntl
         lock = self.put(".toast/ai-sync.lock", "")

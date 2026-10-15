@@ -383,8 +383,9 @@ def plan_target(home, repo, source_name, target_name):
     regular_path(manifest, home)
     previous = set(manifest.read_text().splitlines()) if manifest.exists() else set()
     for relative in previous:
-        parts = PurePosixPath(relative).parts
-        if not parts or PurePosixPath(relative).is_absolute() or ".." in parts or "\\" in relative:
+        managed_path = PurePosixPath(relative)
+        if (not managed_path.parts or managed_path.is_absolute() or ".." in managed_path.parts
+                or "\\" in relative or managed_path.as_posix() != relative):
             raise ValueError(f"Invalid managed path in {manifest}")
     names = {path.relative_to(source).as_posix() for path in files}
     scripts = {str(destination / relative) for relative in names | previous
