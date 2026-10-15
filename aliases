@@ -350,9 +350,14 @@ ss() {
     if ! mkfifo "$startup/ready"; then rmdir "$startup"; return 1; fi
     # The child acknowledges its PID only after bind/listen succeeds. EOF means startup failed.
     python3 -u -c '
-import functools, http.server, os, sys
+import functools, http.server, os, socketserver, sys
+class DevHTTPServer(http.server.ThreadingHTTPServer):
+    def server_bind(self):
+        # Static file serving needs no reverse DNS lookup during startup.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=sys.argv[2])
-with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
+with DevHTTPServer(("", int(sys.argv[1])), handler) as server:
     with open(os.devnull, "w") as sink:
         os.dup2(sink.fileno(), 1)
         os.dup2(sink.fileno(), 2)

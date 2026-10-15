@@ -266,7 +266,7 @@ ss ''' + str(port))
                         except ProcessLookupError:
                             pass
 
-    def test_python_success_means_http_is_ready(self):
+    def assert_python_http_ready(self):
         docs = self.home / "docs"
         docs.mkdir()
         (docs / "index.html").write_text("server ready")
@@ -285,6 +285,18 @@ ss ''' + str(port))
                     self.assertIn(str(port), self.registry.read_text())
                 finally:
                     os.kill(pid, signal.SIGTERM)
+
+    def test_python_success_means_http_is_ready(self):
+        self.assert_python_http_ready()
+
+    def test_python_startup_does_not_require_hostname_resolution(self):
+        (self.home / "sitecustomize.py").write_text('''import socket
+def forbidden_lookup(*args, **kwargs):
+    raise RuntimeError("HTTP startup must not resolve the host name")
+socket.getfqdn = forbidden_lookup
+''')
+        self.env["PYTHONPATH"] = str(self.home)
+        self.assert_python_http_ready()
 
 
 if __name__ == "__main__":
