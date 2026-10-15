@@ -192,7 +192,7 @@ diff -qr ~/.dotfiles/opencode/agents ~/.config/opencode/agents
 
 Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저장소 값을 따른다. `approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`를 원본과 맞추고, 원본에 없는 키는 제거한다. 따라서 기존 설치도 동기화 후 같은 승인 정책을 사용하며, 예전 샌드박스 설정이 새 권한 프로필을 가리지 않는다. 변경 후 새 세션에서 권한 모드를 확인한다.
 
-Claude `settings.json`의 `permissions.deny`도 원본에 있으면 저장소 목록으로 교체한다. 머신에서 직접 추가한 deny 규칙은 다음 동기화 때 `.backup`에만 남으므로, 유지할 규칙은 `claude/settings.json`에 추가한다. OpenCode `opencode.json`의 `permissions`도 같은 방식으로 저장소 목록으로 교체한다. 셸 연산자(`|`, `&&`)로 이은 명령은 부분 명령별로 검사되므로 deny 규칙은 부분 명령 하나를 기준으로 쓴다.
+Claude `settings.json`의 `permissions.deny`와 `autoMode`도 원본에 있으면 저장소 값으로 교체한다. `autoMode`는 권한 분류기가 읽는 환경·정책 설명이므로 머신에서 생성된 예전 값이 남으면 안 된다. 머신에서 직접 추가한 deny 규칙은 다음 동기화 때 `.backup`에만 남으므로, 유지할 규칙은 `claude/settings.json`에 추가한다. OpenCode `opencode.json`의 `permissions`도 같은 방식으로 저장소 목록으로 교체한다. 셸 연산자(`|`, `&&`)로 이은 명령은 부분 명령별로 검사되므로 deny 규칙은 부분 명령 하나를 기준으로 쓴다.
 
 Claude·Codex·Kiro의 훅은 이벤트 전체가 아니라 실행 스크립트별로 관리한다. dotfiles가 배포하는 `hooks/` 스크립트의 등록만 원본에 맞춰 갱신한다. 같은 이벤트의 VibeMon·romty·사용자 훅과 matcher는 보존한다. 이벤트 배열이 이미 있거나 비어 있어도 머신에 필요한 훅을 추가하며, 재실행해도 중복 등록하지 않는다. 원본에서 제거한 머신 스크립트는 기존 manifest를 기준으로 훅 등록도 정리한다.
 

@@ -23,10 +23,11 @@ TARGETS = (("claude", ".claude"), ("codex", ".codex"),
            ("opencode", ".config/opencode"))
 JSON_SETTINGS = {("claude", "settings.json"), ("codex", "hooks.json"),
                  ("kiro", "agents/default.json"), ("opencode", "opencode.json")}
-# The repository owns these keys: fill_missing keeps local arrays, so an obsolete
-# or corrected rule would otherwise never leave a machine.
-OWNED_JSON_KEYS = {("claude", "settings.json"): ("permissions", "deny"),
-                   ("opencode", "opencode.json"): ("permissions",)}
+# The repository owns these keys: fill_missing keeps local values, so an obsolete
+# or corrected rule would otherwise never leave a machine. Claude `autoMode` is a
+# policy description for the permission classifier, so a stale local copy must not win.
+OWNED_JSON_KEYS = {("claude", "settings.json"): (("permissions", "deny"), ("autoMode",)),
+                   ("opencode", "opencode.json"): (("permissions",),)}
 BEGIN = "# BEGIN dotfiles managed codex rules"
 END = "# END dotfiles managed codex rules"
 CODEX_PERMISSION_KEYS = {"approval_policy", "approvals_reviewer", "default_permissions",
@@ -304,8 +305,7 @@ def file_content(source, destination, source_name, relative, scripts, home):
             if "hooks" in defaults or "hooks" in local:
                 merged["hooks"] = merge_machine_hooks(
                     local.get("hooks", {}), defaults.get("hooks", {}), scripts, home)
-            owned = OWNED_JSON_KEYS.get((source_name, relative))
-            if owned:
+            for owned in OWNED_JSON_KEYS.get((source_name, relative), ()):
                 merged = replace_key(merged, defaults, owned)
             if old is not None and merged == local:
                 return old
