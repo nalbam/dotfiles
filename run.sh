@@ -178,12 +178,15 @@ _md5() {
 # 백업 생성 함수
 _backup() {
   if [ -f "$1" ]; then
+    local temporary
     if [ -L "$1.backup" ] || { [ -e "$1.backup" ] && [ ! -f "$1.backup" ]; }; then
       return 1
     fi
-    cp "$1" "$1.backup" || return 1
-    # Set secure permissions for backup files
-    chmod 600 "$1.backup" || return 1
+    temporary=$(mktemp "$1.backup.tmp.XXXXXX") || return 1
+    if ! { cp "$1" "$temporary" && chmod 600 "$temporary" && mv -f "$temporary" "$1.backup"; }; then
+      rm -f "$temporary"
+      return 1
+    fi
     _info "Created backup: $1.backup"
   fi
 }

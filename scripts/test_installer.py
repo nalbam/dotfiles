@@ -310,6 +310,41 @@ _download .settings settings
                     self.assertTrue(backup.is_symlink())
                 self.assertEqual(list(self.home.glob(".settings.tmp.*")), [])
 
+    def test_backup_copy_failure_preserves_both_existing_versions(self):
+        (self.repo / "settings").write_text("new")
+        target = self.home / ".settings"
+        target.write_text("working")
+        backup = self.home / ".settings.backup"
+        backup.write_text("earlier backup")
+        result = self.run_shell('''
+cp() {
+  case "$2" in
+    "$HOME/.settings.backup"*) printf partial > "$2"; return 7 ;;
+  esac
+  command cp "$@"
+}
+_download .settings settings
+''')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(target.read_text(), "working")
+        self.assertEqual(backup.read_text(), "earlier backup")
+        self.assertEqual(list(self.home.glob(".settings*.tmp.*")), [])
+
+    def test_backup_replacement_does_not_modify_other_hardlinks(self):
+        (self.repo / "settings").write_text("new")
+        target = self.home / ".settings"
+        target.write_text("working")
+        other = self.home / "other"
+        other.write_text("unrelated data")
+        backup = self.home / ".settings.backup"
+        os.link(other, backup)
+        result = self.run_shell('_download .settings settings\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(target.read_text(), "new")
+        self.assertEqual(backup.read_text(), "working")
+        self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(other.read_text(), "unrelated data")
+
     def test_local_copy_supports_spaces_and_private_files(self):
         (self.repo / "config with spaces").write_text("settings")
         result = self.run_shell('_download ".ssh/config with spaces" "config with spaces"\n')
