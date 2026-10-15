@@ -405,6 +405,60 @@ status_line = [
         self.sync()
         self.assertEqual(target.read_text(), 'before\n# BEGIN dotfiles managed codex rules\nnew rule\n# END dotfiles managed codex rules\nafter\n')
 
+    def test_removed_rule_source_preserves_local_rules_and_can_be_restored(self):
+        managed = "# BEGIN dotfiles managed codex rules\nmanaged rule\n# END dotfiles managed codex rules\n"
+        source = self.put(".dotfiles/codex/rules/default.rules", managed)
+        self.sync()
+        target = self.put(".codex/rules/default.rules", "local before\n" + managed + "local after\n")
+        original = target.read_bytes()
+        source.unlink()
+        self.sync()
+        self.assertTrue(target.exists(), "Removing the source must preserve local rules")
+        self.assertEqual(target.read_text(), "local before\nlocal after\n")
+        backup = target.with_name(target.name + ".backup")
+        self.assertEqual(backup.read_bytes(), original)
+        self.assertNotIn("rules/default.rules", (self.home / ".toast/vibe_manifest_codex").read_text())
+        stamp = target.stat().st_mtime_ns
+        self.sync()
+        self.assertEqual(target.stat().st_mtime_ns, stamp)
+        self.assertEqual(backup.read_bytes(), original)
+        source.write_text(managed.replace("managed rule", "restored rule"))
+        self.sync()
+        self.assertIn("restored rule", target.read_text())
+        self.assertTrue(target.read_text().endswith("local before\nlocal after\n"))
+
+    def test_removed_rule_source_prunes_only_an_entirely_managed_file(self):
+        managed = "# BEGIN dotfiles managed codex rules\nmanaged rule\n# END dotfiles managed codex rules\n"
+        source = self.put(".dotfiles/codex/rules/default.rules", managed)
+        self.sync()
+        source.unlink()
+        self.sync()
+        target = self.home / ".codex/rules/default.rules"
+        self.assertFalse(target.exists())
+        self.assertEqual(target.with_name(target.name + ".backup").read_text(), managed)
+
+    def test_removed_rule_source_leaves_unmarked_local_file_unchanged(self):
+        source = self.put(".dotfiles/codex/rules/default.rules", "# BEGIN dotfiles managed codex rules\nrule\n# END dotfiles managed codex rules\n")
+        self.sync()
+        target = self.put(".codex/rules/default.rules", "user-only rules\n")
+        stamp = target.stat().st_mtime_ns
+        source.unlink()
+        self.sync()
+        self.assertTrue(target.exists())
+        self.assertEqual(target.read_text(), "user-only rules\n")
+        self.assertEqual(target.stat().st_mtime_ns, stamp)
+
+    def test_removed_rule_source_with_broken_markers_stops_before_deployment(self):
+        source = self.put(".dotfiles/codex/rules/default.rules", "# BEGIN dotfiles managed codex rules\nrule\n# END dotfiles managed codex rules\n")
+        self.sync()
+        target = self.put(".codex/rules/default.rules", "# BEGIN dotfiles managed codex rules\nuser rules\n")
+        original = target.read_bytes()
+        source.unlink()
+        self.put(".dotfiles/claude/CLAUDE.md", "updated instructions\n")
+        self.sync(ok=False)
+        self.assertEqual(target.read_bytes(), original)
+        self.assertEqual((self.home / ".claude/CLAUDE.md").read_text(), "shared instructions\n")
+
     def test_no_configuration_values_in_output(self):
         self.put(".dotfiles/claude/settings.json", '{"env":{"NEW":"yes"}}')
         self.put(".claude/settings.json", '{"env":{"TOKEN":"private-test-value"}}')

@@ -275,17 +275,20 @@ def rule_block(text):
 
 
 def merge_rules(source, old):
-    lines, span = rule_block(source)
-    if span is None:
-        raise ValueError("Missing Codex managed-rule markers")
-    managed = "".join(lines[span[0]:span[1]])
-    if not managed.endswith("\n"):
-        managed += "\n"
+    # A removed source retires only the managed block, never local rules.
+    managed = ""
+    if source is not None:
+        lines, span = rule_block(source)
+        if span is None:
+            raise ValueError("Missing Codex managed-rule markers")
+        managed = "".join(lines[span[0]:span[1]])
+        if not managed.endswith("\n"):
+            managed += "\n"
     if old is None:
         return source
     lines, span = rule_block(old)
     if span is None:
-        return managed + "\n" + old
+        return managed + "\n" + old if managed else old
     return "".join(lines[:span[0]]) + managed + "".join(lines[span[1]:])
 
 
@@ -294,7 +297,8 @@ def file_content(data, old, source_name, relative, scripts, home):
         if source_name == "codex" and relative == "config.toml":
             return merge_toml(data.decode(), old.decode() if old is not None else None).encode()
         if source_name == "codex" and relative == "rules/default.rules":
-            return merge_rules(data.decode(), old.decode() if old is not None else None).encode()
+            return merge_rules(data.decode() if data is not None else None,
+                               old.decode() if old is not None else None).encode()
         if (source_name, relative) in JSON_SETTINGS:
             defaults = json.loads(data)
             local = json.loads(old) if old is not None else {}
@@ -407,7 +411,16 @@ def plan_target(home, repo, source_name, target_name):
             regular_path(target, home)
             regular_path(target.with_name(target.name + ".backup"), home)
             if target.exists():
-                changes.append((target, None, None))
+                content, mode = None, None
+                if source_name == "codex" and relative == "rules/default.rules":
+                    old = target.read_bytes()
+                    retained = file_content(None, old, source_name, relative, scripts, home)
+                    if retained == old:
+                        continue
+                    if retained:
+                        content = retained
+                        mode = stat.S_IMODE(target.stat().st_mode)
+                changes.append((target, content, mode))
     return changes, (manifest, ("\n".join(sorted(names)) + "\n").encode())
 
 

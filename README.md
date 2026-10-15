@@ -202,7 +202,7 @@ OpenCode의 `opencode.jsonc`·`cli.json`·`plugins/`는 배포 대상이 아니�
 
 VibeMon 전송·사용량 스크립트와 전용 훅, Claude `statusline.py`는 VibeMon 설치기가 관리한다. dotfiles는 이를 복사하거나 삭제하지 않으며, 과거 manifest에 남은 경로는 파일을 보존하고 목록에서만 제외한다. 공유 JSON 설정과 Codex `config.toml`도 원본에서 빠졌다는 이유로 파일 전체를 삭제하지 않는다. Codex의 일반 `tui.status_line` 기본값은 dotfiles에서 관리하고 기존 머신의 선택은 보존한다.
 
-그 외 Codex TOML, Claude `settings.json`, Kiro `agents/default.json` 설정은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 일반 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다.
+그 외 Codex TOML, Claude `settings.json`, Kiro `agents/default.json` 설정은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 일반 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다. 원본 `rules/default.rules`를 제거해도 관리 블록만 지우며, 로컬 규칙이 남은 파일은 보존한다.
 
 VibeMon 저장소가 있으면 두 실제 설치기의 실행 순서·재설치·제거를 임시 홈에서 검증할 수 있다. 이 검사는 네트워크나 실제 머신 설정을 사용하지 않는다.
 
