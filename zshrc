@@ -48,7 +48,7 @@ if command -v kube_ps1 >/dev/null 2>&1; then
 fi
 
 # kubectl completion
-if command -v kubectl >/dev/null 2>&1; then
+if command -v kubectl >/dev/null 2>&1 && command -v compdef >/dev/null 2>&1; then
   if _kubectl_completion="$(kubectl completion zsh 2>/dev/null)" 2>/dev/null; then
     source <(printf '%s\n' "$_kubectl_completion")
   fi

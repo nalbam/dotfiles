@@ -189,6 +189,26 @@ esac
                         self.assertEqual(result.stdout, expected)
 
     @unittest.skipUnless(Path("/bin/zsh").is_file(), "Zsh is not installed")
+    def test_kubectl_completion_requires_initialized_completion_system(self):
+        kubectl = self.bin / "kubectl"
+        kubectl.write_text('''#!/bin/sh
+touch "$HOME/completion-requested"
+printf 'compdef _kubectl kubectl\\n'
+''')
+        kubectl.chmod(0o755)
+        plugin = self.home / ".oh-my-zsh/oh-my-zsh.sh"
+        plugin.parent.mkdir()
+        for initialized in (False, True):
+            with self.subTest(initialized=initialized):
+                (self.home / "completion-requested").unlink(missing_ok=True)
+                plugin.write_text('compdef() { printf "completion loaded\\n"; }\n' if initialized else "")
+                result = self.startup("/bin/zsh", "zshrc")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stderr, "")
+                self.assertEqual(result.stdout, "completion loaded\n" if initialized else "")
+                self.assertEqual((self.home / "completion-requested").exists(), initialized)
+
+    @unittest.skipUnless(Path("/bin/zsh").is_file(), "Zsh is not installed")
     def test_available_zsh_plugins_and_pyenv_are_loaded(self):
         plugin = self.home / ".oh-my-zsh/oh-my-zsh.sh"
         plugin.parent.mkdir()
