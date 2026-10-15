@@ -33,6 +33,8 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 bash ~/.dotfiles/run.sh
 ```
 
+`bash ~/.dotfiles/run.sh --help`는 파일을 바꾸지 않고 옵션을 표시한다. 알 수 없는 옵션은 설치를 시작하지 않고 종료 코드 `2`를 반환한다.
+
 전체 설치는 `~/.dotfiles`를 clone하거나 갱신하고, 사용자 설정을 복사하며, 기본 셸을 Zsh로 변경한다. 기존 checkout의 갱신이 실패하면 경고를 출력하고 현재 파일로 계속한다. AI 설정만 바꾸려면 [AI Tools Sync](#ai-tools-sync)를 사용한다.
 
 완료 메시지와 함께 경고가 표시되면 해당 단계의 로그를 확인한다. 오류나 경고의 원인을 해결한 뒤 같은 명령을 다시 실행한다. 새 터미널에서 `command -v git zsh`와 `type cx`로 도구 경로와 셸 별칭 로딩을 확인할 수 있다. 별칭이 있다는 사실만으로 해당 AI CLI가 설치됐다고 판단하지 않는다.

@@ -328,20 +328,29 @@ _should_update() {
   [ $(( $(date +%s) - last )) -ge $UPDATE_INTERVAL ]
 }
 
+_usage() {
+  printf '%s\n' \
+    'Usage: bash run.sh [--vibe | --help]' \
+    '  (no options)  Install the development environment.' \
+    '  --vibe        Sync AI settings from ~/.dotfiles only.' \
+    '  -h, --help    Show this help without changing files.'
+}
+
 ################################################################################
 # 실행 영역 (Execution Section)
 ################################################################################
-
-# 시작 배너 출력
-_banner
 
 # Parse arguments
 VIBE_ONLY=false
 for arg in "$@"; do
   case "$arg" in
     --vibe) VIBE_ONLY=true ;;
+    -h | --help) _usage; exit 0 ;;
+    *) printf 'Unknown option: %s\n' "$arg" >&2; _usage >&2; exit 2 ;;
   esac
 done
+
+_banner
 
 if [ "$VIBE_ONLY" = true ]; then
   _info "Running AI tools sync only..."

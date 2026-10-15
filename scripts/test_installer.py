@@ -115,6 +115,24 @@ _retry "Operation" operation
         self.assertEqual(result.stderr.splitlines(), ["network failure"] * 3)
         self.assertEqual((self.home / "waits").read_text().splitlines(), ["5", "10"])
 
+    def test_unknown_option_stops_before_installation(self):
+        result = self.run_shell('set -- --vbie\n' + self.block(
+            "# Parse arguments", 'if [ "$VIBE_ONLY" = true ]; then') + '\nprintf "WOULD_INSTALL\\n"\n')
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("Unknown option: --vbie", result.stderr)
+        self.assertNotIn("WOULD_INSTALL", result.stdout)
+        self.assertEqual(list(self.home.iterdir()), [self.repo])
+
+    def test_help_exits_without_changing_home(self):
+        for option in ("-h", "--help"):
+            with self.subTest(option=option):
+                result = subprocess.run(["/bin/bash", str(ROOT / "run.sh"), option],
+                                        env=self.env, capture_output=True, text=True, timeout=5)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("Usage: bash run.sh", result.stdout)
+                self.assertNotIn("INSTALLER", result.stdout)
+                self.assertEqual(list(self.home.iterdir()), [self.repo])
+
     def test_retry_stops_at_first_success(self):
         result = self.run_shell('''
 attempt=0
