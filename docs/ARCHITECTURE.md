@@ -155,4 +155,6 @@ bash -n macos
 
 Tests use temporary homes and mocked system or Git commands. Server tests also start a temporary local HTTP server. PowerShell tests are skipped when its runtime is absent. Tests do not validate real package installation, live OS preferences, or external accounts. Deployment comparisons are documented in [AI Tools Sync](../README.md#배포와-결과-확인).
 
+`scripts/test_full_installer.py` runs all 11 steps for simulated macOS and Linux machines. It verifies installed files, machine-specific SSH/AWS settings, backups, completion markers, and an unchanged second installation. Package managers, network downloads, and system preference commands are simulated at the command boundary.
+
 The [Checks workflow](../.github/workflows/check.yml) runs generated-file checks, regressions, and shell syntax checks for pull requests and pushes to `main`. It tests macOS and Linux with Python 3.11 and the latest stable Python 3. Linux jobs install Zsh so shared helpers are exercised in both shells. The optional VibeMon integration test requires a separate checkout and is not part of these jobs.
