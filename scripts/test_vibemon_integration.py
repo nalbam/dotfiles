@@ -36,7 +36,11 @@ class InstallerCoexistenceTests(unittest.TestCase):
                     path = home / f".{tool}" / filename
                     path.parent.mkdir(parents=True)
                     path.write_text(json.dumps({"hooks": {"SessionStart": [foreign]}, "custom": False}))
-                (home / ".kiro").mkdir()
+                kiro_agent = home / ".kiro/agents/default.json"
+                kiro_agent.parent.mkdir(parents=True)
+                kiro_settings = {"hooks": [{"name": "user-hook", "trigger": "SessionStart",
+                                           "action": {"type": "command", "command": "romty hook test"}}]}
+                kiro_agent.write_text(json.dumps(kiro_settings))
                 config = home / ".codex/config.toml"
 
                 def run(kind, uninstall=False):
@@ -62,6 +66,7 @@ class InstallerCoexistenceTests(unittest.TestCase):
                             self.assertEqual(sum("vibemon.py" in c for c in commands), int(installed))
                             self.assertFalse(any("memory-sync.sh" in c for c in commands))
                     self.assertEqual((home / ".kiro/hooks/vibemon.json").exists(), installed)
+                    self.assertEqual(json.loads(kiro_agent.read_text()), kiro_settings)
                     self.assertFalse((home / ".claude/hooks/memory-sync.sh").exists())
 
                 for kind in order:
