@@ -42,13 +42,18 @@ def regular_path(path, boundary):
     """Refuse symlinks and non-regular destinations before reading or replacing them."""
     current = path
     while current != boundary:
-        if current.is_symlink():
-            raise ValueError(f"Symlink requires manual review: {current}")
-        if current != path and current.exists() and not current.is_dir():
-            raise ValueError(f"Expected a directory: {current}")
+        try:
+            mode = current.lstat().st_mode
+        except (FileNotFoundError, NotADirectoryError):
+            mode = None
+        if mode is not None:
+            if stat.S_ISLNK(mode):
+                raise ValueError(f"Symlink requires manual review: {current}")
+            if current == path and not stat.S_ISREG(mode):
+                raise ValueError(f"Expected a regular file: {current}")
+            if current != path and not stat.S_ISDIR(mode):
+                raise ValueError(f"Expected a directory: {current}")
         current = current.parent
-    if path.exists() and not path.is_file():
-        raise ValueError(f"Expected a regular file: {path}")
 
 
 def fill_missing(local, defaults):

@@ -485,6 +485,25 @@ status_line = [
         self.assertFalse((self.home / ".toast/vibe_manifest_claude").exists())
         self.assertIn("Expected a directory", result.stderr)
 
+    def test_destination_inspection_error_is_not_treated_as_a_missing_path(self):
+        from unittest.mock import patch
+        self.sync()
+        self.put(".dotfiles/claude/CLAUDE.md", "new instructions\n")
+        blocked = (self.home / ".agents").resolve()
+        real_lstat = Path.lstat
+
+        def inspect(path, *args, **kwargs):
+            if path == blocked:
+                raise PermissionError(13, "Permission denied", str(path))
+            return real_lstat(path, *args, **kwargs)
+
+        module = runpy.run_path(str(ROOT / "scripts/sync-ai-tools.py"))
+        with patch("pathlib.Path.home", return_value=self.home), patch.object(Path, "lstat", inspect), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            result = module["main"]()
+        self.assertEqual(result, 1)
+        self.assertEqual((self.home / ".claude/CLAUDE.md").read_text(), "shared instructions\n")
+
 
     def test_real_repository_payload(self):
         for name, _ in (("claude", ".claude"), ("codex", ".codex"), ("kiro", ".kiro"), ("opencode", ".config/opencode")):
