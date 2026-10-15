@@ -146,7 +146,7 @@ _retry() {
   local max_retries=3 retry_count=0 wait_time=5
 
   while [ $retry_count -lt $max_retries ]; do
-    if "$@" 2>/dev/null; then return 0; fi
+    if "$@"; then return 0; fi
     retry_count=$((retry_count + 1))
     if [ $retry_count -eq $max_retries ]; then return 1; fi
     _info "$description failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"

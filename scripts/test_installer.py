@@ -105,6 +105,26 @@ class InstallerTests(unittest.TestCase):
                     expected = subprocess.check_output(["git", "config", "--file", str(ROOT / ("gitconfig-" + profile)), "--get", key], env=self.env)
                     self.assertTrue(actual == expected, f"Incorrect {key} for {profile}")
 
+    def test_retry_preserves_diagnostics_and_stops_after_three_attempts(self):
+        result = self.run_shell('''
+sleep() { printf '%s\\n' "$1" >> "$HOME/waits"; }
+operation() { printf 'network failure\\n' >&2; return 7; }
+_retry "Operation" operation
+''')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.stderr.splitlines(), ["network failure"] * 3)
+        self.assertEqual((self.home / "waits").read_text().splitlines(), ["5", "10"])
+
+    def test_retry_stops_at_first_success(self):
+        result = self.run_shell('''
+attempt=0
+operation() { attempt=$((attempt + 1)); [ "$attempt" -eq 2 ]; }
+_retry "Operation" operation || exit 1
+printf 'attempts=%s\\n' "$attempt"
+''')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("attempts=2", result.stdout)
+
     def test_failed_download_preserves_config_and_backup(self):
         target = self.home / ".settings"
         target.write_text("working configuration")
