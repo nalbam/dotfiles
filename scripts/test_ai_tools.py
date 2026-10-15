@@ -255,6 +255,13 @@ class DeploymentTests(unittest.TestCase):
         self.assertIn("curl", target.with_name("settings.json.backup").read_text())
         self.assertNotIn("SYNC: ~/.claude/settings.json", self.sync().stdout)
 
+    def test_claude_auto_mode_follows_repository(self):
+        self.put(".dotfiles/claude/settings.json", '{"autoMode":{"environment":["repo"],"soft_deny":["$defaults"]}}\n')
+        target = self.put(".claude/settings.json", '{"autoMode":{"environment":["stale"],"soft_deny":["local"]},"theme":"auto"}\n')
+        self.sync()
+        self.assertEqual(json.loads(target.read_text()),
+                         {"autoMode":{"environment":["repo"],"soft_deny":["$defaults"]},"theme":"auto"})
+
     def test_claude_local_deny_rules_stay_without_repository_list(self):
         self.put(".dotfiles/claude/settings.json", '{"permissions":{"allow":["WebFetch"]}}\n')
         target = self.put(".claude/settings.json", '{"permissions":{"deny":["Bash(local)"]}}\n')
