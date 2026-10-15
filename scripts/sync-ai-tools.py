@@ -110,7 +110,15 @@ def merge_machine_hooks(local, defaults, scripts, home, *, kiro=False):
             def inline_owned(hook):
                 if not isinstance(hook, dict) or not isinstance(hook.get("action"), dict):
                     raise ValueError("Kiro inline hook must have an action object")
+                for key in ("name", "trigger"):
+                    if not isinstance(hook.get(key), str) or not hook[key].strip():
+                        raise ValueError(f"Kiro inline hook requires a nonempty {key}")
                 action = hook["action"]
+                if action.get("type") not in ("command", "agent"):
+                    raise ValueError("Kiro action type must be command or agent")
+                payload = "command" if action["type"] == "command" else "prompt"
+                if not isinstance(action.get(payload), str) or not action[payload].strip():
+                    raise ValueError(f"Kiro action requires a nonempty {payload}")
                 return action.get("type") == "command" and owned(action)
 
             result = [hook for hook in local if not inline_owned(hook)]

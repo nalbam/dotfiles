@@ -248,8 +248,18 @@ class DeploymentTests(unittest.TestCase):
 
     def test_invalid_kiro_array_hooks_stop_before_deployment(self):
         self.put(".dotfiles/kiro/agents/default.json", '{"hooks": {}}\n')
-        for hook in (None, {"action": "private-test-value"},
-                     {"action": {"type": "command", "command": ["private-test-value"]}}):
+        valid = {"name": "private-test-value", "trigger": "SessionStart",
+                 "action": {"type": "command", "command": "git status"}}
+        invalid = [None, valid | {"action": "private-test-value"}]
+        for key in ("name", "trigger"):
+            invalid.append({field: value for field, value in valid.items() if field != key})
+            invalid.extend(valid | {key: value} for value in (None, [], ""))
+        for action in ({}, {"type": "unsupported"}, {"type": "command"},
+                       {"type": "command", "command": ["private-test-value"]},
+                       {"type": "command", "command": ""}, {"type": "agent"},
+                       {"type": "agent", "prompt": []}, {"type": "agent", "prompt": ""}):
+            invalid.append(valid | {"action": action})
+        for hook in invalid:
             with self.subTest(hook=hook):
                 target = self.put(".kiro/agents/default.json", json.dumps({"hooks": [hook]}))
                 original = target.read_bytes()
