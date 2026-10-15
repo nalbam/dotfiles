@@ -82,6 +82,49 @@ kill() { return 0; }
                     self.assertIn("example-server", result.stdout)
                     self.assertEqual(bool(self.registry.read_text()), command == "sl")
 
+    def test_list_lookup_failure_preserves_registration(self):
+        for shell in SHELLS:
+            for failure in ("return 2", "echo 'lsof: cannot inspect processes' >&2; return 1"):
+                with self.subTest(shell=shell, failure=failure):
+                    self.write_registry()
+                    result = self.run_shell(shell, f'lsof() {{ {failure}; }}\nsl\n')
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn("Could not inspect TCP port 8123", result.stderr)
+                    self.assertEqual(self.registry.read_text(), "8123\tpython\t/example\n")
+
+    def test_listener_warnings_and_invalid_pids_never_signal_processes(self):
+        for shell in SHELLS:
+            for output in ("123\\nlsof: incomplete lookup", "0", "0000"):
+                with self.subTest(shell=shell, output=output):
+                    self.write_registry()
+                    result = self.run_shell(shell, '''
+lsof() { printf '%b\\n' "''' + output + '''"; }
+kill() { printf 'unexpected signal' >&2; }
+sk 8123
+''')
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertNotIn("unexpected signal", result.stderr)
+                    self.assertIn("8123", self.registry.read_text())
+
+    def test_list_prunes_only_confirmed_absent_listeners(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                self.write_registry()
+                result = self.run_shell(shell, 'lsof() { return 1; }\nsl\n')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, "No servers running\n")
+                self.assertEqual(self.registry.read_text(), "")
+
+    def test_list_rejects_invalid_registry_port_before_lookup(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                self.write_registry()
+                self.registry.write_text("1-65535\tpython\t/example\n")
+                result = self.run_shell(shell, 'lsof() { echo unexpected >&2; }\nsl\n')
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertNotIn("unexpected", result.stderr)
+                self.assertEqual(self.registry.read_text(), "1-65535\tpython\t/example\n")
+
     def test_invalid_port_does_not_signal_processes(self):
         for shell in SHELLS:
             with self.subTest(shell=shell):
@@ -187,7 +230,43 @@ ss 8123
                     self.assertNotIn("Serving", result.stdout)
                     self.assertFalse(self.registry.exists())
 
-    def test_python_success_means_http_is_ready(self):
+    def test_python_launcher_can_spawn_a_different_server_pid(self):
+        docs = self.home / "docs"
+        docs.mkdir()
+        (docs / "index.html").write_text("spawned server ready")
+        child_pid_file = self.home / "child-pid"
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                child_pid_file.unlink(missing_ok=True)
+                server_pid = None
+                with socket.socket() as reservation:
+                    reservation.bind(("127.0.0.1", 0))
+                    port = reservation.getsockname()[1]
+                try:
+                    result = self.run_shell(shell, '''
+_port_kill() { return 1; }
+python3() {
+  command python3 "$@" &
+  local child=$!
+  if [ "$1" = -u ]; then printf '%s\\n' "$child" > "$HOME/child-pid"; fi
+  wait "$child"
+}
+ss ''' + str(port))
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    server_pid = int(re.search(r"\(PID (\d+)\)", result.stdout).group(1))
+                    os.kill(server_pid, 0)
+                    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                    with opener.open(f"http://127.0.0.1:{port}/", timeout=3) as response:
+                        self.assertEqual(response.read(), b"spawned server ready")
+                finally:
+                    cleanup_pid = server_pid or (int(child_pid_file.read_text()) if child_pid_file.exists() else None)
+                    if cleanup_pid:
+                        try:
+                            os.kill(cleanup_pid, signal.SIGTERM)
+                        except ProcessLookupError:
+                            pass
+
+    def assert_python_http_ready(self):
         docs = self.home / "docs"
         docs.mkdir()
         (docs / "index.html").write_text("server ready")
@@ -206,6 +285,18 @@ ss 8123
                     self.assertIn(str(port), self.registry.read_text())
                 finally:
                     os.kill(pid, signal.SIGTERM)
+
+    def test_python_success_means_http_is_ready(self):
+        self.assert_python_http_ready()
+
+    def test_python_startup_does_not_require_hostname_resolution(self):
+        (self.home / "sitecustomize.py").write_text('''import socket
+def forbidden_lookup(*args, **kwargs):
+    raise RuntimeError("HTTP startup must not resolve the host name")
+socket.getfqdn = forbidden_lookup
+''')
+        self.env["PYTHONPATH"] = str(self.home)
+        self.assert_python_http_ready()
 
 
 if __name__ == "__main__":

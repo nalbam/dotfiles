@@ -3,8 +3,8 @@
 # Toast CLI shortcuts
 alias t='toast'
 alias tu='python3 -m pip install --user -U toast-cli'
-alias tt='curl -fsSL nalbam.github.io/dotfiles/run.sh | bash'
-alias vv='curl -fsSL docs.vibemon.io/install.py | python3 - --all --yes'
+alias tt='curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash'
+alias vv='curl -fsSL https://docs.vibemon.io/install.py | python3 - --all --yes'
 
 # romty
 alias rt='romty'
@@ -232,15 +232,34 @@ _server_port_valid() {
   case "$1" in ''|*[!0-9]*) return 1 ;; esac
   [ "${#1}" -le 5 ] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
 }
-_port_kill() {
-  # 0: signalled every listener, 1: no listener, 2: lookup or signal failed.
+_server_pids() {
   local port="$1"
   _server_port_valid "$port" || { echo "Invalid TCP port: $port" >&2; return 2; }
   command -v lsof >/dev/null 2>&1 || { echo "lsof is required" >&2; return 2; }
-  local pids result=0 pid cmd
-  pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null)
+  local pids result pid
+  # lsof uses status 1 for both no matches and errors. Keep diagnostics to
+  # distinguish them, and validate the complete result before signalling anyone.
+  pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>&1)
   result=$?
-  [ "$result" -le 1 ] || { echo "Could not inspect TCP port $port" >&2; return 2; }
+  if [ "$result" -eq 1 ] && [ -z "$pids" ]; then return 0; fi
+  [ "$result" -eq 0 ] || { echo "Could not inspect TCP port $port" >&2; return 2; }
+  [ -z "$pids" ] && return 0
+  while IFS= read -r pid; do
+    case "$pid" in
+      ''|*[!0-9]*) ;;
+      *) if [ "$pid" -gt 0 ] 2>/dev/null; then continue; fi ;;
+    esac
+    echo "Invalid listener lookup output for TCP port $port" >&2
+    return 2
+  done <<EOF
+$pids
+EOF
+  printf '%s\n' "$pids"
+}
+_port_kill() {
+  # 0: signalled every listener, 1: no listener, 2: lookup or signal failed.
+  local port="$1" pids result=0 pid cmd
+  pids=$(_server_pids "$port") || return
   [ -z "$pids" ] && return 1
   result=0
   pids=$(printf '%s\n' "$pids" | sort -u)
@@ -319,7 +338,7 @@ ss() {
     return "$result"
   else
     local dir="${2:-docs}"
-    local abs_dir startup pid ready
+    local abs_dir startup pid launcher_pid
     if ! abs_dir=$(cd "$dir" 2>/dev/null && pwd); then
       echo "Directory '$dir' not found"
       return 1
@@ -331,9 +350,14 @@ ss() {
     if ! mkfifo "$startup/ready"; then rmdir "$startup"; return 1; fi
     # The child acknowledges its PID only after bind/listen succeeds. EOF means startup failed.
     python3 -u -c '
-import functools, http.server, os, sys
+import functools, http.server, os, socketserver, sys
+class DevHTTPServer(http.server.ThreadingHTTPServer):
+    def server_bind(self):
+        # Static file serving needs no reverse DNS lookup during startup.
+        socketserver.TCPServer.server_bind(self)
+        self.server_name, self.server_port = self.server_address[:2]
 handler = functools.partial(http.server.SimpleHTTPRequestHandler, directory=sys.argv[2])
-with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
+with DevHTTPServer(("", int(sys.argv[1])), handler) as server:
     with open(os.devnull, "w") as sink:
         os.dup2(sink.fileno(), 1)
         os.dup2(sink.fileno(), 2)
@@ -341,10 +365,10 @@ with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
         ready.write(str(os.getpid()) + "\n")
     server.serve_forever()
 ' "$port" "$abs_dir" 3>"$startup/ready" >"$startup/log" 2>&1 &
-    pid=$!
-    IFS= read -r ready < "$startup/ready"
-    if [ "$ready" != "$pid" ]; then
-      wait "$pid"
+    launcher_pid=$!
+    # Framework Python launchers can spawn a server with a different PID.
+    if ! IFS= read -r pid < "$startup/ready"; then
+      wait "$launcher_pid"
       result=$?
       cat "$startup/log" >&2
       rm -f "$startup/ready" "$startup/log"
@@ -356,23 +380,23 @@ with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
     rmdir "$startup"
     if ! _server_add "$port" "python" "$abs_dir"; then
       kill "$pid"
-      wait "$pid" 2>/dev/null
+      wait "$launcher_pid" 2>/dev/null
       return 1
     fi
-    disown "$pid"
+    disown "$launcher_pid"
     echo "Serving $abs_dir at http://localhost:$port (PID $pid)"
   fi
 }
 sl() {
   # Server list - show servers started by ss(), pruning dead ones
   [ -f "$DEV_SERVERS" ] || { echo "No servers running"; return 0; }
-  command -v lsof >/dev/null 2>&1 || { echo "lsof is required" >&2; return 1; }
-  local found=""
+  local found="" port type dir pids pid cmd
   while IFS="$(printf '\t')" read -r port type dir; do
     [ -z "$port" ] && continue
-    local pid=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null | head -1)
+    pids=$(_server_pids "$port") || return
+    pid=$(printf '%s\n' "$pids" | head -1)
     if [ -n "$pid" ]; then
-      local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+      cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
       [ -z "$found" ] && echo "Local servers:"
       echo "  [$type] $cmd (PID $pid) on port $port  $dir"
       found="1"

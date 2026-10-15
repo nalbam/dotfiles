@@ -9,7 +9,6 @@ if sys.version_info < (3, 11):
 from contextlib import contextmanager
 from datetime import date, datetime, time
 import fcntl
-import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -43,11 +42,18 @@ def regular_path(path, boundary):
     """Refuse symlinks and non-regular destinations before reading or replacing them."""
     current = path
     while current != boundary:
-        if current.is_symlink():
-            raise ValueError(f"Symlink requires manual review: {current}")
+        try:
+            mode = current.lstat().st_mode
+        except (FileNotFoundError, NotADirectoryError):
+            mode = None
+        if mode is not None:
+            if stat.S_ISLNK(mode):
+                raise ValueError(f"Symlink requires manual review: {current}")
+            if current == path and not stat.S_ISREG(mode):
+                raise ValueError(f"Expected a regular file: {current}")
+            if current != path and not stat.S_ISDIR(mode):
+                raise ValueError(f"Expected a directory: {current}")
         current = current.parent
-    if path.exists() and not path.is_file():
-        raise ValueError(f"Expected a regular file: {path}")
 
 
 def fill_missing(local, defaults):
@@ -274,28 +280,30 @@ def rule_block(text):
 
 
 def merge_rules(source, old):
-    lines, span = rule_block(source)
-    if span is None:
-        raise ValueError("Missing Codex managed-rule markers")
-    managed = "".join(lines[span[0]:span[1]])
-    if not managed.endswith("\n"):
-        managed += "\n"
+    # A removed source retires only the managed block, never local rules.
+    managed = ""
+    if source is not None:
+        lines, span = rule_block(source)
+        if span is None:
+            raise ValueError("Missing Codex managed-rule markers")
+        managed = "".join(lines[span[0]:span[1]])
+        if not managed.endswith("\n"):
+            managed += "\n"
     if old is None:
         return source
     lines, span = rule_block(old)
     if span is None:
-        return managed + "\n" + old
+        return managed + "\n" + old if managed else old
     return "".join(lines[:span[0]]) + managed + "".join(lines[span[1]:])
 
 
-def file_content(source, destination, source_name, relative, scripts, home):
-    data = source.read_bytes()
-    old = destination.read_bytes() if destination.exists() else None
+def file_content(data, old, source_name, relative, scripts, home):
     try:
         if source_name == "codex" and relative == "config.toml":
             return merge_toml(data.decode(), old.decode() if old is not None else None).encode()
         if source_name == "codex" and relative == "rules/default.rules":
-            return merge_rules(data.decode(), old.decode() if old is not None else None).encode()
+            return merge_rules(data.decode() if data is not None else None,
+                               old.decode() if old is not None else None).encode()
         if (source_name, relative) in JSON_SETTINGS:
             defaults = json.loads(data)
             local = json.loads(old) if old is not None else {}
@@ -340,8 +348,13 @@ def backup(path, boundary):
 def source_files(directory):
     if directory.is_symlink():
         raise ValueError(f"Source symlink requires manual review: {directory}")
+
+    def scan_error(error):
+        # An unreadable subtree must not look like removed managed files.
+        raise error
+
     files = []
-    for parent, directories, names in os.walk(directory):
+    for parent, directories, names in os.walk(directory, onerror=scan_error):
         directories[:] = sorted(name for name in directories if name != "__pycache__")
         for name in directories + names:
             path = Path(parent) / name
@@ -370,8 +383,9 @@ def plan_target(home, repo, source_name, target_name):
     regular_path(manifest, home)
     previous = set(manifest.read_text().splitlines()) if manifest.exists() else set()
     for relative in previous:
-        parts = PurePosixPath(relative).parts
-        if not parts or PurePosixPath(relative).is_absolute() or ".." in parts or "\\" in relative:
+        managed_path = PurePosixPath(relative)
+        if (not managed_path.parts or managed_path.is_absolute() or ".." in managed_path.parts
+                or "\\" in relative or managed_path.as_posix() != relative):
             raise ValueError(f"Invalid managed path in {manifest}")
     names = {path.relative_to(source).as_posix() for path in files}
     scripts = {str(destination / relative) for relative in names | previous
@@ -385,11 +399,12 @@ def plan_target(home, repo, source_name, target_name):
         target = destination / relative
         regular_path(target, home)
         regular_path(target.with_name(target.name + ".backup"), home)
-        content = file_content(path, target, source_name, relative, scripts, home)
+        old = target.read_bytes() if target.exists() else None
+        content = file_content(path.read_bytes(), old, source_name, relative, scripts, home)
         executable = path.stat().st_mode & 0o100
         mode = (stat.S_IMODE(target.stat().st_mode) if target.exists() else 0o600) | executable
         if (target.exists() and stat.S_IMODE(target.stat().st_mode) == mode
-                and hashlib.md5(target.read_bytes()).digest() == hashlib.md5(content).digest()):
+                and old == content):
             continue
         changes.append((target, content, mode))
     if manifest.exists():
@@ -402,7 +417,16 @@ def plan_target(home, repo, source_name, target_name):
             regular_path(target, home)
             regular_path(target.with_name(target.name + ".backup"), home)
             if target.exists():
-                changes.append((target, None, None))
+                content, mode = None, None
+                if source_name == "codex" and relative == "rules/default.rules":
+                    old = target.read_bytes()
+                    retained = file_content(None, old, source_name, relative, scripts, home)
+                    if retained == old:
+                        continue
+                    if retained:
+                        content = retained
+                        mode = stat.S_IMODE(target.stat().st_mode)
+                changes.append((target, content, mode))
     return changes, (manifest, ("\n".join(sorted(names)) + "\n").encode())
 
 

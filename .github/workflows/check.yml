@@ -1,0 +1,50 @@
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regression:
+    name: ${{ matrix.os }} / Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ['3.11', '3.x']
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install Zsh on Linux
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes zsh
+      - name: Verify generated files and regressions
+        run: |
+          python scripts/gen-ai-tools.py --check
+          python -m unittest discover -s scripts -p 'test_*.py' -v
+      - name: Check shell syntax and whitespace
+        shell: bash
+        run: |
+          for file in run.sh aliases bashrc profile macos shell/nvm.sh darwin/*.sh linux/*.sh nvim/install.sh; do
+            bash -n "$file"
+          done
+          for file in aliases profile shell/nvm.sh zshrc darwin/*.sh linux/zprofile.*.sh; do
+            zsh -n "$file"
+          done
+          git show --format= --check --diff-merges=first-parent HEAD

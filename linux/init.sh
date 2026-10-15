@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# curl -fsSL nalbam.github.io/dotfiles/linux/init.sh | bash
+# curl -fsSL https://nalbam.github.io/dotfiles/linux/init.sh | bash
 #
 # Run as root on a fresh Ubuntu host. Idempotent — rerun after a broken run.
 # Everything after this belongs to the ubuntu user.

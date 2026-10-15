@@ -33,6 +33,8 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 bash ~/.dotfiles/run.sh
 ```
 
+`bash ~/.dotfiles/run.sh --help`는 파일을 바꾸지 않고 옵션을 표시한다. 알 수 없는 옵션은 설치를 시작하지 않고 종료 코드 `2`를 반환한다.
+
 전체 설치는 `~/.dotfiles`를 clone하거나 갱신하고, 사용자 설정을 복사하며, 기본 셸을 Zsh로 변경한다. 기존 checkout의 갱신이 실패하면 경고를 출력하고 현재 파일로 계속한다. AI 설정만 바꾸려면 [AI Tools Sync](#ai-tools-sync)를 사용한다.
 
 완료 메시지와 함께 경고가 표시되면 해당 단계의 로그를 확인한다. 오류나 경고의 원인을 해결한 뒤 같은 명령을 다시 실행한다. 새 터미널에서 `command -v git zsh`와 `type cx`로 도구 경로와 셸 별칭 로딩을 확인할 수 있다. 별칭이 있다는 사실만으로 해당 AI CLI가 설치됐다고 판단하지 않는다.
@@ -64,7 +66,7 @@ nvm current
 & "$HOME\.dotfiles\run.ps1"
 ```
 
-기존 Git/Vim 대상 파일이 있으면 링크 생성을 건너뛴다. 링크 생성이나 winget 설치가 실패하면 즉시 중단한다. 이 경로는 Zsh·macOS 설정·AI 설정을 동기화하지 않는다. Windows에서 AI 설정을 동기화하려면 WSL의 `run.sh`를 사용한다.
+Git 기본 설정과 디렉터리별 신원 프로필, Vim 설정을 링크한다. 기존 대상 파일이 있으면 링크 생성을 건너뛴다. 링크 생성이나 winget 설치가 실패하면 즉시 중단한다. 이 경로는 Zsh·macOS 설정·AI 설정을 동기화하지 않는다. Windows에서 AI 설정을 동기화하려면 WSL의 `run.sh`를 사용한다.
 
 ### macOS 설정과 인증
 
@@ -120,9 +122,9 @@ AI 설정 배포와 CLI 설치는 별개다. `claude`가 이미 설치되어 있
 | `cx` / `cxc` | Codex 시작 / 최근 세션 이어가기 |
 | `ccp "prompt"` / `cxp "prompt"` | 프롬프트를 전달해 Claude Code / Codex 시작 |
 
-`nn`과 `nnn`은 `node_modules`와 해당 빌드 출력을 지운다. `nnn`은 lockfile도 지우므로 의존성 버전이 달라질 수 있다. `ss`는 `package.json`이 있으면 Node.js 개발 서버를, 없으면 기본 `docs/` 디렉터리의 Python HTTP 서버를 실행한다. Python 서버는 실제 포트 바인딩 후 성공을 알리며, 시작·종료 신호 실패는 오류로 반환한다.
+`nn`과 `nnn`은 `node_modules`와 해당 빌드 출력을 지운다. `nnn`은 lockfile도 지우므로 의존성 버전이 달라질 수 있다. `ss`는 `package.json`이 있으면 Node.js 개발 서버를, 없으면 기본 `docs/` 디렉터리의 Python HTTP 서버를 실행한다. Python 서버는 호스트 이름 조회 없이 실제 포트 바인딩 후 성공을 알리며, 시작·종료 신호 실패는 오류로 반환한다.
 
-서버 도우미는 Python 3와 `lsof`가 필요하다. 등록 정보 갱신은 파일 잠금으로 직렬화하여 여러 터미널에서 동시에 실행해도 다른 포트의 기록을 보존한다.
+서버 도우미는 Python 3와 `lsof`가 필요하다. 목록 조회에 실패하면 오류를 반환하고 등록 정보를 보존한다. 등록 정보 갱신은 파일 잠금으로 직렬화하여 여러 터미널에서 동시에 실행해도 다른 포트의 기록을 보존한다.
 
 한글 키보드 별칭: `ㅊ` → `c`, `ㅊㅇ` → `cd`, `ㅅㅅ` → `tt`, `ㅊㅊ` → `cc`.
 
@@ -188,7 +190,9 @@ diff -qr ~/.dotfiles/opencode/agents ~/.config/opencode/agents
 
 ### 기존 설정 보존과 실패 처리
 
-일반 지침·스킬은 MD5로 비교해 변경된 파일을 원자적으로 교체한다. 덮어쓰기·manifest 기반 삭제 전에는 같은 경로의 `.backup`에 직전 내용을 보관하고 권한을 `600`으로 설정한다. manifest는 이전에 배포한 파일 목록이다. 목록에 없는 파일은 삭제하지 않으며, 원본 디렉터리가 없거나 비어 있으면 해당 대상과 목록을 보존한다.
+AI 설정은 병합에 읽은 대상 바이트를 재사용해 결과와 직접 비교하고, 변경된 파일을 원자적으로 교체한다. 덮어쓰기·manifest 기반 삭제 전에는 같은 경로의 `.backup`에 직전 내용을 보관하고 권한을 `600`으로 설정한다. manifest는 이전에 배포한 파일 목록이다. 목록에 없는 파일은 삭제하지 않으며, 원본 디렉터리가 없거나 비어 있으면 해당 대상과 목록을 보존한다.
+
+manifest에는 정규화된 상대 경로만 허용한다. `./config.toml`이나 `rules//default.rules`처럼 같은 파일의 다른 표기는 배포 전에 오류로 처리한다.
 
 Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저장소 값을 따른다. `approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`를 원본과 맞추고, 원본에 없는 키는 제거한다. 따라서 기존 설치도 동기화 후 같은 승인 정책을 사용하며, 예전 샌드박스 설정이 새 권한 프로필을 가리지 않는다. 변경 후 새 세션에서 권한 모드를 확인한다.
 
@@ -200,7 +204,7 @@ OpenCode의 `opencode.jsonc`·`cli.json`·`plugins/`는 배포 대상이 아니�
 
 VibeMon 전송·사용량 스크립트와 전용 훅, Claude `statusline.py`는 VibeMon 설치기가 관리한다. dotfiles는 이를 복사하거나 삭제하지 않으며, 과거 manifest에 남은 경로는 파일을 보존하고 목록에서만 제외한다. 공유 JSON 설정과 Codex `config.toml`도 원본에서 빠졌다는 이유로 파일 전체를 삭제하지 않는다. Codex의 일반 `tui.status_line` 기본값은 dotfiles에서 관리하고 기존 머신의 선택은 보존한다.
 
-그 외 Codex TOML, Claude `settings.json`, Kiro `agents/default.json` 설정은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 일반 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다.
+그 외 Codex TOML, Claude `settings.json`, Kiro `agents/default.json` 설정은 기존 값을 우선하고 없는 키만 채운다. 모델·UI·MCP·신뢰 목록, 일반 배열·명시적 `false`·빈 값도 유지하므로 머신별 설정은 다를 수 있다. Codex 명령 승인 규칙은 관리 블록 밖 내용을 보존한다. 원본 `rules/default.rules`를 제거해도 관리 블록만 지우며, 로컬 규칙이 남은 파일은 보존한다.
 
 VibeMon 저장소가 있으면 두 실제 설치기의 실행 순서·재설치·제거를 임시 홈에서 검증할 수 있다. 이 검사는 네트워크나 실제 머신 설정을 사용하지 않는다.
 
@@ -209,7 +213,7 @@ DOTFILES_VIBEMON_INSTALLER=/path/to/vibemon-app/public/install/install.py \
   python3 scripts/test_vibemon_integration.py
 ```
 
-[`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과를 확인한 뒤 배포한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
+[`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과와 상위 디렉터리 구조를 확인한 뒤 배포한다. 원본 하위 디렉터리를 읽지 못하면 삭제된 파일로 취급하지 않고 배포 전에 중단한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
 
 파일 배포 중 I/O 오류가 나면 일부 파일이 이미 반영되었을 수 있다. 실패한 쓰기는 원본을 보존하며, 모든 파일 배포가 성공해야 대상별 manifest를 갱신한다. 오류를 해결한 뒤 재실행한다. 생성기는 원본에서 삭제된 Markdown을 미러에서 정리하고, 수동 관리하는 `agents/openai.yaml`은 보존한다.
 

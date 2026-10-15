@@ -146,7 +146,7 @@ _retry() {
   local max_retries=3 retry_count=0 wait_time=5
 
   while [ $retry_count -lt $max_retries ]; do
-    if "$@" 2>/dev/null; then return 0; fi
+    if "$@"; then return 0; fi
     retry_count=$((retry_count + 1))
     if [ $retry_count -eq $max_retries ]; then return 1; fi
     _info "$description failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
@@ -155,24 +155,60 @@ _retry() {
   done
 }
 
+# Execute only complete, syntactically valid bootstrap downloads.
+_install_script() (
+  local url="$1" script
+  shift
+  script=$(mktemp "${TMPDIR:-/tmp}/dotfiles-bootstrap.XXXXXX") || return
+  trap 'rm -f "$script"' EXIT
+  _retry "Download installer" curl -fsSL --connect-timeout 10 -o "$script" "$url" || return
+  /bin/bash -n "$script" || return
+  /bin/bash "$script" "$@"
+)
+
+_archive_oh_my_zsh() {
+  [ -e "$HOME/.oh-my-zsh" ] || [ -L "$HOME/.oh-my-zsh" ] || return 0
+  local backup
+  backup=$(mktemp -d "$HOME/.oh-my-zsh.backup.XXXXXX") || _error "Failed to preserve incomplete Oh My ZSH"
+  if ! mv "$HOME/.oh-my-zsh" "$backup/oh-my-zsh"; then
+    rmdir "$backup"
+    _error "Failed to preserve incomplete Oh My ZSH"
+  fi
+  _info "Preserved incomplete Oh My ZSH at $backup/oh-my-zsh"
+}
+
 # MD5 해시 함수 (크로스 플랫폼)
 _md5() {
   if [ "${OS_NAME}" == "darwin" ]; then
     md5 -q "$1"
   else
-    md5sum "$1" | awk '{print $1}'
+    local digest
+    digest=$(md5sum "$1") || return
+    printf '%s\n' "${digest%% *}"
   fi
+}
+
+# 0: equal, 1: different, 2: comparison failed.
+_same_file() {
+  local left right
+  left=$(_md5 "$1") || return 2
+  right=$(_md5 "$2") || return 2
+  [ -n "$left" ] && [ -n "$right" ] || return 2
+  [ "$left" = "$right" ]
 }
 
 # 백업 생성 함수
 _backup() {
   if [ -f "$1" ]; then
+    local temporary
     if [ -L "$1.backup" ] || { [ -e "$1.backup" ] && [ ! -f "$1.backup" ]; }; then
       return 1
     fi
-    cp "$1" "$1.backup" || return 1
-    # Set secure permissions for backup files
-    chmod 600 "$1.backup" || return 1
+    temporary=$(mktemp "$1.backup.tmp.XXXXXX") || return 1
+    if ! { cp "$1" "$temporary" && chmod 600 "$temporary" && mv -f "$temporary" "$1.backup"; }; then
+      rm -f "$temporary"
+      return 1
+    fi
     _info "Created backup: $1.backup"
   fi
 }
@@ -180,16 +216,18 @@ _backup() {
 # 파일 다운로드 함수
 _download() {
   local target_file="$HOME/$1" source_file="$HOME/.dotfiles/${2:-$1}"
-  local target_dir="${target_file%/*}" temporary
+  local target_dir="${target_file%/*}" temporary comparison
   if [ -e "$target_file" ] && [ ! -f "$target_file" ]; then
     _error "Expected a file at $target_file"
   fi
   mkdir -p "$target_dir" || _error "Failed to create $target_dir"
 
   if [ -f "$source_file" ] && [ -f "$target_file" ] &&
-     [ "$(_md5 "$source_file")" = "$(_md5 "$target_file")" ]; then
+     _same_file "$source_file" "$target_file"; then
     :
   else
+    comparison=$?
+    [ "$comparison" -eq 1 ] || _error "Failed to compare $source_file and $target_file"
     temporary=$(mktemp "$target_file.tmp.XXXXXX") || _error "Failed to stage $target_file"
     if [ -f "$target_file" ] && ! cp -p "$target_file" "$temporary"; then
       rm -f "$temporary"
@@ -206,9 +244,14 @@ _download() {
         _error "Failed to download ${2:-$1} after 3 attempts"
       fi
     fi
-    if [ -f "$target_file" ] && [ "$(_md5 "$temporary")" = "$(_md5 "$target_file")" ]; then
+    if [ -f "$target_file" ] && _same_file "$temporary" "$target_file"; then
       rm -f "$temporary"
     else
+      comparison=$?
+      if [ "$comparison" -ne 1 ]; then
+        rm -f "$temporary"
+        _error "Failed to compare staged content with $target_file"
+      fi
       if ! _backup "$target_file"; then
         rm -f "$temporary"
         _error "Failed to back up $target_file"
@@ -317,20 +360,29 @@ _should_update() {
   [ $(( $(date +%s) - last )) -ge $UPDATE_INTERVAL ]
 }
 
+_usage() {
+  printf '%s\n' \
+    'Usage: bash run.sh [--vibe | --help]' \
+    '  (no options)  Install the development environment.' \
+    '  --vibe        Sync AI settings from ~/.dotfiles only.' \
+    '  -h, --help    Show this help without changing files.'
+}
+
 ################################################################################
 # 실행 영역 (Execution Section)
 ################################################################################
-
-# 시작 배너 출력
-_banner
 
 # Parse arguments
 VIBE_ONLY=false
 for arg in "$@"; do
   case "$arg" in
     --vibe) VIBE_ONLY=true ;;
+    -h | --help) _usage; exit 0 ;;
+    *) printf 'Unknown option: %s\n' "$arg" >&2; _usage >&2; exit 2 ;;
   esac
 done
+
+_banner
 
 if [ "$VIBE_ONLY" = true ]; then
   _info "Running AI tools sync only..."
@@ -462,7 +514,11 @@ fi
 # Homebrew 설치
 if ! command -v brew >/dev/null 2>&1; then
   _run "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  if _install_script https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh; then
+    BREW_INSTALL_OK=true
+  else
+    BREW_INSTALL_OK=false
+  fi
   if [ -x /opt/homebrew/bin/brew ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
   elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
@@ -471,10 +527,10 @@ if ! command -v brew >/dev/null 2>&1; then
     eval "$(/usr/local/bin/brew shellenv)"
   fi
   # 사후 검증: 설치 실패를 성공으로 보고하지 않는다
-  if command -v brew >/dev/null 2>&1; then
+  if [ "$BREW_INSTALL_OK" = true ] && command -v brew >/dev/null 2>&1; then
     _ok "Homebrew installed"
   else
-    _warn "Homebrew install failed — continuing without brew"
+    _warn "Homebrew install failed — review the error above before retrying"
   fi
 else
   _skip "Homebrew already installed"
@@ -500,7 +556,12 @@ if command -v brew >/dev/null 2>&1; then
   # Brewfile 변경 감지: ~/.Brewfile 은 "마지막으로 bundle 성공한 내용" 마커
   BREWFILE_CHANGED=false
   if [ -f "$BREWFILE_SRC" ]; then
-    if [ ! -f ~/.Brewfile ] || [ "$(_md5 "$BREWFILE_SRC")" != "$(_md5 ~/.Brewfile)" ]; then
+    if [ ! -f ~/.Brewfile ]; then
+      BREWFILE_CHANGED=true
+    elif _same_file "$BREWFILE_SRC" ~/.Brewfile; then
+      :
+    else
+      [ "$?" -eq 1 ] || _error "Failed to compare the Brewfile completion marker"
       BREWFILE_CHANGED=true
     fi
   fi
@@ -682,7 +743,10 @@ if [ "${OS_NAME}" == "darwin" ]; then
   _download .macos macos
   # 다운로드 백업과 적용 완료 기록을 분리한다. 성공한 내용만 기록해 실패 시 재시도한다.
   MACOS_APPLIED_FILE=~/.toast/macos.applied
-  if [ ! -f "$MACOS_APPLIED_FILE" ] || [ "$(_md5 ~/.macos)" != "$(_md5 "$MACOS_APPLIED_FILE")" ]; then
+  if [ -f "$MACOS_APPLIED_FILE" ] && _same_file ~/.macos "$MACOS_APPLIED_FILE"; then
+    _skip "macOS system preferences already applied"
+  else
+    [ "$?" -eq 1 ] || _error "Failed to compare the macOS preferences completion marker"
     _run "Applying macOS system preferences..."
     if /bin/bash ~/.macos; then
       if (umask 077; cp ~/.macos "$MACOS_APPLIED_FILE"); then
@@ -693,8 +757,6 @@ if [ "${OS_NAME}" == "darwin" ]; then
     else
       _warn "macOS system preferences failed — will retry on next run"
     fi
-  else
-    _skip "macOS system preferences already applied"
   fi
 fi
 
@@ -702,14 +764,16 @@ fi
 _progress "Installing ZSH and Oh My ZSH..."
 
 # Oh My ZSH 설치
-if [ ! -d ~/.oh-my-zsh ]; then
+if [ ! -s ~/.oh-my-zsh/oh-my-zsh.sh ]; then
+  _archive_oh_my_zsh
   _run "Installing Oh My ZSH..."
-  RUNZSH=no CHSH=no /bin/bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" >/dev/null 2>&1 || true
-  # 사후 검증: 설치 실패를 성공으로 보고하지 않는다
-  if [ -d ~/.oh-my-zsh ]; then
+  if RUNZSH=no CHSH=no _install_script https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh &&
+     [ -s ~/.oh-my-zsh/oh-my-zsh.sh ]; then
     _ok "Oh My ZSH installed"
   else
-    _warn "Oh My ZSH install failed (network issue?)"
+    # Keep failed attempts out of the active path so the next run can retry.
+    _archive_oh_my_zsh
+    _warn "Oh My ZSH install failed — review the error above before retrying"
   fi
 else
   _skip "Oh My ZSH already installed"

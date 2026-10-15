@@ -82,7 +82,9 @@ does not install Node or change the default alias. Missing nvm remains optional 
 
 ## Updates and retries
 
-- `_retry` makes at most three attempts and waits 5 seconds, then 10 seconds. It wraps selected downloads and Git operations, not every network call.
+- `_retry` makes at most three attempts and waits 5 seconds, then 10 seconds. It preserves command errors so a failed download or Git operation can be diagnosed. It wraps selected downloads and Git operations, not every network call.
+- Homebrew and Oh My Zsh bootstrap scripts use temporary files. Execution requires a successful download and Bash syntax check; staging files are removed when the helper exits.
+- Bootstrap success requires both a successful installer exit and the expected installed entry point. Incomplete Oh My Zsh directories are preserved under `~/.oh-my-zsh.backup.*/oh-my-zsh`, leaving the active path available for another attempt.
 - Update markers are stored at `~/.toast/last_update_*` with a six-hour interval.
 - APT, Homebrew, Claude, and pip update markers advance only after their checked operations succeed. Failed updates remain eligible on the next run.
 - A changed Brewfile bypasses the update interval. `~/.Brewfile` stores the last successfully bundled content, so a failed bundle remains eligible for another attempt.
@@ -94,7 +96,9 @@ does not install Node or change the default alias. Missing nvm remains optional 
 
 When a source exists in `~/.dotfiles`, `_download` compares it with the destination using MD5. If the source is missing, it downloads the file from the repository's `main` branch. Changed content is staged in the destination directory before the existing file is backed up and atomically replaced. A failed copy or download leaves the destination unchanged. Identical content leaves both the destination and its backup unchanged. MD5 detects content changes; it does not authenticate a download.
 
-Copied SSH/AWS files and backups receive mode `600`. These backups hold the previous version of each file, not a complete system snapshot. The full installer has no global rollback.
+A checksum failure stops the installer before it replaces that file or accepts a completion marker. An empty or failed checksum is never treated as an equality result.
+
+Copied SSH/AWS files and backups receive mode `600`. Backups are staged and atomically replaced too: a failed backup copy leaves the previous backup intact, and replacing a backup does not modify other hardlinks to it. These backups hold the previous version of each file, not a complete system snapshot. The full installer has no global rollback.
 
 ### macOS preferences
 
@@ -150,3 +154,7 @@ bash -n macos
 ```
 
 Tests use temporary homes and mocked system or Git commands. Server tests also start a temporary local HTTP server. PowerShell tests are skipped when its runtime is absent. Tests do not validate real package installation, live OS preferences, or external accounts. Deployment comparisons are documented in [AI Tools Sync](../README.md#배포와-결과-확인).
+
+`scripts/test_full_installer.py` runs all 11 steps for simulated macOS and Linux machines. It verifies installed files, machine-specific SSH/AWS settings, backups, completion markers, and an unchanged second installation. Package managers, network downloads, and system preference commands are simulated at the command boundary.
+
+The [Checks workflow](../.github/workflows/check.yml) runs generated-file checks, regressions, and shell syntax checks for pull requests and pushes to `main`. It tests macOS and Linux with Python 3.11 and the latest stable Python 3. Linux jobs install Zsh so shared helpers are exercised in both shells. The optional VibeMon integration test requires a separate checkout and is not part of these jobs.

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Offline regression tests for AI settings deployment and skill generation."""
 
+import contextlib
+import io
 import json
 import os
 import re
@@ -97,6 +99,32 @@ class DeploymentTests(unittest.TestCase):
         self.sync()
         self.assertEqual(manifest.read_bytes(), old)
         self.assertTrue((self.home / ".agents/skills/demo/SKILL.md").exists())
+
+    def test_unreadable_source_subtree_stops_before_updates_or_pruning(self):
+        from unittest.mock import patch
+        self.put(".dotfiles/claude/skills/locked/SKILL.md", "managed skill\n")
+        self.sync()
+        before = {path.relative_to(self.home): path.read_bytes()
+                  for path in self.home.rglob("*")
+                  if path.is_file() and self.repo not in path.parents}
+        self.put(".dotfiles/claude/CLAUDE.md", "new instructions\n")
+        blocked = (self.repo / "claude/skills/locked").resolve()
+        real_scandir = os.scandir
+
+        def unreadable(path):
+            if Path(path).resolve() == blocked:
+                raise PermissionError(13, "Permission denied", str(path))
+            return real_scandir(path)
+
+        module = runpy.run_path(str(ROOT / "scripts/sync-ai-tools.py"))
+        with patch("pathlib.Path.home", return_value=self.home), patch("os.scandir", side_effect=unreadable), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            result = module["main"]()
+        self.assertEqual(result, 1)
+        after = {path.relative_to(self.home): path.read_bytes()
+                 for path in self.home.rglob("*")
+                 if path.is_file() and self.repo not in path.parents}
+        self.assertEqual(after, before)
 
     def test_toml_comments_indentation_nested_tables(self):
         self.put(".dotfiles/codex/config.toml", 'approval_policy = "on-request"\n[features]\nhooks = true\nnew_flag = true\n[permissions.work]\nnetwork = true\n')
@@ -377,6 +405,60 @@ status_line = [
         self.sync()
         self.assertEqual(target.read_text(), 'before\n# BEGIN dotfiles managed codex rules\nnew rule\n# END dotfiles managed codex rules\nafter\n')
 
+    def test_removed_rule_source_preserves_local_rules_and_can_be_restored(self):
+        managed = "# BEGIN dotfiles managed codex rules\nmanaged rule\n# END dotfiles managed codex rules\n"
+        source = self.put(".dotfiles/codex/rules/default.rules", managed)
+        self.sync()
+        target = self.put(".codex/rules/default.rules", "local before\n" + managed + "local after\n")
+        original = target.read_bytes()
+        source.unlink()
+        self.sync()
+        self.assertTrue(target.exists(), "Removing the source must preserve local rules")
+        self.assertEqual(target.read_text(), "local before\nlocal after\n")
+        backup = target.with_name(target.name + ".backup")
+        self.assertEqual(backup.read_bytes(), original)
+        self.assertNotIn("rules/default.rules", (self.home / ".toast/vibe_manifest_codex").read_text())
+        stamp = target.stat().st_mtime_ns
+        self.sync()
+        self.assertEqual(target.stat().st_mtime_ns, stamp)
+        self.assertEqual(backup.read_bytes(), original)
+        source.write_text(managed.replace("managed rule", "restored rule"))
+        self.sync()
+        self.assertIn("restored rule", target.read_text())
+        self.assertTrue(target.read_text().endswith("local before\nlocal after\n"))
+
+    def test_removed_rule_source_prunes_only_an_entirely_managed_file(self):
+        managed = "# BEGIN dotfiles managed codex rules\nmanaged rule\n# END dotfiles managed codex rules\n"
+        source = self.put(".dotfiles/codex/rules/default.rules", managed)
+        self.sync()
+        source.unlink()
+        self.sync()
+        target = self.home / ".codex/rules/default.rules"
+        self.assertFalse(target.exists())
+        self.assertEqual(target.with_name(target.name + ".backup").read_text(), managed)
+
+    def test_removed_rule_source_leaves_unmarked_local_file_unchanged(self):
+        source = self.put(".dotfiles/codex/rules/default.rules", "# BEGIN dotfiles managed codex rules\nrule\n# END dotfiles managed codex rules\n")
+        self.sync()
+        target = self.put(".codex/rules/default.rules", "user-only rules\n")
+        stamp = target.stat().st_mtime_ns
+        source.unlink()
+        self.sync()
+        self.assertTrue(target.exists())
+        self.assertEqual(target.read_text(), "user-only rules\n")
+        self.assertEqual(target.stat().st_mtime_ns, stamp)
+
+    def test_removed_rule_source_with_broken_markers_stops_before_deployment(self):
+        source = self.put(".dotfiles/codex/rules/default.rules", "# BEGIN dotfiles managed codex rules\nrule\n# END dotfiles managed codex rules\n")
+        self.sync()
+        target = self.put(".codex/rules/default.rules", "# BEGIN dotfiles managed codex rules\nuser rules\n")
+        original = target.read_bytes()
+        source.unlink()
+        self.put(".dotfiles/claude/CLAUDE.md", "updated instructions\n")
+        self.sync(ok=False)
+        self.assertEqual(target.read_bytes(), original)
+        self.assertEqual((self.home / ".claude/CLAUDE.md").read_text(), "shared instructions\n")
+
     def test_no_configuration_values_in_output(self):
         self.put(".dotfiles/claude/settings.json", '{"env":{"NEW":"yes"}}')
         self.put(".claude/settings.json", '{"env":{"TOKEN":"private-test-value"}}')
@@ -389,6 +471,38 @@ status_line = [
         (self.home / ".codex/AGENTS.md").symlink_to(target)
         self.sync(ok=False)
         self.assertEqual(target.read_text(), "do not change\n")
+
+    def test_non_directory_ancestor_stops_before_any_target_is_changed(self):
+        claude = self.put(".claude/CLAUDE.md", "local Claude instructions\n")
+        codex = self.put(".codex/AGENTS.md", "local Codex instructions\n")
+        obstacle = self.put(".agents/skills", "existing user file\n")
+        result = self.sync(ok=False)
+        self.assertEqual(claude.read_text(), "local Claude instructions\n")
+        self.assertEqual(codex.read_text(), "local Codex instructions\n")
+        self.assertEqual(obstacle.read_text(), "existing user file\n")
+        self.assertFalse((self.home / ".codex/config.toml").exists())
+        self.assertFalse((self.home / ".claude/CLAUDE.md.backup").exists())
+        self.assertFalse((self.home / ".toast/vibe_manifest_claude").exists())
+        self.assertIn("Expected a directory", result.stderr)
+
+    def test_destination_inspection_error_is_not_treated_as_a_missing_path(self):
+        from unittest.mock import patch
+        self.sync()
+        self.put(".dotfiles/claude/CLAUDE.md", "new instructions\n")
+        blocked = (self.home / ".agents").resolve()
+        real_lstat = Path.lstat
+
+        def inspect(path, *args, **kwargs):
+            if path == blocked:
+                raise PermissionError(13, "Permission denied", str(path))
+            return real_lstat(path, *args, **kwargs)
+
+        module = runpy.run_path(str(ROOT / "scripts/sync-ai-tools.py"))
+        with patch("pathlib.Path.home", return_value=self.home), patch.object(Path, "lstat", inspect), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            result = module["main"]()
+        self.assertEqual(result, 1)
+        self.assertEqual((self.home / ".claude/CLAUDE.md").read_text(), "shared instructions\n")
 
 
     def test_real_repository_payload(self):
@@ -439,6 +553,19 @@ status_line = [
         self.put(".toast/vibe_manifest_codex", "../keep.md\n")
         self.sync(ok=False)
         self.assertEqual(protected.read_text(), "personal data")
+
+    def test_noncanonical_manifest_cannot_prune_current_config(self):
+        for entry in ("./config.toml", "config.toml/", "rules//default.rules"):
+            with self.subTest(entry=entry):
+                target = self.put(".codex/config.toml", 'model = "machine-model"\n')
+                rules = self.put(".codex/rules/default.rules", "local rules\n")
+                instructions = self.put(".claude/CLAUDE.md", "local instructions\n")
+                manifest = self.put(".toast/vibe_manifest_codex", entry + "\n")
+                self.sync(ok=False)
+                self.assertEqual(target.read_text(), 'model = "machine-model"\n')
+                self.assertEqual(rules.read_text(), "local rules\n")
+                self.assertEqual(instructions.read_text(), "local instructions\n")
+                self.assertEqual(manifest.read_text(), entry + "\n")
 
     def test_locked_sync_fails_before_deployment(self):
         import fcntl

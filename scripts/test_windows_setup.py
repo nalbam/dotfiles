@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Run the PowerShell entrypoint with mocked links and winget when available."""
 
+import json
 import os
 from pathlib import Path
 import shutil
@@ -30,6 +31,8 @@ function New-Item {
         Write-Error "Mock link creation failure"
         return
     }
+    @{ Path = $Path; Target = $Target } | ConvertTo-Json -Compress |
+        Add-Content -LiteralPath $env:TEST_LINK_LOG -Encoding utf8
     Write-Host "MOCK_LINK"
 }
 function winget {
@@ -58,6 +61,7 @@ try {
 
     def invoke(self, **overrides):
         env = dict(os.environ, DOTFILES_SCRIPT=str(ROOT / "run.ps1"),
+                   TEST_LINK_LOG=str(Path(self.temp.name) / "links.jsonl"),
                    TEST_INSTALL_STATUS="0", TEST_INSTALLED="0", TEST_LINK_FAILURE="0")
         env.update(overrides)
         return subprocess.run([POWERSHELL, "-NoLogo", "-NoProfile", "-NonInteractive",
@@ -67,9 +71,35 @@ try {
     def test_success_creates_links_and_installs_packages(self):
         result = self.invoke()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.count("MOCK_LINK"), 2)
+        self.assertEqual(result.stdout.count("MOCK_LINK"), len(list(ROOT.glob("gitconfig*"))) + 1)
         self.assertEqual(result.stdout.count("MOCK_INSTALL"), 2)
         self.assertIn("SETUP_RETURNED", result.stdout)
+
+    def test_linked_git_profiles_select_directory_identities(self):
+        result = self.invoke()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        home = Path(self.temp.name) / "machine home"
+        home.mkdir()
+        # Materialize the actual New-Item requests in a private home. This also
+        # works on macOS/Linux CI without touching PowerShell's real HOME.
+        records = (Path(self.temp.name) / "links.jsonl").read_text(encoding="utf-8-sig").splitlines()
+        for line in records:
+            link = json.loads(line)
+            name = Path(link["Path"].replace("\\", "/")).name
+            source = Path(link["Target"].replace("\\", "/")).name
+            self.assertTrue((ROOT / source).is_file())
+            (home / name).symlink_to(ROOT / source)
+        env = dict(os.environ, HOME=str(home), GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=str(home / ".gitconfig"))
+        for account, profile in (("nalbam", "nalbam"), ("opspresso", "nalbam"),
+                                 ("yujh404", "yujh404"), ("nalbam-me", "nalbam-me"),
+                                 ("nalbam-bot", "nalbam-bot")):
+            with self.subTest(account=account):
+                workspace = home / "workspace/github.com" / account / "example"
+                subprocess.run(["git", "init", "-q", str(workspace)], env=env, check=True)
+                for key in ("user.name", "user.email"):
+                    actual = subprocess.check_output(["git", "-C", str(workspace), "config", "--get", key], env=env)
+                    expected = subprocess.check_output(["git", "config", "--file", str(ROOT / ("gitconfig-" + profile)), "--get", key], env=env)
+                    self.assertTrue(actual == expected, f"Incorrect {key} for {profile}")
 
     def test_installed_packages_skip_installation(self):
         result = self.invoke(TEST_INSTALLED="1")
