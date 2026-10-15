@@ -125,6 +125,76 @@ printf 'attempts=%s\\n' "$attempt"
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("attempts=2", result.stdout)
 
+    def test_bootstrap_download_failure_never_executes_partial_script(self):
+        for start, end in (("# Homebrew 설치", "# 신규 macOS 대응"),
+                           ("# Oh My ZSH 설치", "# 기본 셸을 ZSH로 변경")):
+            with self.subTest(installer=start):
+                (self.home / "partial-executed").unlink(missing_ok=True)
+                block = self.block(start, end)
+                for prefix in ("/opt/homebrew", "/home/linuxbrew/.linuxbrew", "/usr/local"):
+                    block = block.replace(prefix, str(self.home / "absent-brew"))
+                result = self.run_shell('''
+command() {
+  if [ "$1" = -v ] && [ "$2" = brew ]; then return 1; fi
+  builtin command "$@"
+}
+curl() {
+  local output=""
+  while [ "$#" -gt 0 ]; do
+    if [ "$1" = -o ]; then output="$2"; shift; fi
+    shift
+  done
+  if [ -n "$output" ]; then
+    printf 'touch "$HOME/partial-executed"\\n' > "$output"
+  else
+    printf 'touch "$HOME/partial-executed"\\n'
+  fi
+  return 22
+}
+''' + block)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertFalse((self.home / "partial-executed").exists())
+                self.assertIn("install failed", result.stdout)
+
+    def test_remote_script_requires_valid_syntax_and_cleans_staging(self):
+        staging = self.home / "staging"
+        staging.mkdir()
+        self.env["TMPDIR"] = str(staging)
+        for payload, succeeds in (("touch \\\"$HOME/bootstrap-ran\\\"", True),
+                                  ("touch \\\"$HOME/bootstrap-ran\\\"; if", False)):
+            with self.subTest(payload=payload):
+                marker = self.home / "bootstrap-ran"
+                marker.unlink(missing_ok=True)
+                result = self.run_shell('''
+curl() {
+  while [ "$1" != -o ]; do shift; done
+  printf '%s\\n' "''' + payload + '''" > "$2"
+}
+_install_script https://example.invalid/install.sh
+''')
+                self.assertEqual(result.returncode == 0, succeeds, result.stderr)
+                self.assertEqual(marker.exists(), succeeds)
+                self.assertEqual(list(staging.iterdir()), [])
+
+    def test_remote_script_preserves_environment_arguments_and_failure_status(self):
+        staging = self.home / "staging"
+        staging.mkdir()
+        self.env["TMPDIR"] = str(staging)
+        result = self.run_shell('''
+curl() {
+  while [ "$1" != -o ]; do shift; done
+  cat > "$2" <<'SCRIPT'
+printf '<%s>\\n' "$RUNZSH" "$CHSH" "$@" > "$HOME/bootstrap-arguments"
+exit 17
+SCRIPT
+}
+RUNZSH=no CHSH=no _install_script https://example.invalid/install.sh 'one two' '' '*'
+''')
+        self.assertEqual(result.returncode, 17, result.stderr)
+        self.assertEqual((self.home / "bootstrap-arguments").read_text().splitlines(),
+                         ["<no>", "<no>", "<one two>", "<>", "<*>"])
+        self.assertEqual(list(staging.iterdir()), [])
+
     def test_failed_download_preserves_config_and_backup(self):
         target = self.home / ".settings"
         target.write_text("working configuration")

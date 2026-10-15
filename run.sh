@@ -155,6 +155,17 @@ _retry() {
   done
 }
 
+# Execute only complete, syntactically valid bootstrap downloads.
+_install_script() (
+  local url="$1" script
+  shift
+  script=$(mktemp "${TMPDIR:-/tmp}/dotfiles-bootstrap.XXXXXX") || return
+  trap 'rm -f "$script"' EXIT
+  _retry "Download installer" curl -fsSL --connect-timeout 10 -o "$script" "$url" || return
+  /bin/bash -n "$script" || return
+  /bin/bash "$script" "$@"
+)
+
 # MD5 해시 함수 (크로스 플랫폼)
 _md5() {
   if [ "${OS_NAME}" == "darwin" ]; then
@@ -462,7 +473,7 @@ fi
 # Homebrew 설치
 if ! command -v brew >/dev/null 2>&1; then
   _run "Installing Homebrew..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  _install_script https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
   if [ -x /opt/homebrew/bin/brew ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
   elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
@@ -704,7 +715,7 @@ _progress "Installing ZSH and Oh My ZSH..."
 # Oh My ZSH 설치
 if [ ! -d ~/.oh-my-zsh ]; then
   _run "Installing Oh My ZSH..."
-  RUNZSH=no CHSH=no /bin/bash -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" >/dev/null 2>&1 || true
+  RUNZSH=no CHSH=no _install_script https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
   # 사후 검증: 설치 실패를 성공으로 보고하지 않는다
   if [ -d ~/.oh-my-zsh ]; then
     _ok "Oh My ZSH installed"

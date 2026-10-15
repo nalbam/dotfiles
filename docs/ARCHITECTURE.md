@@ -83,6 +83,7 @@ does not install Node or change the default alias. Missing nvm remains optional 
 ## Updates and retries
 
 - `_retry` makes at most three attempts and waits 5 seconds, then 10 seconds. It preserves command errors so a failed download or Git operation can be diagnosed. It wraps selected downloads and Git operations, not every network call.
+- Homebrew and Oh My Zsh bootstrap scripts use temporary files. Execution requires a successful download and Bash syntax check; staging files are removed when the helper exits.
 - Update markers are stored at `~/.toast/last_update_*` with a six-hour interval.
 - APT, Homebrew, Claude, and pip update markers advance only after their checked operations succeed. Failed updates remain eligible on the next run.
 - A changed Brewfile bypasses the update interval. `~/.Brewfile` stores the last successfully bundled content, so a failed bundle remains eligible for another attempt.
