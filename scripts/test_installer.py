@@ -194,6 +194,36 @@ _install_script https://example.invalid/install.sh
                 self.assertEqual(marker.exists(), succeeds)
                 self.assertEqual(list(staging.iterdir()), [])
 
+    def test_partial_bootstrap_failure_is_not_reported_as_installed(self):
+        for start, end, setup, success in (
+                ("# Homebrew 설치", "# 신규 macOS 대응", '''
+command() {
+  if [ "$1" = -v ] && [ "$2" = brew ]; then [ -f "$HOME/brew-ready" ]; return; fi
+  builtin command "$@"
+}
+_install_script() { touch "$HOME/brew-ready"; return 7; }
+''', "✓ Homebrew installed"),
+                ("# Oh My ZSH 설치", "# 기본 셸을 ZSH로 변경", '''
+_install_script() {
+  mkdir -p "$HOME/.oh-my-zsh"
+  printf partial > "$HOME/.oh-my-zsh/oh-my-zsh.sh"
+  return 7
+}
+''', "✓ Oh My ZSH installed")):
+            with self.subTest(installer=start):
+                block = self.block(start, end)
+                for prefix in ("/opt/homebrew", "/home/linuxbrew/.linuxbrew", "/usr/local"):
+                    block = block.replace(prefix, str(self.home / "absent-brew"))
+                result = self.run_shell(setup + block)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertNotIn(success, result.stdout)
+                self.assertIn("install failed", result.stdout)
+                if "ZSH" in start:
+                    self.assertFalse((self.home / ".oh-my-zsh").exists())
+                    backups = list(self.home.glob(".oh-my-zsh.backup.*/oh-my-zsh/oh-my-zsh.sh"))
+                    self.assertEqual(len(backups), 1)
+                    self.assertEqual(backups[0].read_text(), "partial")
+
     def test_remote_script_preserves_environment_arguments_and_failure_status(self):
         staging = self.home / "staging"
         staging.mkdir()
@@ -212,6 +242,29 @@ RUNZSH=no CHSH=no _install_script https://example.invalid/install.sh 'one two' '
         self.assertEqual((self.home / "bootstrap-arguments").read_text().splitlines(),
                          ["<no>", "<no>", "<one two>", "<>", "<*>"])
         self.assertEqual(list(staging.iterdir()), [])
+
+    def test_incomplete_oh_my_zsh_is_preserved_before_a_successful_retry(self):
+        incomplete = self.home / ".oh-my-zsh"
+        incomplete.mkdir()
+        (incomplete / "custom").write_text("personal theme")
+        body = '''
+_install_script() {
+  printf attempt >> "$HOME/omz-attempts"
+  mkdir -p "$HOME/.oh-my-zsh"
+  printf installed > "$HOME/.oh-my-zsh/oh-my-zsh.sh"
+}
+''' + self.block("# Oh My ZSH 설치", "# 기본 셸을 ZSH로 변경")
+        first = self.run_shell(body)
+        self.assertEqual(first.returncode, 0, first.stderr)
+        self.assertIn("✓ Oh My ZSH installed", first.stdout)
+        backups = list(self.home.glob(".oh-my-zsh.backup.*/oh-my-zsh/custom"))
+        self.assertEqual(len(backups), 1)
+        self.assertEqual(backups[0].read_text(), "personal theme")
+        self.assertEqual((incomplete / "oh-my-zsh.sh").read_text(), "installed")
+        second = self.run_shell(body)
+        self.assertEqual(second.returncode, 0, second.stderr)
+        self.assertEqual((self.home / "omz-attempts").read_text(), "attempt")
+        self.assertIn("Oh My ZSH already installed", second.stdout)
 
     def test_failed_download_preserves_config_and_backup(self):
         target = self.home / ".settings"

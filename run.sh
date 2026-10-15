@@ -166,6 +166,17 @@ _install_script() (
   /bin/bash "$script" "$@"
 )
 
+_archive_oh_my_zsh() {
+  [ -e "$HOME/.oh-my-zsh" ] || [ -L "$HOME/.oh-my-zsh" ] || return 0
+  local backup
+  backup=$(mktemp -d "$HOME/.oh-my-zsh.backup.XXXXXX") || _error "Failed to preserve incomplete Oh My ZSH"
+  if ! mv "$HOME/.oh-my-zsh" "$backup/oh-my-zsh"; then
+    rmdir "$backup"
+    _error "Failed to preserve incomplete Oh My ZSH"
+  fi
+  _info "Preserved incomplete Oh My ZSH at $backup/oh-my-zsh"
+}
+
 # MD5 해시 함수 (크로스 플랫폼)
 _md5() {
   if [ "${OS_NAME}" == "darwin" ]; then
@@ -485,7 +496,11 @@ fi
 # Homebrew 설치
 if ! command -v brew >/dev/null 2>&1; then
   _run "Installing Homebrew..."
-  _install_script https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
+  if _install_script https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh; then
+    BREW_INSTALL_OK=true
+  else
+    BREW_INSTALL_OK=false
+  fi
   if [ -x /opt/homebrew/bin/brew ]; then
     eval "$(/opt/homebrew/bin/brew shellenv)"
   elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
@@ -494,10 +509,10 @@ if ! command -v brew >/dev/null 2>&1; then
     eval "$(/usr/local/bin/brew shellenv)"
   fi
   # 사후 검증: 설치 실패를 성공으로 보고하지 않는다
-  if command -v brew >/dev/null 2>&1; then
+  if [ "$BREW_INSTALL_OK" = true ] && command -v brew >/dev/null 2>&1; then
     _ok "Homebrew installed"
   else
-    _warn "Homebrew install failed — continuing without brew"
+    _warn "Homebrew install failed — review the error above before retrying"
   fi
 else
   _skip "Homebrew already installed"
@@ -725,14 +740,16 @@ fi
 _progress "Installing ZSH and Oh My ZSH..."
 
 # Oh My ZSH 설치
-if [ ! -d ~/.oh-my-zsh ]; then
+if [ ! -s ~/.oh-my-zsh/oh-my-zsh.sh ]; then
+  _archive_oh_my_zsh
   _run "Installing Oh My ZSH..."
-  RUNZSH=no CHSH=no _install_script https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh
-  # 사후 검증: 설치 실패를 성공으로 보고하지 않는다
-  if [ -d ~/.oh-my-zsh ]; then
+  if RUNZSH=no CHSH=no _install_script https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh &&
+     [ -s ~/.oh-my-zsh/oh-my-zsh.sh ]; then
     _ok "Oh My ZSH installed"
   else
-    _warn "Oh My ZSH install failed (network issue?)"
+    # Keep failed attempts out of the active path so the next run can retry.
+    _archive_oh_my_zsh
+    _warn "Oh My ZSH install failed — review the error above before retrying"
   fi
 else
   _skip "Oh My ZSH already installed"
