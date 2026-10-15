@@ -44,6 +44,8 @@ def regular_path(path, boundary):
     while current != boundary:
         if current.is_symlink():
             raise ValueError(f"Symlink requires manual review: {current}")
+        if current != path and current.exists() and not current.is_dir():
+            raise ValueError(f"Expected a directory: {current}")
         current = current.parent
     if path.exists() and not path.is_file():
         raise ValueError(f"Expected a regular file: {path}")

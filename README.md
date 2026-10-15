@@ -211,7 +211,7 @@ DOTFILES_VIBEMON_INSTALLER=/path/to/vibemon-app/public/install/install.py \
   python3 scripts/test_vibemon_integration.py
 ```
 
-[`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과를 확인한 뒤 배포한다. 원본 하위 디렉터리를 읽지 못하면 삭제된 파일로 취급하지 않고 배포 전에 중단한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
+[`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과와 상위 디렉터리 구조를 확인한 뒤 배포한다. 원본 하위 디렉터리를 읽지 못하면 삭제된 파일로 취급하지 않고 배포 전에 중단한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
 
 파일 배포 중 I/O 오류가 나면 일부 파일이 이미 반영되었을 수 있다. 실패한 쓰기는 원본을 보존하며, 모든 파일 배포가 성공해야 대상별 manifest를 갱신한다. 오류를 해결한 뒤 재실행한다. 생성기는 원본에서 삭제된 Markdown을 미러에서 정리하고, 수동 관리하는 `agents/openai.yaml`은 보존한다.
 

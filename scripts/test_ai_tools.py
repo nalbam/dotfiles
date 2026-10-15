@@ -418,6 +418,19 @@ status_line = [
         self.sync(ok=False)
         self.assertEqual(target.read_text(), "do not change\n")
 
+    def test_non_directory_ancestor_stops_before_any_target_is_changed(self):
+        claude = self.put(".claude/CLAUDE.md", "local Claude instructions\n")
+        codex = self.put(".codex/AGENTS.md", "local Codex instructions\n")
+        obstacle = self.put(".agents/skills", "existing user file\n")
+        result = self.sync(ok=False)
+        self.assertEqual(claude.read_text(), "local Claude instructions\n")
+        self.assertEqual(codex.read_text(), "local Codex instructions\n")
+        self.assertEqual(obstacle.read_text(), "existing user file\n")
+        self.assertFalse((self.home / ".codex/config.toml").exists())
+        self.assertFalse((self.home / ".claude/CLAUDE.md.backup").exists())
+        self.assertFalse((self.home / ".toast/vibe_manifest_claude").exists())
+        self.assertIn("Expected a directory", result.stderr)
+
 
     def test_real_repository_payload(self):
         for name, _ in (("claude", ".claude"), ("codex", ".codex"), ("kiro", ".kiro"), ("opencode", ".config/opencode")):
