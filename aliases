@@ -232,15 +232,20 @@ _server_port_valid() {
   case "$1" in ''|*[!0-9]*) return 1 ;; esac
   [ "${#1}" -le 5 ] && [ "$1" -ge 1 ] && [ "$1" -le 65535 ]
 }
-_port_kill() {
-  # 0: signalled every listener, 1: no listener, 2: lookup or signal failed.
+_server_pids() {
   local port="$1"
   _server_port_valid "$port" || { echo "Invalid TCP port: $port" >&2; return 2; }
   command -v lsof >/dev/null 2>&1 || { echo "lsof is required" >&2; return 2; }
-  local pids result=0 pid cmd
+  local pids result
   pids=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null)
   result=$?
   [ "$result" -le 1 ] || { echo "Could not inspect TCP port $port" >&2; return 2; }
+  printf '%s\n' "$pids"
+}
+_port_kill() {
+  # 0: signalled every listener, 1: no listener, 2: lookup or signal failed.
+  local port="$1" pids result=0 pid cmd
+  pids=$(_server_pids "$port") || return
   [ -z "$pids" ] && return 1
   result=0
   pids=$(printf '%s\n' "$pids" | sort -u)
@@ -366,13 +371,13 @@ with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
 sl() {
   # Server list - show servers started by ss(), pruning dead ones
   [ -f "$DEV_SERVERS" ] || { echo "No servers running"; return 0; }
-  command -v lsof >/dev/null 2>&1 || { echo "lsof is required" >&2; return 1; }
-  local found=""
+  local found="" port type dir pids pid cmd
   while IFS="$(printf '\t')" read -r port type dir; do
     [ -z "$port" ] && continue
-    local pid=$(lsof -ti:"$port" -sTCP:LISTEN 2>/dev/null | head -1)
+    pids=$(_server_pids "$port") || return
+    pid=$(printf '%s\n' "$pids" | head -1)
     if [ -n "$pid" ]; then
-      local cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
+      cmd=$(ps -p "$pid" -o comm= 2>/dev/null)
       [ -z "$found" ] && echo "Local servers:"
       echo "  [$type] $cmd (PID $pid) on port $port  $dir"
       found="1"

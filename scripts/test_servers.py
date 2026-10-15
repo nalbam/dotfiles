@@ -82,6 +82,34 @@ kill() { return 0; }
                     self.assertIn("example-server", result.stdout)
                     self.assertEqual(bool(self.registry.read_text()), command == "sl")
 
+    def test_list_lookup_failure_preserves_registration(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                self.write_registry()
+                result = self.run_shell(shell, 'lsof() { return 2; }\nsl\n')
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertIn("Could not inspect TCP port 8123", result.stderr)
+                self.assertEqual(self.registry.read_text(), "8123\tpython\t/example\n")
+
+    def test_list_prunes_only_confirmed_absent_listeners(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                self.write_registry()
+                result = self.run_shell(shell, 'lsof() { return 1; }\nsl\n')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, "No servers running\n")
+                self.assertEqual(self.registry.read_text(), "")
+
+    def test_list_rejects_invalid_registry_port_before_lookup(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                self.write_registry()
+                self.registry.write_text("1-65535\tpython\t/example\n")
+                result = self.run_shell(shell, 'lsof() { echo unexpected >&2; }\nsl\n')
+                self.assertEqual(result.returncode, 2, result.stderr)
+                self.assertNotIn("unexpected", result.stderr)
+                self.assertEqual(self.registry.read_text(), "1-65535\tpython\t/example\n")
+
     def test_invalid_port_does_not_signal_processes(self):
         for shell in SHELLS:
             with self.subTest(shell=shell):
