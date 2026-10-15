@@ -187,6 +187,101 @@ class DeploymentTests(unittest.TestCase):
         self.sync()
         self.assertEqual(json.loads(target.read_text())["hooks"]["stop"], [foreign, desired])
 
+    def test_kiro_array_hooks_preserve_upgraded_agent_without_rewriting(self):
+        self.put(".dotfiles/kiro/agents/default.json", '{"hooks": {}}\n')
+        for hooks in ([], [{"name": "user-hook", "trigger": "SessionStart",
+                           "action": {"type": "command", "command": "git status"}}]):
+            with self.subTest(hooks=hooks):
+                agent = {"hooks": hooks, "permissions": {"rules": []},
+                         "kiroUpgrade": {"revision": 1, "fingerprint": "local"}}
+                target = self.put(".kiro/agents/default.json", json.dumps(agent))
+                original = target.read_bytes(), target.stat().st_mtime_ns
+                self.sync()
+                self.sync()
+                self.assertEqual((target.read_bytes(), target.stat().st_mtime_ns), original)
+                self.assertFalse(target.with_name("default.json.backup").exists())
+
+    def test_kiro_array_hooks_refresh_and_retire_only_owned_commands(self):
+        script = self.put(".dotfiles/kiro/hooks/machine.py", "pass\n")
+        desired = {"name": "machine", "trigger": "SessionStart", "timeout": 5,
+                   "action": {"type": "command", "command": "python3 ~/.kiro/hooks/machine.py new"}}
+        stale = {"name": "old-name", "trigger": "Stop", "timeout": 99,
+                 "action": {"type": "command", "command": "python3",
+                            "args": [str(self.home / ".kiro/hooks/machine.py"), "old"]}}
+        foreign = [
+            {"name": "vibemon", "trigger": "Stop", "action": {
+                "type": "command", "command": "python3 ~/.kiro/hooks/vibemon.py Stop"}},
+            {"name": "mention", "trigger": "SessionStart", "action": {
+                "type": "command", "command": "echo ~/.kiro/hooks/machine.py"}},
+            {"name": "review", "trigger": "Stop", "action": {
+                "type": "agent", "prompt": "Review ~/.kiro/hooks/machine.py"}},
+        ]
+        source = self.put(".dotfiles/kiro/agents/default.json", json.dumps({"hooks": [desired]}))
+        target = self.put(".kiro/agents/default.json", json.dumps({"hooks": [stale, *foreign]}))
+        self.sync()
+        self.assertEqual(json.loads(target.read_text())["hooks"], [*foreign, desired])
+        original = target.read_bytes(), target.stat().st_mtime_ns
+        self.sync()
+        self.assertEqual((target.read_bytes(), target.stat().st_mtime_ns), original)
+        script.unlink()
+        source.write_text('{"hooks": {}}\n')
+        self.sync()
+        self.assertEqual(json.loads(target.read_text())["hooks"], foreign)
+        self.assertEqual(json.loads(target.with_name("default.json.backup").read_text())["hooks"],
+                         [*foreign, desired])
+        self.assertFalse((self.home / ".kiro/hooks/machine.py").exists())
+
+    def test_kiro_array_defaults_deploy_to_new_agent(self):
+        hook = {"name": "status", "trigger": "SessionStart",
+                "action": {"type": "command", "command": "git status"}}
+        self.put(".dotfiles/kiro/agents/default.json", json.dumps({"hooks": [hook]}))
+        self.sync()
+        self.assertEqual(json.loads((self.home / ".kiro/agents/default.json").read_text()),
+                         {"hooks": [hook]})
+
+    def test_empty_kiro_array_defaults_preserve_legacy_hooks(self):
+        hooks = {"agentSpawn": [{"command": "git status"}]}
+        self.put(".dotfiles/kiro/agents/default.json", '{"hooks": []}\n')
+        target = self.put(".kiro/agents/default.json", json.dumps({"hooks": hooks}))
+        self.sync()
+        self.assertEqual(json.loads(target.read_text())["hooks"], hooks)
+
+    def test_invalid_kiro_array_hooks_stop_before_deployment(self):
+        self.put(".dotfiles/kiro/agents/default.json", '{"hooks": {}}\n')
+        for hook in (None, {"action": "private-test-value"},
+                     {"action": {"type": "command", "command": ["private-test-value"]}}):
+            with self.subTest(hook=hook):
+                target = self.put(".kiro/agents/default.json", json.dumps({"hooks": [hook]}))
+                original = target.read_bytes()
+                result = self.sync(ok=False)
+                self.assertIn("Cannot merge kiro/agents/default.json", result.stderr)
+                self.assertNotIn("private-test-value", result.stdout + result.stderr)
+                self.assertEqual(target.read_bytes(), original)
+                self.assertFalse((self.home / ".claude/CLAUDE.md").exists())
+
+    def test_nonempty_mixed_kiro_hook_formats_stop_without_losing_hooks(self):
+        legacy = {"agentSpawn": [{"command": "git status"}]}
+        current = [{"name": "status", "trigger": "SessionStart",
+                    "action": {"type": "command", "command": "git status"}}]
+        for defaults, local in ((legacy, current), (current, legacy)):
+            with self.subTest(defaults=defaults):
+                self.put(".dotfiles/kiro/agents/default.json", json.dumps({"hooks": defaults}))
+                target = self.put(".kiro/agents/default.json", json.dumps({"hooks": local}))
+                original = target.read_bytes()
+                self.sync(ok=False)
+                self.assertEqual(target.read_bytes(), original)
+                self.assertFalse((self.home / ".claude/CLAUDE.md").exists())
+
+    def test_array_hook_support_does_not_relax_claude_or_codex_validation(self):
+        for tool, filename in (("claude", "settings.json"), ("codex", "hooks.json")):
+            with self.subTest(tool=tool):
+                self.put(f".dotfiles/{tool}/{filename}", '{"hooks": {}}\n')
+                target = self.put(f".{tool}/{filename}", '{"hooks": []}\n')
+                result = self.sync(ok=False)
+                self.assertIn(f"Cannot merge {tool}/{filename}", result.stderr)
+                self.assertEqual(target.read_text(), '{"hooks": []}\n')
+                target.unlink()
+
     def test_machine_hooks_are_registered_in_empty_event(self):
         desired = self.configure_machine_hooks()
         target = self.put(".claude/settings.json", '{"hooks":{"SessionStart":[]}}')

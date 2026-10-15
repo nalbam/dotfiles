@@ -200,6 +200,8 @@ Claude `settings.json`의 `permissions.deny`와 `autoMode`도 원본에 있으�
 
 Claude·Codex·Kiro의 훅은 이벤트 전체가 아니라 실행 스크립트별로 관리한다. dotfiles가 배포하는 `hooks/` 스크립트의 등록만 원본에 맞춰 갱신한다. 같은 이벤트의 VibeMon·romty·사용자 훅과 matcher는 보존한다. 이벤트 배열이 이미 있거나 비어 있어도 머신에 필요한 훅을 추가하며, 재실행해도 중복 등록하지 않는다. 원본에서 제거한 머신 스크립트는 기존 manifest를 기준으로 훅 등록도 정리한다.
 
+Kiro의 `agents/default.json`은 기존 이벤트 객체형 `hooks`와 새 배열형 `hooks`를 모두 지원한다. 배열형에서는 `action.command`로 dotfiles 소유 훅을 식별하며, 사용자 훅과 에이전트형 action을 보존한다. 원본의 빈 `{}`·`[]`는 로컬 훅 형식을 바꾸지 않는다. 원본과 로컬에 훅이 있고 형식이 서로 다르면 자동 변환하지 않고 배포 전에 중단하므로, 두 설정의 형식을 먼저 맞춘다. 형식은 [Kiro 설정 문서](https://kiro.dev/docs/custom-agents/configuration-reference/#hooks-field)를 참고한다.
+
 OpenCode의 `opencode.jsonc`·`cli.json`·`plugins/`는 배포 대상이 아니다. 모델·provider·자격 증명·플러그인과 머신 전용 권한 규칙은 `opencode.jsonc`에서 관리한다. OpenCode는 같은 디렉터리의 `opencode.json`과 `opencode.jsonc`를 모두 읽고 `permissions` 규칙을 이 순서로 이어 붙인다.
 
 VibeMon 전송·사용량 스크립트와 전용 훅, Claude `statusline.py`는 VibeMon 설치기가 관리한다. dotfiles는 이를 복사하거나 삭제하지 않으며, 과거 manifest에 남은 경로는 파일을 보존하고 목록에서만 제외한다. 공유 JSON 설정과 Codex `config.toml`도 원본에서 빠졌다는 이유로 파일 전체를 삭제하지 않는다. Codex의 일반 `tui.status_line` 기본값은 dotfiles에서 관리하고 기존 머신의 선택은 보존한다.

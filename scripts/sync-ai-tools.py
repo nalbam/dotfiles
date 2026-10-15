@@ -63,11 +63,8 @@ def fill_missing(local, defaults):
             for key, value in local.items()} | {key: value for key, value in defaults.items() if key not in local}
 
 
-def merge_machine_hooks(local, defaults, scripts, home):
+def merge_machine_hooks(local, defaults, scripts, home, *, kiro=False):
     """Refresh only hooks invoking dotfiles-owned scripts, including removed ones."""
-    if not isinstance(local, dict) or not isinstance(defaults, dict):
-        raise ValueError("Hooks must be JSON objects")
-
     def owned(hook):
         if not isinstance(hook, dict):
             raise ValueError("Hook must be a JSON object")
@@ -97,6 +94,34 @@ def merge_machine_hooks(local, defaults, scripts, home):
             if Path(token).is_absolute() and str(Path(token).resolve()) in scripts:
                 return True
         return False
+
+    if kiro:
+        # Empty defaults carry no hooks and must not undo Kiro's format migration.
+        if isinstance(local, list) and defaults == {}:
+            defaults = []
+        elif isinstance(local, dict) and defaults == []:
+            defaults = {}
+        elif local == {} and isinstance(defaults, list):
+            local = []
+        if isinstance(local, list) or isinstance(defaults, list):
+            if not isinstance(local, list) or not isinstance(defaults, list):
+                raise ValueError("Cannot combine nonempty legacy and current Kiro hooks")
+
+            def inline_owned(hook):
+                if not isinstance(hook, dict) or not isinstance(hook.get("action"), dict):
+                    raise ValueError("Kiro inline hook must have an action object")
+                action = hook["action"]
+                return action.get("type") == "command" and owned(action)
+
+            result = [hook for hook in local if not inline_owned(hook)]
+            for hook in defaults:
+                inline_owned(hook)
+                if hook not in result:
+                    result.append(hook)
+            return result
+
+    if not isinstance(local, dict) or not isinstance(defaults, dict):
+        raise ValueError("Hooks must be JSON objects")
 
     result = {}
     for event, entries in local.items():
@@ -312,7 +337,8 @@ def file_content(data, old, source_name, relative, scripts, home):
             merged = fill_missing(local, defaults)
             if "hooks" in defaults or "hooks" in local:
                 merged["hooks"] = merge_machine_hooks(
-                    local.get("hooks", {}), defaults.get("hooks", {}), scripts, home)
+                    local.get("hooks", defaults.get("hooks", {})), defaults.get("hooks", {}),
+                    scripts, home, kiro=source_name == "kiro")
             for owned in OWNED_JSON_KEYS.get((source_name, relative), ()):
                 merged = replace_key(merged, defaults, owned)
             if old is not None and merged == local:
