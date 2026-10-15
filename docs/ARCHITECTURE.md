@@ -96,6 +96,8 @@ does not install Node or change the default alias. Missing nvm remains optional 
 
 When a source exists in `~/.dotfiles`, `_download` compares it with the destination using MD5. If the source is missing, it downloads the file from the repository's `main` branch. Changed content is staged in the destination directory before the existing file is backed up and atomically replaced. A failed copy or download leaves the destination unchanged. Identical content leaves both the destination and its backup unchanged. MD5 detects content changes; it does not authenticate a download.
 
+A checksum failure stops the installer before it replaces that file or accepts a completion marker. An empty or failed checksum is never treated as an equality result.
+
 Copied SSH/AWS files and backups receive mode `600`. Backups are staged and atomically replaced too: a failed backup copy leaves the previous backup intact, and replacing a backup does not modify other hardlinks to it. These backups hold the previous version of each file, not a complete system snapshot. The full installer has no global rollback.
 
 ### macOS preferences

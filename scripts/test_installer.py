@@ -287,6 +287,54 @@ _download .settings absent-source
         self.assertEqual((self.home / "attempts").read_text().splitlines(), ["attempt"] * 3)
         self.assertEqual(list(self.home.glob(".settings.tmp.*")), [])
 
+    def test_checksum_backend_failure_propagates_on_both_platforms(self):
+        for platform in ("darwin", "linux"):
+            with self.subTest(platform=platform):
+                result = self.run_shell(f'OS_NAME={platform}\nmd5() {{ return 7; }}\nmd5sum() {{ return 7; }}\n_md5 absent\n')
+                self.assertEqual(result.returncode, 7)
+
+    def test_checksum_failure_preserves_destination_and_backup(self):
+        target = self.home / ".settings"
+        target.write_text("working")
+        backup = self.home / ".settings.backup"
+        backup.write_text("previous backup")
+        for local_source in (True, False):
+            with self.subTest(local_source=local_source):
+                source = self.repo / "settings"
+                if local_source:
+                    source.write_text("new")
+                else:
+                    source.unlink()
+                result = self.run_shell('''
+_md5() { return 7; }
+curl() {
+  while [ "$1" != -o ]; do shift; done
+  printf new > "$2"
+}
+_download .settings settings
+''')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(target.read_text(), "working")
+                self.assertEqual(backup.read_text(), "previous backup")
+                self.assertEqual(list(self.home.glob(".settings*.tmp.*")), [])
+
+    def test_brewfile_comparison_failure_does_not_skip_or_apply_packages(self):
+        (self.home / ".Brewfile").write_text("previous Brewfile")
+        for platform in ("darwin", "linux"):
+            with self.subTest(platform=platform):
+                source = self.repo / platform / "Brewfile"
+                source.parent.mkdir()
+                source.write_text("new Brewfile")
+                body = f'OS_NAME={platform}\n' + '''
+_md5() { return 7; }
+_should_update() { return 1; }
+brew() { printf called >> "$HOME/brew-calls"; }
+''' + self.block("# Homebrew 패키지 업데이트", "# nvm 부트스트랩")
+                result = self.run_shell(body)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse((self.home / "brew-calls").exists())
+                self.assertEqual((self.home / ".Brewfile").read_text(), "previous Brewfile")
+
     def test_successful_download_backs_up_and_is_idempotent(self):
         target = self.home / ".settings"
         target.write_text("previous")

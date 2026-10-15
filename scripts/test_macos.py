@@ -38,7 +38,12 @@ OS_NAME="${TEST_OS_NAME:-darwin}"
 OS_ARCH="${TEST_OS_ARCH:-arm64}"
 TPUT=
 export TEST_INSTALLER_PID=$$
-_md5() { cksum < "$1"; }
+_md5() {
+  if [ "${TEST_MARKER_HASH_FAILURE:-0}" = 1 ] && [ "$1" = "$HOME/.toast/macos.applied" ]; then
+    return 7
+  fi
+  cksum < "$1"
+}
 xcode-select() { return 0; }
 pgrep() { return 0; }
 curl() { printf 'Unexpected network request\n' >&2; return 1; }
@@ -156,6 +161,14 @@ export -f osascript sudo nvram defaults chflags sysadminctl killall
         self.assertIn("defaults write", self.log.read_text())
         self.assertEqual((self.home / ".macos.backup").read_text(), previous)
         self.assertEqual(self.marker.read_bytes(), (self.repo / "macos").read_bytes())
+
+    def test_unreadable_completion_hash_stops_before_preferences_are_applied(self):
+        self.marker.write_text("previous successful preferences\n")
+        result = self.invoke(TEST_MARKER_HASH_FAILURE="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(self.log.exists())
+        self.assertEqual(self.marker.read_text(), "previous successful preferences\n")
+        self.assertNotIn("NEXT_STEP", result.stdout)
 
     def test_legacy_backup_without_completion_marker_reapplies(self):
         shutil.copy(self.repo / "macos", self.home / ".macos")
