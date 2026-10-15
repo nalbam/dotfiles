@@ -14,6 +14,11 @@ if (-Not (Test-Path $DotfilesDir)) {
 Write-Host "심볼릭 링크를 생성합니다..."
 $Links = @{
     "$DotfilesDir\gitconfig" = "$HOME\.gitconfig"
+    "$DotfilesDir\gitconfig-bruce" = "$HOME\.gitconfig-bruce"
+    "$DotfilesDir\gitconfig-nalbam" = "$HOME\.gitconfig-nalbam"
+    "$DotfilesDir\gitconfig-nalbam-me" = "$HOME\.gitconfig-nalbam-me"
+    "$DotfilesDir\gitconfig-nalbam-bot" = "$HOME\.gitconfig-nalbam-bot"
+    "$DotfilesDir\gitconfig-yujh404" = "$HOME\.gitconfig-yujh404"
     "$DotfilesDir\vimrc" = "$HOME\.vimrc"
 }
 
