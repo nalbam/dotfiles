@@ -84,12 +84,27 @@ kill() { return 0; }
 
     def test_list_lookup_failure_preserves_registration(self):
         for shell in SHELLS:
-            with self.subTest(shell=shell):
-                self.write_registry()
-                result = self.run_shell(shell, 'lsof() { return 2; }\nsl\n')
-                self.assertEqual(result.returncode, 2, result.stderr)
-                self.assertIn("Could not inspect TCP port 8123", result.stderr)
-                self.assertEqual(self.registry.read_text(), "8123\tpython\t/example\n")
+            for failure in ("return 2", "echo 'lsof: cannot inspect processes' >&2; return 1"):
+                with self.subTest(shell=shell, failure=failure):
+                    self.write_registry()
+                    result = self.run_shell(shell, f'lsof() {{ {failure}; }}\nsl\n')
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertIn("Could not inspect TCP port 8123", result.stderr)
+                    self.assertEqual(self.registry.read_text(), "8123\tpython\t/example\n")
+
+    def test_listener_warnings_and_invalid_pids_never_signal_processes(self):
+        for shell in SHELLS:
+            for output in ("123\\nlsof: incomplete lookup", "0", "0000"):
+                with self.subTest(shell=shell, output=output):
+                    self.write_registry()
+                    result = self.run_shell(shell, '''
+lsof() { printf '%b\\n' "''' + output + '''"; }
+kill() { printf 'unexpected signal' >&2; }
+sk 8123
+''')
+                    self.assertEqual(result.returncode, 2, result.stderr)
+                    self.assertNotIn("unexpected signal", result.stderr)
+                    self.assertIn("8123", self.registry.read_text())
 
     def test_list_prunes_only_confirmed_absent_listeners(self):
         for shell in SHELLS:
