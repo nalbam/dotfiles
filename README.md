@@ -190,7 +190,7 @@ diff -qr ~/.dotfiles/opencode/agents ~/.config/opencode/agents
 
 ### 기존 설정 보존과 실패 처리
 
-일반 지침·스킬은 MD5로 비교해 변경된 파일을 원자적으로 교체한다. 덮어쓰기·manifest 기반 삭제 전에는 같은 경로의 `.backup`에 직전 내용을 보관하고 권한을 `600`으로 설정한다. manifest는 이전에 배포한 파일 목록이다. 목록에 없는 파일은 삭제하지 않으며, 원본 디렉터리가 없거나 비어 있으면 해당 대상과 목록을 보존한다.
+AI 설정은 병합에 읽은 대상 바이트를 재사용해 결과와 직접 비교하고, 변경된 파일을 원자적으로 교체한다. 덮어쓰기·manifest 기반 삭제 전에는 같은 경로의 `.backup`에 직전 내용을 보관하고 권한을 `600`으로 설정한다. manifest는 이전에 배포한 파일 목록이다. 목록에 없는 파일은 삭제하지 않으며, 원본 디렉터리가 없거나 비어 있으면 해당 대상과 목록을 보존한다.
 
 Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저장소 값을 따른다. `approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`를 원본과 맞추고, 원본에 없는 키는 제거한다. 따라서 기존 설치도 동기화 후 같은 승인 정책을 사용하며, 예전 샌드박스 설정이 새 권한 프로필을 가리지 않는다. 변경 후 새 세션에서 권한 모드를 확인한다.
 

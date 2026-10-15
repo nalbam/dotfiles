@@ -9,7 +9,6 @@ if sys.version_info < (3, 11):
 from contextlib import contextmanager
 from datetime import date, datetime, time
 import fcntl
-import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -288,9 +287,7 @@ def merge_rules(source, old):
     return "".join(lines[:span[0]]) + managed + "".join(lines[span[1]:])
 
 
-def file_content(source, destination, source_name, relative, scripts, home):
-    data = source.read_bytes()
-    old = destination.read_bytes() if destination.exists() else None
+def file_content(data, old, source_name, relative, scripts, home):
     try:
         if source_name == "codex" and relative == "config.toml":
             return merge_toml(data.decode(), old.decode() if old is not None else None).encode()
@@ -385,11 +382,12 @@ def plan_target(home, repo, source_name, target_name):
         target = destination / relative
         regular_path(target, home)
         regular_path(target.with_name(target.name + ".backup"), home)
-        content = file_content(path, target, source_name, relative, scripts, home)
+        old = target.read_bytes() if target.exists() else None
+        content = file_content(path.read_bytes(), old, source_name, relative, scripts, home)
         executable = path.stat().st_mode & 0o100
         mode = (stat.S_IMODE(target.stat().st_mode) if target.exists() else 0o600) | executable
         if (target.exists() and stat.S_IMODE(target.stat().st_mode) == mode
-                and hashlib.md5(target.read_bytes()).digest() == hashlib.md5(content).digest()):
+                and old == content):
             continue
         changes.append((target, content, mode))
     if manifest.exists():
