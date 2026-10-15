@@ -337,8 +337,13 @@ def backup(path, boundary):
 def source_files(directory):
     if directory.is_symlink():
         raise ValueError(f"Source symlink requires manual review: {directory}")
+
+    def scan_error(error):
+        # An unreadable subtree must not look like removed managed files.
+        raise error
+
     files = []
-    for parent, directories, names in os.walk(directory):
+    for parent, directories, names in os.walk(directory, onerror=scan_error):
         directories[:] = sorted(name for name in directories if name != "__pycache__")
         for name in directories + names:
             path = Path(parent) / name

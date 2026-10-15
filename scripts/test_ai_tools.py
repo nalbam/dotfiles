@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Offline regression tests for AI settings deployment and skill generation."""
 
+import contextlib
+import io
 import json
 import os
 import re
@@ -97,6 +99,32 @@ class DeploymentTests(unittest.TestCase):
         self.sync()
         self.assertEqual(manifest.read_bytes(), old)
         self.assertTrue((self.home / ".agents/skills/demo/SKILL.md").exists())
+
+    def test_unreadable_source_subtree_stops_before_updates_or_pruning(self):
+        from unittest.mock import patch
+        self.put(".dotfiles/claude/skills/locked/SKILL.md", "managed skill\n")
+        self.sync()
+        before = {path.relative_to(self.home): path.read_bytes()
+                  for path in self.home.rglob("*")
+                  if path.is_file() and self.repo not in path.parents}
+        self.put(".dotfiles/claude/CLAUDE.md", "new instructions\n")
+        blocked = (self.repo / "claude/skills/locked").resolve()
+        real_scandir = os.scandir
+
+        def unreadable(path):
+            if Path(path).resolve() == blocked:
+                raise PermissionError(13, "Permission denied", str(path))
+            return real_scandir(path)
+
+        module = runpy.run_path(str(ROOT / "scripts/sync-ai-tools.py"))
+        with patch("pathlib.Path.home", return_value=self.home), patch("os.scandir", side_effect=unreadable), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            result = module["main"]()
+        self.assertEqual(result, 1)
+        after = {path.relative_to(self.home): path.read_bytes()
+                 for path in self.home.rglob("*")
+                 if path.is_file() and self.repo not in path.parents}
+        self.assertEqual(after, before)
 
     def test_toml_comments_indentation_nested_tables(self):
         self.put(".dotfiles/codex/config.toml", 'approval_policy = "on-request"\n[features]\nhooks = true\nnew_flag = true\n[permissions.work]\nnetwork = true\n')
