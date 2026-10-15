@@ -230,6 +230,40 @@ ss 8123
                     self.assertNotIn("Serving", result.stdout)
                     self.assertFalse(self.registry.exists())
 
+    def test_python_launcher_can_spawn_a_different_server_pid(self):
+        docs = self.home / "docs"
+        docs.mkdir()
+        (docs / "index.html").write_text("spawned server ready")
+        child_pid_file = self.home / "child-pid"
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                child_pid_file.unlink(missing_ok=True)
+                with socket.socket() as reservation:
+                    reservation.bind(("127.0.0.1", 0))
+                    port = reservation.getsockname()[1]
+                try:
+                    result = self.run_shell(shell, '''
+_port_kill() { return 1; }
+python3() {
+  command python3 "$@" &
+  local child=$!
+  if [ "$1" = -u ]; then printf '%s\\n' "$child" > "$HOME/child-pid"; fi
+  wait "$child"
+}
+ss ''' + str(port))
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                    pid = int(child_pid_file.read_text())
+                    self.assertIn(f"(PID {pid})", result.stdout)
+                    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                    with opener.open(f"http://127.0.0.1:{port}/", timeout=3) as response:
+                        self.assertEqual(response.read(), b"spawned server ready")
+                finally:
+                    if child_pid_file.exists():
+                        try:
+                            os.kill(int(child_pid_file.read_text()), signal.SIGTERM)
+                        except ProcessLookupError:
+                            pass
+
     def test_python_success_means_http_is_ready(self):
         docs = self.home / "docs"
         docs.mkdir()

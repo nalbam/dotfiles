@@ -338,7 +338,7 @@ ss() {
     return "$result"
   else
     local dir="${2:-docs}"
-    local abs_dir startup pid ready
+    local abs_dir startup pid launcher_pid
     if ! abs_dir=$(cd "$dir" 2>/dev/null && pwd); then
       echo "Directory '$dir' not found"
       return 1
@@ -360,10 +360,10 @@ with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
         ready.write(str(os.getpid()) + "\n")
     server.serve_forever()
 ' "$port" "$abs_dir" 3>"$startup/ready" >"$startup/log" 2>&1 &
-    pid=$!
-    IFS= read -r ready < "$startup/ready"
-    if [ "$ready" != "$pid" ]; then
-      wait "$pid"
+    launcher_pid=$!
+    # Framework Python launchers can spawn a server with a different PID.
+    if ! IFS= read -r pid < "$startup/ready"; then
+      wait "$launcher_pid"
       result=$?
       cat "$startup/log" >&2
       rm -f "$startup/ready" "$startup/log"
@@ -375,10 +375,10 @@ with http.server.ThreadingHTTPServer(("", int(sys.argv[1])), handler) as server:
     rmdir "$startup"
     if ! _server_add "$port" "python" "$abs_dir"; then
       kill "$pid"
-      wait "$pid" 2>/dev/null
+      wait "$launcher_pid" 2>/dev/null
       return 1
     fi
-    disown "$pid"
+    disown "$launcher_pid"
     echo "Serving $abs_dir at http://localhost:$port (PID $pid)"
   fi
 }
