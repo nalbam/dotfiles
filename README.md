@@ -143,7 +143,7 @@ Claude Code·Codex·OpenCode·Kiro의 공통 지침과 설정을 저장소에서
 | `claude/settings.json` → `opencode/opencode.json` | `~/.config/opencode/opencode.json` | Claude `permissions.deny`의 셸 규칙. `permissions`만 원본 우선 |
 | `claude/skills/` → `opencode/skills/` | `~/.config/opencode/skills/` | Claude 원본에서 생성한 OpenCode 스킬·참조 문서 |
 | `claude/agents/` → `opencode/agents/` | `~/.config/opencode/agents/` | Claude 서브에이전트에서 생성한 OpenCode 서브에이전트 |
-| `codex/config.toml` | `~/.codex/config.toml` | 승인·권한 선택은 원본 우선, 나머지는 없는 키만 추가 |
+| `codex/config.toml` | `~/.codex/config.toml` | 승인·권한 선택과 지정한 개발 기능 플래그는 원본 우선, 나머지는 없는 키만 추가 |
 | `codex/hooks.json` | `~/.codex/hooks.json` | dotfiles 소유 훅만 갱신하고 다른 훅 유지 |
 | `codex/rules/default.rules` | `~/.codex/rules/default.rules` | 관리 마커 내부만 갱신하고 로컬 규칙 유지 |
 | `claude/`, `kiro/` | `~/.claude/`, `~/.kiro/` | 각 도구의 지침·설정 |
@@ -195,6 +195,8 @@ AI 설정은 병합에 읽은 대상 바이트를 재사용해 결과와 직접 
 manifest에는 정규화된 상대 경로만 허용한다. `./config.toml`이나 `rules//default.rules`처럼 같은 파일의 다른 표기는 배포 전에 오류로 처리한다.
 
 Codex 원본에 `default_permissions`가 있으면 승인·권한 선택은 저장소 값을 따른다. `approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`를 원본과 맞추고, 원본에 없는 키는 제거한다. 따라서 기존 설치도 동기화 후 같은 승인 정책을 사용하며, 예전 샌드박스 설정이 새 권한 프로필을 가리지 않는다. 변경 후 새 세션에서 권한 모드를 확인한다.
+
+Codex의 `features.chronicle`과 `features.local_thread_store_compression`은 원본에 있으면 저장소 값을 따른다. 두 개발 단계 기능은 기본적으로 `false`이며, 기존 머신의 `true`도 동기화할 때 교체한다. `features.memories`와 `[memories]` 설정, 기존 세션·메모리 데이터는 유지한다. 반영 후 새 Codex 세션에서 F2를 눌러 시작 경고를 확인한다. 이미 열린 세션의 경고는 설정을 다시 읽기 전까지 남을 수 있다. `suppress_unstable_features_warning`으로 경고를 숨기지는 않는다. [공식 기능 플래그 안내](https://learn.chatgpt.com/docs/cli/reference#codex-features)를 참고한다.
 
 Claude `settings.json`의 `permissions.deny`와 `autoMode`도 원본에 있으면 저장소 값으로 교체한다. `autoMode`는 권한 분류기가 읽는 환경·정책 설명이므로 머신에서 생성된 예전 값이 남으면 안 된다. 머신에서 직접 추가한 deny 규칙은 다음 동기화 때 `.backup`에만 남으므로, 유지할 규칙은 `claude/settings.json`에 추가한다. OpenCode `opencode.json`의 `permissions`도 같은 방식으로 저장소 목록으로 교체한다. 셸 연산자(`|`, `&&`)로 이은 명령은 부분 명령별로 검사되므로 deny 규칙은 부분 명령 하나를 기준으로 쓴다.
 

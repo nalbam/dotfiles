@@ -481,6 +481,72 @@ status_line = [
         self.assertEqual(config["permissions"], {"work": {"extends": ":workspace"},
                                                 "personal": {"extends": ":read-only"}})
 
+    def test_codex_development_flags_follow_repository_and_preserve_local_settings(self):
+        self.put(".dotfiles/codex/config.toml", '''[features]
+hooks = true
+memories = true
+chronicle = false
+local_thread_store_compression = false
+''')
+        forms = (
+            '[features] # local flags\nhooks = false # keep this choice\nmemories = true\n'
+            'chronicle = true\nlocal_thread_store_compression = true\ncustom_flag = true\n',
+            'features.hooks = false\nfeatures.memories = true\nfeatures.chronicle = true\n'
+            '"features"."local_thread_store_compression" = true\nfeatures.custom_flag = true\n',
+            'features = { hooks = false, memories = true, chronicle = true, '
+            'local_thread_store_compression = true, custom_flag = true }\n',
+        )
+        for form in forms:
+            with self.subTest(form=form):
+                original = '''# Machine preferences
+model = "local-model"
+custom_instructions = """
+[features]
+local_thread_store_compression = true
+"""
+''' + form + '''[mcp_servers.local]
+command = "local-mcp"
+[projects."/local/project"]
+trust_level = "trusted"
+[[examples]]
+features = { local_thread_store_compression = true }
+'''
+                target = self.put(".codex/config.toml", original)
+                self.sync()
+                expected = tomllib.loads(original)
+                expected["features"].update(chronicle=False, local_thread_store_compression=False)
+                self.assertEqual(tomllib.loads(target.read_text()), expected)
+                backup = target.with_name(target.name + ".backup")
+                self.assertEqual(backup.read_text(), original)
+                self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+                first = target.read_bytes()
+                stamp = target.stat().st_mtime_ns
+                self.sync()
+                self.assertEqual(target.read_bytes(), first)
+                self.assertEqual(target.stat().st_mtime_ns, stamp)
+                self.assertEqual(backup.read_text(), original)
+
+    def test_codex_development_flags_are_local_when_absent_from_source(self):
+        original = 'approval_policy = "on-request"\n[features]\nhooks = true\nchronicle = true\nlocal_thread_store_compression = false\n'
+        target = self.put(".codex/config.toml", original)
+        self.sync()
+        self.assertEqual(target.read_text(), original)
+
+    def test_codex_development_flags_can_be_reenabled_in_repository(self):
+        self.put(".dotfiles/codex/config.toml", '[features]\nchronicle = true\nlocal_thread_store_compression = true\n')
+        target = self.put(".codex/config.toml", '[features]\nchronicle = false\nlocal_thread_store_compression = false\n')
+        self.sync()
+        self.assertEqual(tomllib.loads(target.read_text())["features"],
+                         {"chronicle": True, "local_thread_store_compression": True})
+
+    def test_codex_development_flags_replace_numeric_values_with_booleans(self):
+        self.put(".dotfiles/codex/config.toml", '[features]\nchronicle = false\nlocal_thread_store_compression = true\n')
+        target = self.put(".codex/config.toml", '[features]\nchronicle = 0\nlocal_thread_store_compression = 1\n')
+        self.sync()
+        features = tomllib.loads(target.read_text())["features"]
+        self.assertIs(features["chronicle"], False)
+        self.assertIs(features["local_thread_store_compression"], True)
+
     def test_invalid_json_does_not_commit_manifest(self):
         self.sync()
         self.put(".dotfiles/claude/settings.json", '{"hooks": {}}')
