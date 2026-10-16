@@ -15,8 +15,9 @@ web_search = "live"
 [features]
 hooks = true
 memories = true
-chronicle = true
-local_thread_store_compression = true
+# Keep under-development features disabled in the shared configuration.
+chronicle = false
+local_thread_store_compression = false
 
 # Memory generation and retrieval
 [memories]

@@ -31,6 +31,8 @@ BEGIN = "# BEGIN dotfiles managed codex rules"
 END = "# END dotfiles managed codex rules"
 CODEX_PERMISSION_KEYS = {"approval_policy", "approvals_reviewer", "default_permissions",
                          "sandbox_mode", "sandbox_workspace_write"}
+# These opt-ins must follow the source so existing machines can disable them too.
+CODEX_FEATURE_KEYS = {"chronicle", "local_thread_store_compression"}
 # These files moved to the VibeMon installer. Release old manifest entries
 # without deleting the current installation or copying an obsolete source.
 VIBEMON_FILES = {("claude", "statusline.py"), ("claude", "hooks/vibemon.py"),
@@ -261,6 +263,37 @@ def remove_toml_roots(text, keys):
     return "".join(result)
 
 
+def replace_codex_features(text, values):
+    """Replace existing owned flags without rewriting unrelated TOML statements."""
+    lines = text.splitlines(keepends=True)
+    result = []
+    scope = ()
+    for start, end, parsed, is_table in toml_statements(lines):
+        statement = "".join(lines[start:end])
+        if is_table:
+            scope = table_path(statement)
+        flags = {}
+        if scope == ("features",):
+            flags = parsed
+        elif scope == ():
+            flags = parsed.get("features", {})
+        updates = {key: value for key, value in values.items()
+                   if isinstance(flags, dict) and key in flags and flags[key] != value}
+        if not is_table and updates:
+            flags.update(updates)
+            # Keep the assignment path: rewriting a dotted key as an inline table
+            # would prevent subsequent dotted keys from extending that table.
+            key_text = statement.split("=", 1)[0].rstrip()
+            probe = tomllib.loads(key_text + " = 0\n")
+            value = parsed
+            while isinstance(probe, dict):
+                key, probe = next(iter(probe.items()))
+                value = value[key]
+            statement = f"{key_text} = {toml_value(value)}\n"
+        result.append(statement)
+    return "".join(result)
+
+
 def merge_toml(source, old):
     defaults = tomllib.loads(source)
     if old is None:
@@ -277,6 +310,17 @@ def merge_toml(source, old):
             if tomllib.loads(old) != retained:
                 raise ValueError("Cannot update Codex permissions without changing local settings")
             local = retained
+    feature_defaults = defaults.get("features", {})
+    owned_features = {key: feature_defaults[key] for key in CODEX_FEATURE_KEYS if key in feature_defaults}
+    if owned_features:
+        old = replace_codex_features(old, owned_features)
+        expected = dict(local)
+        if isinstance(local.get("features"), dict):
+            expected["features"] = {key: owned_features.get(key, value)
+                                    for key, value in local["features"].items()}
+        if tomllib.loads(old) != expected:
+            raise ValueError("Cannot update Codex feature flags without changing local settings")
+        local = expected
     expected = fill_missing(local, defaults)
     if expected == local:
         return old
