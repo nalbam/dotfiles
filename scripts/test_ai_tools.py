@@ -539,6 +539,14 @@ features = { local_thread_store_compression = true }
         self.assertEqual(tomllib.loads(target.read_text())["features"],
                          {"chronicle": True, "local_thread_store_compression": True})
 
+    def test_codex_development_flags_replace_numeric_values_with_booleans(self):
+        self.put(".dotfiles/codex/config.toml", '[features]\nchronicle = false\nlocal_thread_store_compression = true\n')
+        target = self.put(".codex/config.toml", '[features]\nchronicle = 0\nlocal_thread_store_compression = 1\n')
+        self.sync()
+        features = tomllib.loads(target.read_text())["features"]
+        self.assertIs(features["chronicle"], False)
+        self.assertIs(features["local_thread_store_compression"], True)
+
     def test_invalid_json_does_not_commit_manifest(self):
         self.sync()
         self.put(".dotfiles/claude/settings.json", '{"hooks": {}}')

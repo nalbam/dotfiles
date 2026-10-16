@@ -278,7 +278,8 @@ def replace_codex_features(text, values):
         elif scope == ():
             flags = parsed.get("features", {})
         updates = {key: value for key, value in values.items()
-                   if isinstance(flags, dict) and key in flags and flags[key] != value}
+                   if isinstance(flags, dict) and key in flags
+                   and (type(flags[key]) is not type(value) or flags[key] != value)}
         if not is_table and updates:
             flags.update(updates)
             # Keep the assignment path: rewriting a dotted key as an inline table
@@ -318,7 +319,12 @@ def merge_toml(source, old):
         if isinstance(local.get("features"), dict):
             expected["features"] = {key: owned_features.get(key, value)
                                     for key, value in local["features"].items()}
-        if tomllib.loads(old) != expected:
+        actual = tomllib.loads(old)
+        actual_features = actual.get("features", {})
+        wrong_feature_type = isinstance(actual_features, dict) and any(
+            key in actual_features and type(actual_features[key]) is not type(value)
+            for key, value in owned_features.items())
+        if actual != expected or wrong_feature_type:
             raise ValueError("Cannot update Codex feature flags without changing local settings")
         local = expected
     expected = fill_missing(local, defaults)
