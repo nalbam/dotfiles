@@ -10,7 +10,7 @@
 | 변경 커밋 | [commit](../claude/skills/commit/SKILL.md) |
 | 커밋 후 푸시 | [commit-push](../claude/skills/commit-push/SKILL.md) |
 | lint·타입·테스트 실행·수정 | [validate](../claude/skills/validate/SKILL.md) |
-| 변경분·PR 리뷰 | [code-review](../claude/skills/code-review/SKILL.md) (읽기 전용) |
+| 변경분·PR 리뷰 | 도구 내장 리뷰 명령: Claude Code `/code-review`, Codex `/review` |
 | 저장소 전체 감사 | [code-audit](../claude/skills/code-audit/SKILL.md) (읽기 전용) |
 | PR 생성·설명 갱신 | [pr-create](../claude/skills/pr-create/SKILL.md)·[pr-summary](../claude/skills/pr-summary/SKILL.md) |
 | CodeRabbit 평가·수정·resolve | [resolve-coderabbit](../claude/skills/resolve-coderabbit/SKILL.md) |
