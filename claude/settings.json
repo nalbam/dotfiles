@@ -8,7 +8,8 @@
     "allow": [
       "Skill(*)",
       "WebFetch",
-      "WebSearch"
+      "WebSearch",
+      "Bash(node prices.cjs:*)"
     ],
     "deny": [
       "Bash(chmod -R 777 /:*)",
