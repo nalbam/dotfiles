@@ -86,6 +86,7 @@
       "**Sensitive remote targets**: any cluster, namespace, host, or environment whose name carries `prod` or `production` as a whole word or name segment (for example `values-prod.yaml`, `versions-prod.json`).",
       "**Protected deployment namespaces / environments**: None configured — fall back to the Sensitive remote targets heuristic",
       "**Protected IaC scopes**: IAM, RBAC, networking (VPC), quota, and node-pool resources, and anything whose name or tag carries `prod` or `production` as a whole word or name segment",
+      "**App Store Connect**: The user authorizes Claude to manage their own apps (team `3TMN29X5ES`) in App Store Connect: in-app purchase products, prices, availability, introductory offers, App Privacy, TestFlight, and review submission",
       "### User-specific",
       "**Primary use of Claude Code**: software development and DevOps (Kubernetes, Helm, ArgoCD, Terraform, AWS, GitHub Actions)",
       "**Trusted repo**: The git repository the agent started in and its configured remote(s). When started in a workspace folder that holds several repositories, each repository under it with a `nalbam` or `opspresso` remote is trusted.",
