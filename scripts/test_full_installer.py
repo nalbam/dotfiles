@@ -138,7 +138,7 @@ elif command not in {"tput", "osascript", "defaults", "chflags"}:
                         ".zprofile": f"{os_dir}/zprofile.{architecture}.sh", ".Brewfile": f"{os_dir}/Brewfile",
                         ".config/dotfiles/nvm.sh": "shell/nvm.sh", ".codex/AGENTS.md": "codex/AGENTS.md",
                         ".config/opencode/AGENTS.md": "opencode/AGENTS.md",
-                        ".agents/skills/validate/SKILL.md": "codex/skills/validate/SKILL.md"}
+                        ".agents/skills/docs-sync/SKILL.md": "codex/skills/docs-sync/SKILL.md"}
             for target, source in expected.items():
                 self.assertEqual((home / target).read_bytes(), (repo / source).read_bytes())
             for name in (".ssh/config", ".aws/config"):

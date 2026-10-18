@@ -888,8 +888,12 @@ class GeneratorTests(unittest.TestCase):
     def test_stale_files_and_deleted_sources(self):
         fixture = self.fixture()
         metadata = {p: p.read_bytes() for p in (fixture / "codex/skills").rglob("*.yaml")}
-        stale = [fixture / tool / "skills/nextjs-init/references/setup.md" for tool in ("codex", "opencode")]
-        (fixture / "claude/skills/nextjs-init/references/setup.md").unlink()
+        reference = fixture / "claude/skills/docs-sync/references/extra.md"
+        reference.parent.mkdir()
+        reference.write_text("extra\n")
+        self.assertEqual(self.generate(fixture).returncode, 0)
+        stale = [fixture / tool / "skills/docs-sync/references/extra.md" for tool in ("codex", "opencode")]
+        reference.unlink()
         shutil.rmtree(fixture / "claude/skills/commit")
         (fixture / "claude/agents/debugger.md").unlink()
         self.assertNotEqual(self.generate(fixture, "--check").returncode, 0)
