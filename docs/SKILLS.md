@@ -4,12 +4,9 @@
 
 | 요청 | 스킬 |
 |------|------|
-| 지정 스택으로 새 Next.js 프로젝트 생성 | [nextjs-init](../claude/skills/nextjs-init/SKILL.md) |
-| Laya 도입·기존 통합 수정 | [laya-integration](../claude/skills/laya-integration/SKILL.md) |
 | 온보딩·프로젝트 개요 | [docs-read](../claude/skills/docs-read/SKILL.md) (읽기 전용) |
 | 변경 커밋 | [commit](../claude/skills/commit/SKILL.md) |
 | 커밋 후 푸시 | [commit-push](../claude/skills/commit-push/SKILL.md) |
-| lint·타입·테스트 실행·수정 | [validate](../claude/skills/validate/SKILL.md) |
 | 변경분·PR 리뷰 | 도구 내장 리뷰 명령: Claude Code `/code-review`, Codex `/review` |
 | 저장소 전체 감사 | [code-audit](../claude/skills/code-audit/SKILL.md) (읽기 전용) |
 | PR 생성·설명 갱신 | [pr-create](../claude/skills/pr-create/SKILL.md)·[pr-summary](../claude/skills/pr-summary/SKILL.md) |

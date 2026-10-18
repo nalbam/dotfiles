@@ -5,7 +5,7 @@ description: Audit an entire codebase and report evidence-backed findings withou
 
 # Code Audit
 
-저장소 전체 구현을 읽기 전용으로 감사한다. 발견 사항은 보고하고 코드·외부 상태를 바꾸지 않는다. 변경분 리뷰는 도구 내장 리뷰 명령(Claude Code `/code-review`, Codex `/review`), 검사 실행·수정은 `validate`, 문서 정합은 `docs-sync`의 범위다.
+저장소 전체 구현을 읽기 전용으로 감사한다. 발견 사항은 보고하고 코드·외부 상태를 바꾸지 않는다. 변경분 리뷰는 도구 내장 리뷰 명령(Claude Code `/code-review`, Codex `/review`), 문서 정합은 `docs-sync`의 범위다.
 
 ## Exclude Patterns
 
