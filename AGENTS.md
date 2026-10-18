@@ -57,7 +57,7 @@ Edit repository sources, not deployed copies. `run.sh --vibe` reads from `~/.dot
 
 When the source Codex config selects `default_permissions`, sync owns approval and sandbox selection (`approval_policy`, `approvals_reviewer`, `default_permissions`, `sandbox_mode`, `sandbox_workspace_write`). These keys follow the repository, including removal of obsolete selectors. Other local settings keep their existing values.
 
-Sync also owns `features.chronicle` and `features.local_thread_store_compression` when present in the source Codex config. Keep these under-development opt-ins disabled by default so existing machines stop enabling them after sync. Preserve other local feature flags and session/memory data; do not suppress startup warnings globally.
+Sync also owns `features.chronicle` and `features.local_thread_store_compression` when present in the source Codex config. Keep these under-development opt-ins `false` in the source; sync replaces the local value, including `true`. Preserve other local feature flags and session/memory data; do not suppress startup warnings globally.
 
 Sync also owns `permissions.deny` and `autoMode` in `claude/settings.json` and `permissions` in `opencode/opencode.json`: the deployed value is replaced with the repository value. Claude Code checks each subcommand of a compound command separately, so write a deny rule for one subcommand; a rule that contains `|` never matches. A rule that mixes `*` with a trailing `:*` is a literal prefix and also never matches.
 
