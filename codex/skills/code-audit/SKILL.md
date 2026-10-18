@@ -1,11 +1,11 @@
 ---
 name: code-audit
-description: Audit an entire codebase and report evidence-backed findings without edits. 저장소 전체 읽기 전용 감사; 변경분 리뷰는 code-review.
+description: Audit an entire codebase and report evidence-backed findings without edits. 저장소 전체 읽기 전용 감사; 변경분 리뷰는 도구 내장 리뷰 명령.
 ---
 
 # Code Audit
 
-저장소 전체 구현을 읽기 전용으로 감사한다. 발견 사항은 보고하고 코드·외부 상태를 바꾸지 않는다. 변경분 리뷰는 `code-review`, 검사 실행·수정은 `validate`, 문서 정합은 `docs-sync`의 범위다.
+저장소 전체 구현을 읽기 전용으로 감사한다. 발견 사항은 보고하고 코드·외부 상태를 바꾸지 않는다. 변경분 리뷰는 도구 내장 리뷰 명령(Claude Code `/code-review`, Codex `/review`), 검사 실행·수정은 `validate`, 문서 정합은 `docs-sync`의 범위다.
 
 ## Exclude Patterns
 
@@ -38,8 +38,17 @@ lockfile·배포 설정은 의존성·운영 위험을 확인할 때 읽는다. 
 3. 위임 시 범위·제외 패턴·프로젝트 제약·산출물 형식을 전달한다. 메인은 근거를 확인하고 같은 원인의 중복 findings를 합친다.
 4. 의심 항목의 발생 조건·실제 영향·가역성을 확인한다. 파일 줄 수·타입 사용·취향 차이만으로 문제를 만들지 않는다.
 
+## Severity
+
+| Severity | 기준 |
+|----------|------|
+| CRITICAL | 즉각적인 보안 사고·데이터 손실·서비스 불능 위험 |
+| HIGH | 일반 입력·운영 조건에서 기능·보안·정합성 손상 |
+| MEDIUM | 특정 조건에서 발생하는 명확한 결함·회귀 |
+| LOW | 영향은 작지만 근거와 수정 가치가 있는 문제 |
+
 ## 보고
 
-심각도 기준은 `skills/code-review/SKILL.md#severity`를 따른다. 각 finding에 파일·줄, 문제, 발생 조건, 근거, 영향, 권장 조치를 담는다.
+심각도 순으로 보고하고 각 finding에 파일·줄, 문제, 발생 조건, 근거, 영향, 권장 조치를 담는다.
 
 실제 위험을 먼저 제시하고 공통 근본 원인은 필요한 경우에만 묶는다. 직접 확인한 범위·제외한 영역·실행하지 않은 검사를 밝힌다. 읽지 않은 영역까지 감사 완료로 표현하거나 측정하지 않은 커버리지·성능 수치를 쓰지 않는다.
