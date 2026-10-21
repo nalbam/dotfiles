@@ -1,873 +1,106 @@
 #!/bin/bash
-
-# Wrap entire script in a block so the shell reads it fully into memory
-# before execution. This prevents corruption when `git pull` updates this
-# file while it is still running.
+# Bootstrap: make sure ~/.dotfiles exists, then hand over to `dot up`.
+#
+#   curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
+#   bash ~/.dotfiles/run.sh [--force] [--vibe]
+#
+# The braces make Bash read the whole file before running it, so a checkout
+# update cannot change this script while it executes.
 {
 
-################################################################################
-# 선언 영역 (Declaration Section)
-################################################################################
+DOT_HOME="${DOT_HOME:-$HOME/.dotfiles}"
+DOT_REPO_URL="${DOT_REPO_URL:-https://github.com/nalbam/dotfiles.git}"
+DOT_ARCHIVE_URL="${DOT_ARCHIVE_URL:-https://codeload.github.com/nalbam/dotfiles/tar.gz/refs/heads/main}"
 
-# OS 정보 및 설치 도구 설정
-OS_NAME="$(uname | awk '{print tolower($0)}' | cut -d'-' -f1)"
-OS_ARCH="$(uname -m)"
-
-if [ "${OS_NAME}" == "darwin" ]; then
-  INSTALLER="brew"
-elif [ "${OS_NAME}" == "linux" ]; then
-  INSTALLER="apt"
-elif [ "${OS_NAME}" == "mingw64_nt" ]; then
-  INSTALLER="winget"
-fi
-
-# 설치 진행 단계 설정
-TOTAL_STEPS=11
-CURRENT_STEP=0
-
-# 경고 카운터 (최종 요약에 사용)
-WARN_COUNT=0
-
-# 타이머 설정
-UPDATE_INTERVAL=21600  # 6시간 (초 단위)
-
-# 컬러 출력 설정
-command -v tput >/dev/null && TPUT=true
-
-################################################################################
-# 함수 영역 (Function Section)
-################################################################################
-
-# 컬러 출력 함수
-_echo() {
-  if [ "${TPUT}" != "" ] && [ "$2" != "" ]; then
-    echo -e "$(tput setaf $2)$1$(tput sgr0)"
-  else
-    echo -e "$1"
-  fi
+usage() {
+  printf '%s\n' \
+    'Usage: bash run.sh [--force] [--vibe] [--help]' \
+    '  (no options)  Install or upgrade this machine (runs `dot up`).' \
+    '  --force       Upgrade even when the last upgrade was less than 6 hours ago.' \
+    '  --vibe        Deploy AI tool settings only (runs `dot vibe`).' \
+    '  -h, --help    Show this help without changing files.'
 }
 
-# Banner text is ASCII, so character counts match terminal columns.
-_box() {
-  local color="$1" title="$2" subtitle="$3"
-  local columns=67 size width inner border line left right
-
-  if [ -t 1 ]; then
-    # Query stdout's terminal even when stdin is a pipe (curl | bash).
-    { size=$(stty size 2>/dev/null); } <&1
-    columns="${size##* }"
-  fi
-
-  case "$columns" in
-    '' | *[!0-9]*) _echo "$title" "$color"; return ;;
-  esac
-
-  # Leave one column free to avoid wrapping at the terminal's right edge.
-  width=$((columns - 1))
-  [ "$width" -le 66 ] || width=66
-  if [ "$width" -lt $((${#title} + 4)) ]; then
-    _echo "$title" "$color"
-    return
-  fi
-
-  inner=$((width - 2))
-  border=$(printf '%*s' "$inner" '')
-  border=${border// /═}
-  _echo "╔${border}╗" "$color"
-  for line in "$title" "$subtitle"; do
-    [ -n "$line" ] && [ "${#line}" -le $((inner - 2)) ] || continue
-    left=$(((inner - ${#line}) / 2))
-    right=$((inner - ${#line} - left))
-    _echo "$(printf '║%*s%s%*s║' "$left" '' "$line" "$right" '')" "$color"
-  done
-  _echo "╚${border}╝" "$color"
-}
-
-# 시작 배너 출력 함수
-_banner() {
-  _echo
-  _box 6 "DOTFILES INSTALLER" "Development Environment Setup Automation Tool"
-}
-
-# 진행률 표시 함수
-_progress() {
-  CURRENT_STEP=$((CURRENT_STEP + 1))
-  _echo "\n▶ [$CURRENT_STEP/$TOTAL_STEPS] $@" 6
-}
-
-# 정보 메시지 출력 함수 (파랑)
-_info() {
-  _echo "  ℹ $@" 4
-}
-
-# 성공 메시지 출력 함수 (초록)
-_ok() {
-  _echo "  ✓ $@" 2
-}
-
-# 건너뛰기 메시지 출력 함수 (노랑)
-_skip() {
-  _echo "  ⊘ $@" 3
-}
-
-# 경고 메시지 출력 함수 (노랑)
-# 주의: 서브셸($(...)·파이프)에서 호출하면 카운트가 유실됨 — 루프는 `< <(...)` 패턴 유지
-_warn() {
-  WARN_COUNT=$((WARN_COUNT + 1))
-  _echo "  ⚠ $@" 3
-}
-
-# 명령어 실행 표시 함수 (마젠타)
-_run() {
-  _echo "  → $@" 5
-}
-
-# 에러 메시지 출력 함수 (빨강)
-_error() {
-  _echo "\n✗ ERROR: $@\n" 1
+fail() {
+  printf '\n  ✗ %s\n\n' "$*" >&2
   exit 1
 }
 
-# 최종 성공 메시지 출력 함수 (초록)
-_success() {
-  _echo
-  _box 2 "INSTALLATION COMPLETED!"
-  if [ "${WARN_COUNT}" -gt 0 ]; then
-    _echo "\n  ⚠ Completed with ${WARN_COUNT} warning(s) — review the ⚠ lines above." 3
-  fi
-  _echo
-  exit 0
-}
+COMMAND=up
+ARGS=""
+for arg in "$@"; do
+  case "$arg" in
+    --vibe) COMMAND=vibe ;;
+    --force) ARGS="--force" ;;
+    -h | --help) usage; exit 0 ;;
+    *) printf 'Unknown option: %s\n' "$arg" >&2; usage >&2; exit 2 ;;
+  esac
+done
 
-# 재시도 헬퍼 함수 (exponential backoff)
-_retry() {
-  local description="$1"
-  shift
-  local max_retries=3 retry_count=0 wait_time=5
-
-  while [ $retry_count -lt $max_retries ]; do
-    if "$@"; then return 0; fi
-    retry_count=$((retry_count + 1))
-    if [ $retry_count -eq $max_retries ]; then return 1; fi
-    _info "$description failed, retrying in $wait_time seconds... (attempt $retry_count/$max_retries)"
-    sleep $wait_time
+retry() {
+  local attempt=1 wait_time=5
+  while :; do
+    "$@" && return 0
+    [ "$attempt" -lt 3 ] || return 1
+    printf '  ℹ Retrying in %ss (attempt %s/3)\n' "$wait_time" "$attempt"
+    sleep "$wait_time"
+    attempt=$((attempt + 1))
     wait_time=$((wait_time * 2))
   done
 }
 
-# Execute only complete, syntactically valid bootstrap downloads.
-_install_script() (
-  local url="$1" script
-  shift
-  script=$(mktemp "${TMPDIR:-/tmp}/dotfiles-bootstrap.XXXXXX") || return
-  trap 'rm -f "$script"' EXIT
-  _retry "Download installer" curl -fsSL --connect-timeout 10 -o "$script" "$url" || return
-  /bin/bash -n "$script" || return
-  /bin/bash "$script" "$@"
-)
-
-_archive_oh_my_zsh() {
-  [ -e "$HOME/.oh-my-zsh" ] || [ -L "$HOME/.oh-my-zsh" ] || return 0
-  local backup
-  backup=$(mktemp -d "$HOME/.oh-my-zsh.backup.XXXXXX") || _error "Failed to preserve incomplete Oh My ZSH"
-  if ! mv "$HOME/.oh-my-zsh" "$backup/oh-my-zsh"; then
-    rmdir "$backup"
-    _error "Failed to preserve incomplete Oh My ZSH"
-  fi
-  _info "Preserved incomplete Oh My ZSH at $backup/oh-my-zsh"
-}
-
-# MD5 해시 함수 (크로스 플랫폼)
-_md5() {
-  if [ "${OS_NAME}" == "darwin" ]; then
-    md5 -q "$1"
-  else
-    local digest
-    digest=$(md5sum "$1") || return
-    printf '%s\n' "${digest%% *}"
+# The macOS /usr/bin/git stub opens a GUI installer without Command Line Tools.
+git_usable() {
+  command -v git >/dev/null 2>&1 || return 1
+  if [ "$(uname -s)" = Darwin ] && [ "$(command -v git)" = /usr/bin/git ]; then
+    xcode-select -p >/dev/null 2>&1 || return 1
   fi
 }
 
-# 0: equal, 1: different, 2: comparison failed.
-_same_file() {
-  local left right
-  left=$(_md5 "$1") || return 2
-  right=$(_md5 "$2") || return 2
-  [ -n "$left" ] && [ -n "$right" ] || return 2
-  [ "$left" = "$right" ]
+# Without Git, install from the archive; `dot up` converts it to a checkout later.
+install_archive() {
+  local staging
+  staging=$(mktemp -d "${DOT_HOME%/*}/.dotfiles.download.XXXXXX") || return 1
+  if retry curl -fsSL --connect-timeout 10 -o "$staging/main.tar.gz" "$DOT_ARCHIVE_URL" &&
+     mkdir "$staging/tree" &&
+     tar -xzf "$staging/main.tar.gz" -C "$staging/tree" --strip-components 1 &&
+     [ -x "$staging/tree/bin/dot" ] &&
+     mv "$staging/tree" "$DOT_HOME"; then
+    rm -rf "$staging"
+    return 0
+  fi
+  rm -rf "$staging"
+  return 1
 }
 
-# 백업 생성 함수
-_backup() {
-  if [ -f "$1" ]; then
-    local temporary
-    if [ -L "$1.backup" ] || { [ -e "$1.backup" ] && [ ! -f "$1.backup" ]; }; then
-      return 1
-    fi
-    temporary=$(mktemp "$1.backup.tmp.XXXXXX") || return 1
-    if ! { cp "$1" "$temporary" && chmod 600 "$temporary" && mv -f "$temporary" "$1.backup"; }; then
-      rm -f "$temporary"
-      return 1
-    fi
-    _info "Created backup: $1.backup"
-  fi
-}
-
-# 파일 다운로드 함수
-_download() {
-  local target_file="$HOME/$1" source_file="$HOME/.dotfiles/${2:-$1}"
-  local target_dir="${target_file%/*}" temporary comparison
-  if [ -e "$target_file" ] && [ ! -f "$target_file" ]; then
-    _error "Expected a file at $target_file"
-  fi
-  mkdir -p "$target_dir" || _error "Failed to create $target_dir"
-
-  if [ -f "$source_file" ] && [ -f "$target_file" ] &&
-     _same_file "$source_file" "$target_file"; then
-    :
+if [ ! -x "$DOT_HOME/bin/dot" ]; then
+  if [ -d "$DOT_HOME/.git" ]; then
+    # A checkout from before `dot` existed: update it in place.
+    printf '  → Updating %s\n' "$DOT_HOME"
+    git_usable && retry git -C "$DOT_HOME" pull --ff-only ||
+      fail "Could not update $DOT_HOME. Check: git -C $DOT_HOME status"
+  elif [ -e "$DOT_HOME" ]; then
+    fail "$DOT_HOME exists but is not a dotfiles checkout. Move it aside and run again."
+  elif git_usable; then
+    printf '  → Cloning %s\n' "$DOT_REPO_URL"
+    retry git clone -q "$DOT_REPO_URL" "$DOT_HOME" || fail "Clone failed: $DOT_REPO_URL"
   else
-    comparison=$?
-    [ "$comparison" -eq 1 ] || _error "Failed to compare $source_file and $target_file"
-    temporary=$(mktemp "$target_file.tmp.XXXXXX") || _error "Failed to stage $target_file"
-    if [ -f "$target_file" ] && ! cp -p "$target_file" "$temporary"; then
-      rm -f "$temporary"
-      _error "Failed to stage existing $target_file"
-    fi
-    if [ -f "$source_file" ]; then
-      if ! cp "$source_file" "$temporary"; then
-        rm -f "$temporary"
-        _error "Failed to copy ${2:-$1}"
-      fi
-    else
-      if ! _retry "Download ${2:-$1}" curl -fsSL --connect-timeout 10 -o "$temporary" "https://raw.githubusercontent.com/nalbam/dotfiles/main/${2:-$1}"; then
-        rm -f "$temporary"
-        _error "Failed to download ${2:-$1} after 3 attempts"
-      fi
-    fi
-    if [ -f "$target_file" ] && _same_file "$temporary" "$target_file"; then
-      rm -f "$temporary"
-    else
-      comparison=$?
-      if [ "$comparison" -ne 1 ]; then
-        rm -f "$temporary"
-        _error "Failed to compare staged content with $target_file"
-      fi
-      if ! _backup "$target_file"; then
-        rm -f "$temporary"
-        _error "Failed to back up $target_file"
-      fi
-      if ! mv -f "$temporary" "$target_file"; then
-        rm -f "$temporary"
-        _error "Failed to replace $target_file"
-      fi
-    fi
-  fi
-
-  # Set appropriate permissions for sensitive files
-  case "$1" in
-    .ssh/* | .aws/* | *.backup)
-      chmod 600 "$target_file" || _error "Failed to protect $target_file"
-      ;;
-  esac
-}
-
-# Dotfiles 저장소 관리 함수
-_dotfiles() {
-  if ! command -v git >/dev/null 2>&1; then
-    _skip "git not found — skipping repository sync"
-    return
-  fi
-
-  # macOS: CLT 미설치 상태의 git 스텁은 실행만 해도 GUI 팝업을 띄우므로 실행 전 차단
-  if [ "${OS_NAME}" == "darwin" ] && ! xcode-select -p >/dev/null 2>&1; then
-    _skip "Xcode CLT not installed — skipping repository sync (complete CLT install, then re-run)"
-    return
-  fi
-
-  if [ ! -d ~/.dotfiles ]; then
-    _run "Cloning dotfiles repository..."
-    if _retry "Clone" git clone https://github.com/nalbam/dotfiles.git ~/.dotfiles; then
-      _ok "Dotfiles repository cloned"
-    else
-      _error "Failed to clone dotfiles repository after 3 attempts"
-    fi
-  else
-    # git -C 로 cwd 를 바꾸지 않는다 — cd/cd - 는 OLDPWD 에 의존해 실패 경로가 취약하다
-    _run "Updating dotfiles repository..."
-    if _retry "Pull" git -C ~/.dotfiles pull; then
-      _ok "Dotfiles repository updated"
-    else
-      # 이미 클론이 있으므로 치명적이지 않다. 로컬 변경·네트워크 문제로 pull 이 막혀도
-      # 기존 체크아웃으로 나머지 단계를 계속 진행한다 (중단하면 재실행도 같은 지점에서 막힌다).
-      _warn "Failed to update dotfiles repository — continuing with existing checkout"
-    fi
-  fi
-}
-
-# AI settings are validated and deployed as one operation; failures stop installation.
-_sync_vibe() {
-  if ! command -v python3 >/dev/null 2>&1; then
-    _error "AI sync requires Python 3.11 or newer."
-  fi
-  if ! python3 "${HOME}/.dotfiles/scripts/sync-ai-tools.py"; then
-    _error "AI tools sync failed — review the error above before retrying."
-  fi
-}
-
-# pip install/upgrade를 4단계 fallback으로 시도
-_pip_try_install() {
-  local package_name="$1"
-  shift
-
-  python3 -m pip install "$@" "$package_name" >/dev/null 2>&1 ||
-  python3 -m pip install --user "$@" "$package_name" >/dev/null 2>&1 ||
-  python3 -m pip install --break-system-packages --user "$@" "$package_name" >/dev/null 2>&1 ||
-  sudo python3 -m pip install "$@" "$package_name" >/dev/null 2>&1
-}
-
-_install_pip_package() {
-  local package_name="$1"
-  if ! command -v python3 >/dev/null 2>&1; then
-    _skip "Python3 not found, skipping $package_name"
-    return 1
-  fi
-
-  # pip's resolver handles installed versions and upgrades in one invocation.
-  _run "Installing/updating $package_name..."
-  if _pip_try_install "$package_name" --upgrade; then
-    _ok "$package_name is installed and up to date"
-  else
-    _warn "Failed to install/update $package_name after trying all methods"
-    return 1
-  fi
-}
-
-# 업데이트 타이머 체크 함수 (UPDATE_INTERVAL 간격)
-_should_update() {
-  local timestamp_file="$1"
-  if [ ! -f "$timestamp_file" ]; then return 0; fi
-
-  local last
-  last=$(cat "$timestamp_file" 2>/dev/null)
-
-  # 빈 파일·비숫자는 "갱신 필요"로 처리한다. 중단된 쓰기나 디스크 풀로 파일이 비면
-  # $(( now - )) 가 산술 오류를 내고, 그 결과가 "갱신 불필요"로 해석되어 해당 업데이트
-  # 경로가 영구히 차단된다.
-  case "$last" in
-    '' | *[!0-9]*) return 0 ;;
-  esac
-
-  [ $(( $(date +%s) - last )) -ge $UPDATE_INTERVAL ]
-}
-
-_usage() {
-  printf '%s\n' \
-    'Usage: bash run.sh [--vibe | --help]' \
-    '  (no options)  Install the development environment.' \
-    '  --vibe        Sync AI settings from ~/.dotfiles only.' \
-    '  -h, --help    Show this help without changing files.'
-}
-
-################################################################################
-# 실행 영역 (Execution Section)
-################################################################################
-
-# Parse arguments
-VIBE_ONLY=false
-for arg in "$@"; do
-  case "$arg" in
-    --vibe) VIBE_ONLY=true ;;
-    -h | --help) _usage; exit 0 ;;
-    *) printf 'Unknown option: %s\n' "$arg" >&2; _usage >&2; exit 2 ;;
-  esac
-done
-
-_banner
-
-if [ "$VIBE_ONLY" = true ]; then
-  _info "Running AI tools sync only..."
-  if [ -d ~/.dotfiles ]; then
-    _sync_vibe
-    if [ "${WARN_COUNT}" -gt 0 ]; then
-      _echo "\n  ⚠ Sync completed with ${WARN_COUNT} warning(s) — review the ⚠ lines above." 3
-    fi
-    _echo "\n  ✓ AI tools sync complete\n" 2
-    exit 0
-  else
-    _error "Dotfiles not installed. Run full install first."
+    printf '  → Downloading dotfiles (Git is not usable yet)\n'
+    install_archive || fail "Download failed: $DOT_ARCHIVE_URL"
   fi
 fi
 
-# Step 1: 시스템 환경 확인
-_progress "Checking system environment..."
-_info "Operating System: ${OS_NAME}"
-_info "Architecture: ${OS_ARCH}"
-_info "Package Manager: ${INSTALLER}"
+[ -x "$DOT_HOME/bin/dot" ] || fail "$DOT_HOME/bin/dot is missing after the update."
 
-if [ "${INSTALLER}" == "" ]; then
-  _error "Unsupported operating system."
+# With `curl | bash`, stdin is the finished download. Give prompts the terminal.
+if [ ! -t 0 ] && (exec < /dev/tty) 2>/dev/null; then
+  exec < /dev/tty
 fi
 
-# Step 2: 디렉토리 생성 및 SSH 키 설정
-_progress "Creating directories and setting up SSH keys..."
-
-mkdir -p ~/.aws
-mkdir -p ~/.ssh
-mkdir -p ~/.toast
-# ~/.ssh 는 700 이어야 한다 — umask 에 따라 755 로 생성되면 ssh 가 config·키를 거부하거나
-# 다른 사용자에게 노출된다. 기존 디렉토리도 매 실행마다 교정한다 (멱등).
-chmod 700 ~/.ssh
-_ok "Directories created"
-
-# Generate SSH keys
-if [ ! -f ~/.ssh/id_rsa ]; then
-  if ssh-keygen -q -f ~/.ssh/id_rsa -N ''; then
-    _ok "Generated RSA SSH key (~/.ssh/id_rsa)"
-  else
-    _warn "Failed to generate RSA SSH key"
-  fi
-else
-  _skip "RSA SSH key already exists"
+if [ "$COMMAND" = vibe ]; then
+  exec /bin/bash "$DOT_HOME/bin/dot" vibe
 fi
+# shellcheck disable=SC2086
+exec /bin/bash "$DOT_HOME/bin/dot" up $ARGS
 
-if [ ! -f ~/.ssh/id_ed25519 ]; then
-  if ssh-keygen -q -t ed25519 -f ~/.ssh/id_ed25519 -N ''; then
-    _ok "Generated ED25519 SSH key (~/.ssh/id_ed25519)"
-  else
-    _warn "Failed to generate ED25519 SSH key"
-  fi
-else
-  _skip "ED25519 SSH key already exists"
-fi
-
-# Step 3: Dotfiles 저장소 클론
-_progress "Cloning dotfiles repository..."
-_dotfiles
-
-# Step 4: 기본 설정 파일 다운로드
-_progress "Setting up basic configuration files..."
-
-# SSH 설정 파일 다운로드
-if [ ! -f ~/.ssh/config ]; then
-  _download .ssh/config ssh/config
-  _ok "Downloaded SSH config template"
-  _info "To use 1Password: op read op://keys/ssh-config/notesPlain > ~/.ssh/config && chmod 600 ~/.ssh/config"
-else
-  _skip "SSH config already exists"
-fi
-
-# AWS 설정 파일 다운로드
-if [ ! -f ~/.aws/config ]; then
-  _download .aws/config aws/config
-  _ok "Downloaded AWS config template"
-  _info "To use 1Password for AWS:"
-  _info "  op read op://keys/aws-config/notesPlain > ~/.aws/config && chmod 600 ~/.aws/config"
-  _info "  op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~/.aws/credentials"
-else
-  _skip "AWS config already exists"
-fi
-
-# Git 설정 파일 다운로드
-_download .gitconfig gitconfig
-_download .gitconfig-bruce gitconfig-bruce
-_download .gitconfig-nalbam gitconfig-nalbam
-_download .gitconfig-nalbam-me gitconfig-nalbam-me
-_download .gitconfig-nalbam-bot gitconfig-nalbam-bot
-_download .gitconfig-yujh404 gitconfig-yujh404
-_ok "Git configuration files downloaded"
-
-# Step 5: OS별 패키지 관리자 설정
-_progress "Setting up package managers..."
-
-# Linux 설정 (APT 패키지 관리)
-if [ "${OS_NAME}" == "linux" ]; then
-  # System upgrades are not run here: on hosts serving workloads (e.g. GPU servers),
-  # `apt upgrade` can restart Docker and replace driver libraries before a reboot.
-  # Query the complete package set, including unpacked but unconfigured packages.
-  APT_PACKAGES=(build-essential procps curl file git unzip jq zsh)
-  if ! APT_PACKAGE_STATUS=$(dpkg-query -W -f='${Status}\n' "${APT_PACKAGES[@]}" 2>/dev/null) ||
-     printf '%s\n' "$APT_PACKAGE_STATUS" | grep -Eqvx '(install|hold) ok installed'; then
-    _run "Installing essential packages (build-essential, git, zsh, jq, etc.)..."
-    if sudo apt update && sudo apt install -y "${APT_PACKAGES[@]}"; then
-      _ok "Essential packages installed"
-    else
-      _warn "Failed to install essential packages — retry after resolving the APT error"
-    fi
-  else
-    _skip "Essential packages already installed"
-  fi
-fi
-
-# Homebrew 설치
-if ! command -v brew >/dev/null 2>&1; then
-  _run "Installing Homebrew..."
-  if _install_script https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh; then
-    BREW_INSTALL_OK=true
-  else
-    BREW_INSTALL_OK=false
-  fi
-  if [ -x /opt/homebrew/bin/brew ]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-  elif [ -x /usr/local/bin/brew ]; then
-    eval "$(/usr/local/bin/brew shellenv)"
-  fi
-  # 사후 검증: 설치 실패를 성공으로 보고하지 않는다
-  if [ "$BREW_INSTALL_OK" = true ] && command -v brew >/dev/null 2>&1; then
-    _ok "Homebrew installed"
-  else
-    _warn "Homebrew install failed — review the error above before retrying"
-  fi
-else
-  _skip "Homebrew already installed"
-fi
-
-# 신규 macOS 대응: Step 3 시점에는 Xcode CLT 가 없어 _dotfiles 가 git 사용을 차단하고 클론을
-# 건너뛴다. 그 상태로 진행하면 Step 6 은 Brewfile 을 못 찾고 Step 11 은 sync 를 통째로 건너뛰어,
-# 첫 실행이 "설정 파일만 받고 끝나는" 반쪽 설치가 된다.
-# Homebrew 설치가 CLT 를 함께 넣으므로 여기서 한 번 더 시도한다. _dotfiles 는 멱등이다.
-if [ ! -d ~/.dotfiles ]; then
-  _info "Dotfiles repository still missing — retrying now that build tools are available"
-  _dotfiles
-fi
-
-# Step 6: 개발 도구 패키지 설치
-_progress "Installing development packages..."
-
-# Homebrew 패키지 업데이트 (brew가 설치된 경우에만)
-if command -v brew >/dev/null 2>&1; then
-  BREW_TIMESTAMP_FILE=~/.toast/last_update_brew
-  BREWFILE_SRC=~/.dotfiles/$OS_NAME/Brewfile
-
-  # Brewfile 변경 감지: ~/.Brewfile 은 "마지막으로 bundle 성공한 내용" 마커
-  BREWFILE_CHANGED=false
-  if [ -f "$BREWFILE_SRC" ]; then
-    if [ ! -f ~/.Brewfile ]; then
-      BREWFILE_CHANGED=true
-    elif _same_file "$BREWFILE_SRC" ~/.Brewfile; then
-      :
-    else
-      [ "$?" -eq 1 ] || _error "Failed to compare the Brewfile completion marker"
-      BREWFILE_CHANGED=true
-    fi
-  fi
-
-  BREW_DUE=false
-  if _should_update "$BREW_TIMESTAMP_FILE"; then BREW_DUE=true; fi
-
-  BREW_OK=true
-  if [ "$BREW_DUE" = true ]; then
-    _run "Updating Homebrew packages..."
-    if brew update && brew upgrade; then
-      _ok "Homebrew packages updated"
-    else
-      _warn "brew update/upgrade failed"
-      BREW_OK=false
-    fi
-  else
-    _skip "Homebrew update (last update was less than 6 hours ago)"
-  fi
-
-  # Brewfile 설치: 스로틀 만료 또는 Brewfile 변경 시 (변경은 스로틀과 무관하게 즉시 반영)
-  if [ -f "$BREWFILE_SRC" ]; then
-    if [ "$BREW_DUE" = true ] || [ "$BREWFILE_CHANGED" = true ]; then
-      _run "Installing packages from Brewfile..."
-      if brew bundle --file="$BREWFILE_SRC"; then
-        brew cleanup
-        _ok "Brewfile packages installed"
-        # 성공 후에만 마커 동기화 → 실패 시 다음 실행에서 CHANGED 로 재시도
-        _download .Brewfile $OS_NAME/Brewfile
-      else
-        brew cleanup
-        _warn "brew bundle failed — some packages did not install"
-        BREW_OK=false
-      fi
-    fi
-  else
-    _skip "Brewfile not found for $OS_NAME"
-  fi
-
-  # 모든 단계 성공 시에만 timestamp 갱신 (실패 시 다음 실행에서 재시도)
-  if [ "$BREW_DUE" = true ] && [ "$BREW_OK" = true ]; then
-    date +%s > "$BREW_TIMESTAMP_FILE"
-  fi
-
-  # macOS getopt 설정
-  if [ "${OS_NAME}" == "darwin" ]; then
-    GETOPT=$(getopt 2>&1 | head -1 | xargs)
-    if [ "${GETOPT}" == "--" ]; then
-      brew link --force gnu-getopt
-    fi
-  fi
-else
-  _skip "Homebrew not found"
-fi
-
-# nvm 부트스트랩
-# Homebrew의 nvm은 ~/.nvm 디렉터리와 Node.js를 설치하지 않는다.
-# 새 셸에서 nvm을 읽고 Node.js를 사용할 수 있도록 둘 다 준비한다.
-# 업데이트 스로틀 바깥에 둔다 — 부트스트랩은 1회성이고 Node.js 24 설치 여부로 가드된다.
-_download .config/dotfiles/nvm.sh shell/nvm.sh
-export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
-[ -d "$NVM_DIR" ] || mkdir -p "$NVM_DIR" || _error "Failed to create $NVM_DIR"
-. "$HOME/.config/dotfiles/nvm.sh"
-if command -v nvm >/dev/null 2>&1; then
-
-  if [ "$(nvm version 24)" = "N/A" ]; then
-    # stderr 는 가리지 않는다 — 프리빌트 바이너리가 없는 아키텍처(예: armv7l)에서는 nvm 이
-    # 소스 컴파일로 넘어가 수 시간이 걸릴 수 있고, 조용히 멈춘 것처럼 보이면 안 된다.
-    _run "Installing Node.js 24 via nvm (this may take a while on ARM)"
-    nvm install 24 >/dev/null || _warn "nvm install 24 failed"
-  fi
-
-  if [ "$(nvm version 24)" != "N/A" ]; then
-    if nvm alias default 24 >/dev/null 2>&1 && nvm use default >/dev/null 2>&1; then
-      . "$HOME/.config/dotfiles/nvm.sh"
-      NODE_VERSION="$(node --version 2>/dev/null)"
-      case "$NODE_VERSION" in
-        v24.*) _ok "Node.js $NODE_VERSION configured as default" ;;
-        *) _warn "Node.js 24 was selected, but node resolves to $(command -v node): ${NODE_VERSION:-unavailable}" ;;
-      esac
-    else
-      _warn "Failed to configure Node.js 24 as default"
-    fi
-  fi
-else
-  _skip "nvm not found — Node.js 24 was not configured"
-fi
-
-# Claude Code 업데이트
-if command -v claude >/dev/null; then
-  CLAUDE_TIMESTAMP_FILE=~/.toast/last_update_claude
-
-  if _should_update "$CLAUDE_TIMESTAMP_FILE"; then
-    _run "Updating Claude Code..."
-    if claude update; then
-      _ok "Claude Code update completed"
-      date +%s > "$CLAUDE_TIMESTAMP_FILE"
-    else
-      _warn "Claude Code update failed — will retry on next run"
-    fi
-  else
-    _skip "Claude Code update (last update was less than 6 hours ago)"
-  fi
-else
-  _skip "Claude Code not found"
-fi
-
-# PIP 패키지 설치 (버전 체크 포함)
-if command -v python3 >/dev/null; then
-  PIP_TIMESTAMP_FILE=~/.toast/last_update_pip
-
-  if _should_update "$PIP_TIMESTAMP_FILE"; then
-    _info "Installing/updating PIP packages..."
-    PIP_OK=true
-
-    # 먼저 기본 도구들을 업데이트 (setuptools, wheel 등)
-    _run "Ensuring pip, setuptools, and wheel are up to date..."
-    if python3 -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || \
-       python3 -m pip install --user --upgrade pip setuptools wheel >/dev/null 2>&1 || \
-       python3 -m pip install --break-system-packages --user --upgrade pip setuptools wheel >/dev/null 2>&1; then
-      _ok "pip, setuptools, and wheel updated"
-    else
-      _warn "Failed to update pip tools, continuing anyway..."
-      PIP_OK=false
-    fi
-
-    # 사용자 패키지 설치
-    if ! _install_pip_package "toast-cli"; then
-      PIP_OK=false
-    fi
-
-    if [ "$PIP_OK" = true ]; then
-      date +%s > "$PIP_TIMESTAMP_FILE"
-    fi
-  else
-    _skip "PIP packages update (last update was less than 6 hours ago)"
-  fi
-else
-  _skip "Python3 not found"
-fi
-
-# Step 7: OS별 시스템 설정
-_progress "Configuring OS-specific settings..."
-
-# macOS 설정
-if [ "${OS_NAME}" == "darwin" ]; then
-  # CLT 설치 여부는 xcode-select -p 로 확인 (xcode-select 바이너리는 macOS 기본 탑재)
-  if ! xcode-select -p >/dev/null 2>&1; then
-    _run "Installing Xcode Command Line Tools..."
-    xcode-select --install
-    _warn "Xcode CLT installer launched — complete the dialog, then re-run this script"
-  else
-    _skip "Xcode Command Line Tools already installed"
-  fi
-
-  # Rosetta 2 는 CLT 와 독립적으로 확인 (arm64 전용, oahd 데몬으로 설치 감지)
-  if [ "${OS_ARCH}" == "arm64" ]; then
-    if ! pgrep -q oahd; then
-      _run "Installing Rosetta 2 for x86_64 compatibility..."
-      if sudo softwareupdate --install-rosetta --agree-to-license; then
-        _ok "Rosetta 2 installed"
-      else
-        _warn "Rosetta 2 install failed"
-      fi
-    else
-      _skip "Rosetta 2 already installed"
-    fi
-  fi
-
-  # ₩ -> ` 키 바인딩 설정
-  if [ ! -f ~/Library/KeyBindings/DefaultkeyBinding.dict ]; then
-    _download Library/KeyBindings/DefaultkeyBinding.dict darwin/DefaultkeyBinding.dict
-    _ok "Korean keyboard won symbol (₩) mapped to backtick (\`)"
-  else
-    _skip "Keyboard binding already configured"
-  fi
-
-  # macOS 시스템 설정
-  _download .macos macos
-  # 다운로드 백업과 적용 완료 기록을 분리한다. 성공한 내용만 기록해 실패 시 재시도한다.
-  MACOS_APPLIED_FILE=~/.toast/macos.applied
-  if [ -f "$MACOS_APPLIED_FILE" ] && _same_file ~/.macos "$MACOS_APPLIED_FILE"; then
-    _skip "macOS system preferences already applied"
-  else
-    [ "$?" -eq 1 ] || _error "Failed to compare the macOS preferences completion marker"
-    _run "Applying macOS system preferences..."
-    if /bin/bash ~/.macos; then
-      if (umask 077; cp ~/.macos "$MACOS_APPLIED_FILE"); then
-        _ok "macOS system preferences applied"
-      else
-        _warn "Failed to record macOS system preferences — will retry on next run"
-      fi
-    else
-      _warn "macOS system preferences failed — will retry on next run"
-    fi
-  fi
-fi
-
-# Step 8: 셸 환경 설정
-_progress "Installing ZSH and Oh My ZSH..."
-
-# Oh My ZSH 설치
-if [ ! -s ~/.oh-my-zsh/oh-my-zsh.sh ]; then
-  _archive_oh_my_zsh
-  _run "Installing Oh My ZSH..."
-  if RUNZSH=no CHSH=no _install_script https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh &&
-     [ -s ~/.oh-my-zsh/oh-my-zsh.sh ]; then
-    _ok "Oh My ZSH installed"
-  else
-    # Keep failed attempts out of the active path so the next run can retry.
-    _archive_oh_my_zsh
-    _warn "Oh My ZSH install failed — review the error above before retrying"
-  fi
-else
-  _skip "Oh My ZSH already installed"
-fi
-
-# 기본 셸을 ZSH로 변경 (oh-my-zsh 설치 여부와 별개로 체크)
-if [[ "${SHELL}" != *"zsh"* ]]; then
-  ZSH_PATH=$(command -v zsh)
-  if [ -n "$ZSH_PATH" ]; then
-    _run "Changing default shell to ZSH ($ZSH_PATH)..."
-
-    # /etc/shells에 zsh가 등록되어 있는지 확인
-    if ! grep -q "^${ZSH_PATH}$" /etc/shells 2>/dev/null; then
-      echo "$ZSH_PATH" | sudo tee -a /etc/shells >/dev/null
-    fi
-
-    # chsh 실행 (권한 필요시 sudo 사용)
-    if chsh -s "$ZSH_PATH" 2>/dev/null; then
-      _ok "Default shell changed to ZSH"
-    elif sudo chsh -s "$ZSH_PATH" "$USER"; then
-      _ok "Default shell changed to ZSH (with sudo)"
-    else
-      _warn "Failed to change default shell to ZSH"
-    fi
-  else
-    _error "ZSH not found in PATH"
-  fi
-else
-  _skip "Default shell is already ZSH"
-fi
-
-# Step 9: 테마 및 UI 설정
-_progress "Installing theme and UI settings..."
-
-# Dracula 테마 디렉토리 생성
-if [ ! -d ~/.dracula ]; then
-  mkdir -p ~/.dracula
-fi
-
-# Dracula ZSH 테마 설치
-if [ ! -d ~/.dracula/zsh ]; then
-  _run "Installing Dracula theme for ZSH..."
-  if _retry "Dracula ZSH theme clone" git clone https://github.com/dracula/zsh.git ~/.dracula/zsh; then
-    _ok "Dracula ZSH theme installed"
-  else
-    _warn "Failed to clone Dracula ZSH theme (network issue?)"
-  fi
-else
-  _skip "Dracula ZSH theme already installed"
-fi
-
-# oh-my-zsh 테마 디렉토리에 링크 생성
-if [ -d ~/.oh-my-zsh/themes ] && [ -d ~/.dracula/zsh ]; then
-  if [ ! -L ~/.oh-my-zsh/themes/dracula.zsh-theme ]; then
-    ln -sf ~/.dracula/zsh/dracula.zsh-theme ~/.oh-my-zsh/themes/dracula.zsh-theme
-    _ok "Dracula theme linked to Oh My ZSH"
-  else
-    _skip "Dracula theme already linked"
-  fi
-elif [ ! -d ~/.oh-my-zsh/themes ]; then
-  _skip "Oh My ZSH not found"
-fi
-
-# macOS 전용: iTerm2 Dracula 테마
-if [ "${OS_NAME}" == "darwin" ]; then
-  if [ ! -d ~/.dracula/iterm ]; then
-    _run "Installing Dracula theme for iTerm2..."
-    if _retry "Dracula iTerm2 theme clone" git clone https://github.com/dracula/iterm.git ~/.dracula/iterm; then
-      mkdir -p ~/Library/Application\ Support/iTerm2
-      ln -sf ~/.dracula/iterm/Dracula.itermcolors ~/Library/Application\ Support/iTerm2/Dracula.itermcolors
-      _ok "Dracula iTerm2 theme installed"
-    else
-      _warn "Failed to clone Dracula iTerm2 theme (network issue?)"
-    fi
-  else
-    _skip "Dracula iTerm2 theme already installed"
-  fi
-fi
-
-if [ "${OS_NAME}" == "darwin" ]; then
-  # iTerm2 설정 파일
-  _download .iterm2/profiles.json iterm2/profiles.json
-
-  # Ghostty 설정 파일
-  _download .config/ghostty/config ghostty/config
-fi
-
-# Step 10: 사용자 설정 파일 적용
-_progress "Applying user configuration files..."
-
-# 셸 설정 파일들
-_run "Downloading shell configuration files..."
-_download .bashrc bashrc
-_download .profile profile
-_download .aliases aliases
-_download .vimrc vimrc
-_download .tmux.conf tmux.conf
-_download .zshrc zshrc
-_download .zprofile $OS_NAME/zprofile.$OS_ARCH.sh
-_ok "Shell configuration files applied"
-
-# Step 11: AI 도구 설정 (Claude Code, Codex, Kiro)
-_progress "Setting up AI tools (Claude Code, Codex, Kiro)..."
-_sync_vibe
-
-# Success
-_success
-
-exit
 }
