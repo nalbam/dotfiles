@@ -357,7 +357,7 @@ class ServerTests(ModuleCase):
 class K3sTests(ModuleCase):
     platform = ("Linux", "aarch64")
     LATEST = {"v1.35": "v1.35.9+k3s1", "v1.36": "v1.36.5+k3s1", "v1.37": "v1.37.2+k3s1",
-              "v1.38": "v1.38.1+k3s1", "stable": "v1.38.1+k3s1"}
+              "v1.38": "v1.38.1+k3s1", "stable": "v1.38.1+k3s1", "odd": "nightly-build"}
 
     def setUp(self):
         super().setUp()
@@ -458,6 +458,15 @@ class K3sTests(ModuleCase):
         result = self.module("k3s", "run k3s::up\n", DOT_K3S_CHANNEL="v1.37")
         self.assertIn("v1.36.5+k3s1 -> v1.37.2+k3s1", result.stdout, result.stderr)
         self.assertIn("sudo systemctl restart k3s", self.recorded())
+
+    def test_unparsable_release_is_never_installed(self):
+        self.installed("v1.36.5+k3s1")
+        self.verified_sums("k3s-arm64")
+        result = self.module("k3s", "run k3s::up\n", DOT_K3S_CHANNEL="odd")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        self.assertIn("Unexpected k3s release for odd: nightly-build", result.stdout + result.stderr)
+        self.assertEqual(self.downloads(), [])
+        self.assertFalse((self.machine.state / "stamps/k3s").exists())
 
     def test_older_channel_changes_nothing(self):
         self.installed("v1.36.5+k3s1")

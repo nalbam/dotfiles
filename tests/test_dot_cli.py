@@ -191,7 +191,7 @@ cat "$DOT_CONFIG/modules"
         self.assertEqual(lines[2:], ["vibemon", "-monitoring", "llm"])
 
     def live_lock(self):
-        lock = self.machine.state / "lock"
+        lock = self.machine.state / "run.lock"
         lock.parent.mkdir(parents=True, exist_ok=True)
         sleeper = subprocess.Popen(["sleep", "30"])
         self.addCleanup(lambda: (sleeper.kill(), sleeper.wait()))
@@ -211,7 +211,31 @@ cat "$DOT_CONFIG/modules"
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue(result.stdout.startswith("locked "), result.stdout)
         self.assertFalse(lock.exists() or lock.is_symlink())
-        self.assertEqual([p.name for p in lock.parent.iterdir() if p.name.startswith("lock")], [])
+        self.assertEqual([p.name for p in lock.parent.iterdir() if p.name.startswith("run.lock")], [])
+
+    def test_reclaim_keeps_a_lock_taken_by_a_concurrent_run(self):
+        lock = self.machine.state / "run.lock"
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.symlink_to("999999")
+        # Another run replaces the stale lock between this run's check and its rename.
+        result = self.machine.shell(
+            'mv() { if [ "$1" = "$DOT_STATE/run.lock" ] && [ "$(readlink "$1")" = 999999 ]; then '
+            'rm -f "$1"; ln -s 424242 "$1"; fi; command mv "$@"; }\n'
+            'kill() { [ "$2" != 424242 ] && command kill "$@"; }\n'
+            'dot_lock && printf locked')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotIn("locked", result.stdout)
+        self.assertIn("Another dot run started at the same time", result.stderr)
+        self.assertEqual(os.readlink(lock), "424242", "the concurrent run keeps its lock")
+
+    def test_directory_at_the_previous_lock_path_does_not_disable_locking(self):
+        legacy = self.machine.state / "lock"
+        legacy.mkdir(parents=True)
+        (legacy / "pid").write_text("1\n")
+        lock, sleeper = self.live_lock()
+        result = self.machine.shell('dot_lock && printf locked')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(f"Another dot run is active (pid {sleeper.pid})", result.stderr)
 
     def test_unlock_keeps_a_lock_owned_by_another_process(self):
         lock, sleeper = self.live_lock()

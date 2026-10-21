@@ -111,8 +111,11 @@ k3s::up() {
   # Minor numbers of v1.X versions.
   current_minor=$(_k3s_minor "$current"); current_minor=${current_minor#v1.}
   latest_minor=$(_k3s_minor "$latest"); latest_minor=${latest_minor#v1.}
-  case "$current_minor$latest_minor" in
-    '' | *[!0-9]*) dot_warn "Unexpected k3s versions: $current, $latest"; return 0 ;;
+  case "$current_minor" in
+    '' | *[!0-9]*) dot_warn "Unexpected k3s version: $current"; return 0 ;;
+  esac
+  case "$latest_minor" in
+    '' | *[!0-9]*) dot_warn "Unexpected k3s release for $channel: $latest"; return 0 ;;
   esac
   if [ "$latest_minor" -lt "$current_minor" ]; then
     dot_warn "k3s $current is newer than channel $channel ($latest); nothing to do"

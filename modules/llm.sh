@@ -38,7 +38,8 @@ llm::up() {
     spark_mark llm
     dot_ok "Adopted the running stack; files already match (mode: $(spark_mode))"
   else
-    dot_warn "The repository changed the model stack; deploy it when serving may restart: dot llm deploy"
+    # Either the repository changed the stack or the last deployment did not finish.
+    dot_warn "The model stack is not applied (changed, or the last deploy did not finish); when serving may restart, run: dot llm deploy"
   fi
 }
 

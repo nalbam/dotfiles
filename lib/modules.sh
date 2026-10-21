@@ -113,10 +113,13 @@ dot_module_run() {
 
 # Serialize runs that change the machine. The lock is a symlink whose target
 # is the owner's pid, created atomically together with its content. A lock
-# whose owner no longer exists is renamed aside (atomic) and taken again.
+# whose owner no longer exists is renamed aside and taken again; if another
+# run replaced it in the meantime, the rename caught that run's lock, so it is
+# put back and this run stops.
 dot_lock() {
-  local lock="$DOT_STATE/lock" owner attempt=0
+  local lock="$DOT_STATE/run.lock" stale owner attempt=0
   mkdir -p "$DOT_STATE" || return 1
+  stale="$lock.stale.$$"
   until ln -s "$$" "$lock" 2>/dev/null; do
     owner=$(readlink "$lock" 2>/dev/null)
     if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then
@@ -125,7 +128,14 @@ dot_lock() {
     fi
     attempt=$((attempt + 1))
     [ "$attempt" -le 3 ] || return 1
-    mv "$lock" "$lock.stale.$$" 2>/dev/null && rm -f "$lock.stale.$$"
+    if mv "$lock" "$stale" 2>/dev/null; then
+      if [ "$(readlink "$stale" 2>/dev/null)" != "$owner" ]; then
+        mv "$stale" "$lock" 2>/dev/null || rm -f "$stale"
+        dot_echo "  ✗ Another dot run started at the same time; run the command again." 1 >&2
+        return 1
+      fi
+      rm -f "$stale"
+    fi
   done
   DOT_LOCKED="$lock"
 }

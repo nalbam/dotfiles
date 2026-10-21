@@ -55,7 +55,7 @@ flowchart TD
 `dot up [--force] [--no-pull]`:
 
 1. Detect the platform. An explicit `DOT_PLATFORM`, then `~/.config/dotfiles/platform`, then detection decides it. A restart after a pull detects it again with the new code.
-2. Take the run lock: `~/.local/state/dotfiles/lock` is a symlink to the owner's pid, created atomically. A lock whose process no longer exists is reclaimed.
+2. Take the run lock: `~/.local/state/dotfiles/run.lock` is a symlink to the owner's pid, created atomically. A lock whose process no longer exists is reclaimed.
 3. Pull `~/.dotfiles` (`git pull --ff-only`, three attempts). If `HEAD` changed, start again with `--no-pull` so the rest of the run uses the new code. A failed pull is a warning; the run continues with the current files.
 4. Load `~/.config/dotfiles/local.env` and add Homebrew and `~/.local/bin` to `PATH`.
 5. Adopt add-ons whose `detect` reports an existing installation, unless they are disabled.
@@ -143,7 +143,7 @@ Keep these when editing modules; they exist because of real failures on constrai
 
 - Runtime-only files are never copied or overwritten: `.env`, `.env.grafana`, `backups/`, generated `model-targets.json`, `bench/`, caches. Documentation (`*.md`) is not copied. Files removed from the repository are not deleted from the runtime directory.
 - Each Spark module copies and tracks only the files it depends on. It records their source digest in `applied/spark-<module>`: `llm` uses the whole stack; `monitoring` uses `grafana/`, `scripts/setup-grafana.sh` and `docker-compose.yml`; `vibemon` uses `vibemon.env` and its scripts.
-- Adoption: on a host set up before dot, when dot has never written the runtime directory and its files equal the repository, the module records the digest without running anything. After dot has written the directory once, matching files no longer count as applied, so a failed deployment is retried.
+- Adoption: on a host set up before dot, when dot has never written the runtime directory and its files equal the repository, the module records the digest without running anything. After dot has written the directory once, matching files no longer count as applied: `monitoring` and `vibemon` retry a failed setup on the next run, and `llm` reports that the stack is not applied until `dot llm deploy` succeeds.
 - `llm` deploys on the first run and on `dot add llm`. On a deployed host a changed stack produces a warning; `dot llm deploy` applies it. A deployment pulls pinned images, runs preparation containers and recreates changed services.
 - `monitoring` checks that `.env.grafana` has all Grafana Cloud values before it copies `config.alloy`, because Alloy reads them at startup. Without a terminal it stops with the command to run; on a terminal `scripts/setup-grafana.sh` asks for the missing values.
 - Models and images are pinned in the runtime `.env`. To change a pin, edit `.env` and run `dot llm deploy`; `dot llm recreate` is for `.env` changes that need no download.
@@ -158,7 +158,7 @@ Keep these when editing modules; they exist because of real failures on constrai
 |---------|-----------------------|
 | Summary lists `✗ module` | Read that module's lines above the summary, fix the cause, and run `dot run module` or `dot up` |
 | Summary lists `⚠ module` | The module finished but skipped or deferred something; read its `⚠` lines |
-| `Another dot run is active` | Wait for it, or remove `~/.local/state/dotfiles/lock` if that process no longer exists |
+| `Another dot run is active` | Wait for it, or remove `~/.local/state/dotfiles/run.lock` if that process is not dot |
 | Pull failed | Inspect `git -C ~/.dotfiles status`; local commits or network problems block a fast-forward |
 | Wrong platform | `dot platform`, then `dot platform set NAME` |
 | Command Line Tools dialog opens | Complete installation, then run `dot up` |
