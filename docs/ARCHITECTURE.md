@@ -54,10 +54,10 @@ flowchart TD
 
 `dot up [--force] [--no-pull]`:
 
-1. Detect the platform. An explicit `DOT_PLATFORM`, then `~/.config/dotfiles/platform`, then detection decides it.
-2. Take the run lock (`~/.local/state/dotfiles/lock`). A lock held by a dead process is reclaimed.
+1. Detect the platform. An explicit `DOT_PLATFORM`, then `~/.config/dotfiles/platform`, then detection decides it. A restart after a pull detects it again with the new code.
+2. Take the run lock: `~/.local/state/dotfiles/lock` is a symlink to the owner's pid, created atomically. A lock whose process no longer exists is reclaimed.
 3. Pull `~/.dotfiles` (`git pull --ff-only`, three attempts). If `HEAD` changed, start again with `--no-pull` so the rest of the run uses the new code. A failed pull is a warning; the run continues with the current files.
-4. Load `~/.config/dotfiles/local.env`.
+4. Load `~/.config/dotfiles/local.env` and add Homebrew and `~/.local/bin` to `PATH`.
 5. Adopt add-ons whose `detect` reports an existing installation, unless they are disabled.
 6. Run the selected modules in `DOT_MODULE_ORDER`. Each module runs in a subshell, so its failure or `exit` cannot stop the others.
 7. Print a summary. The exit status is `1` when a module failed, otherwise `0`. Warnings do not change the exit status.
@@ -88,7 +88,6 @@ A module is `modules/<name>.sh`. Names use lowercase letters and digits only. Th
 | `<name>::up` | yes | Install when missing and upgrade when due. Must be idempotent. Fail with `dot_die` (non-zero exit); report recoverable problems with `dot_warn`. |
 | `<name>::supported` | no | Return `0` when the module works on this machine. Default: supported. |
 | `<name>::detect` | no | Return `0` when the software is already installed. Enables adoption as an add-on. |
-| `<name>::requires` | no | Print modules that must run with this one. |
 | `<name>::status` | no | Print a one-line state for `dot status`. |
 | `<name>::cli` | no | Handle `dot <name> ARGS...`. |
 
@@ -96,13 +95,14 @@ Add the name to `DOT_MODULE_ORDER` in `lib/modules.sh` at the position that sati
 
 ### Selection
 
-The modules for a run are the platform profile plus enabled add-ons and their requirements, minus disabled modules, in `DOT_MODULE_ORDER`. `~/.config/dotfiles/modules` stores one entry per line: `name` enables a module, `-name` disables a profile module or blocks adoption. `dot add` and `dot remove` edit this file. `dot remove` never uninstalls software.
+The modules for a run are the platform profile plus enabled add-ons, minus disabled modules, in `DOT_MODULE_ORDER`. A module that depends on another checks for it and stops with the command to run (for example, `monitoring` asks for `dot add llm`). `~/.config/dotfiles/modules` stores one entry per line: `name` enables a module, `-name` disables a profile module or blocks adoption. `dot add` and `dot remove` edit this file. `dot remove` never uninstalls software. `dot add` runs the named modules at once with `DOT_FORCE=true` and `DOT_ADDING=true`; modules that deploy services act on `DOT_ADDING`, not on `--force`.
 
 ### Upgrades
 
 - `dot_due NAME` is true when `DOT_FORCE=true` (`--force`), or when `~/.local/state/dotfiles/stamps/NAME` is missing, unreadable, non-numeric or older than six hours (`DOT_UPGRADE_INTERVAL`).
 - A module calls `dot_stamp NAME` only after the checked upgrade succeeded. A failed upgrade stays due.
 - A changed source is applied immediately, independent of the stamp. `dot_applied FILE KEY` compares the file with `~/.local/state/dotfiles/applied/KEY`, and `dot_mark_applied` records it after success. The Brewfile and macOS preferences use this.
+- Work that can interrupt a service is never automatic: a deployed Spark stack is redeployed only by `dot llm deploy`, Docker is upgraded only by `dot upgrade-system`, and k3s upgrades stay within the installed minor version unless `DOT_K3S_CHANNEL` names the next one.
 - OS packages are upgraded only by `dot upgrade-system --yes`. Without `--yes` it lists the pending upgrades. On DGX Spark it explains that driver, CUDA, Docker and kernel upgrades restart GPU workloads.
 
 The previous installer's records migrate once in the `base` module: `~/.toast/macos.applied`, `~/.toast/last_update_{brew,claude,pip}` and `~/.Brewfile`.
@@ -112,6 +112,7 @@ The previous installer's records migrate once in the `base` module: `~/.toast/ma
 `dot_install_file TARGET SOURCE [MODE]` installs `$DOT_HOME/SOURCE` at `$HOME/TARGET`:
 
 - Identical content (MD5) leaves the target and its backup untouched.
+- A replaced file keeps the target's permission bits; a new file gets the umask default.
 - Changed content is staged next to the target, the previous file is copied to `TARGET.backup` (mode `600`), and the staged file replaces the target atomically.
 - A failed copy, backup, checksum or replace stops the module and leaves the target unchanged. A failed checksum is never treated as equal.
 - A directory at the target, or a backup path that is a symlink or not a regular file, stops the module.
@@ -138,12 +139,14 @@ Keep these when editing modules; they exist because of real failures on constrai
 
 ## DGX Spark stack
 
-`stacks/dgx-spark` is a Docker Compose project with its own scripts ([stack guide](../stacks/dgx-spark/README.md)). `lib/spark.sh` copies its files to `DOT_SPARK_DIR` (default `~/.config/dgx-spark`), where Compose runs. The directory name is the Compose project name, so it must stay stable to keep running containers.
+`stacks/dgx-spark` is a Docker Compose project with its own scripts ([stack guide](../stacks/dgx-spark/README.md)). `lib/spark.sh` copies its files to `DOT_SPARK_DIR` (default `~/.config/dgx-spark`), where Compose runs. `docker-compose.yml` fixes the project name `dgx-spark`, so the containers keep their identity even if the directory changes.
 
-- Runtime-only files are never copied or overwritten: `.env`, `.env.grafana`, `backups/`, generated `model-targets.json`, `bench/`, caches. Files removed from the repository are not deleted from the runtime directory.
-- Each Spark module records the digest of the source files it depends on in `applied/spark-<module>`. `llm` uses the whole stack; `monitoring` uses `grafana/`, `scripts/setup-grafana.sh` and `docker-compose.yml`; `vibemon` uses `vibemon.env` and its scripts.
-- Adoption: when a runtime directory already exists and its files equal the repository, the module records the digest without deploying, so the running containers are not touched.
-- Models and images are pinned in the runtime `.env`. An unchanged stack has nothing to upgrade; change a pin and run `dot llm recreate`.
+- Runtime-only files are never copied or overwritten: `.env`, `.env.grafana`, `backups/`, generated `model-targets.json`, `bench/`, caches. Documentation (`*.md`) is not copied. Files removed from the repository are not deleted from the runtime directory.
+- Each Spark module copies and tracks only the files it depends on. It records their source digest in `applied/spark-<module>`: `llm` uses the whole stack; `monitoring` uses `grafana/`, `scripts/setup-grafana.sh` and `docker-compose.yml`; `vibemon` uses `vibemon.env` and its scripts.
+- Adoption: on a host set up before dot, when dot has never written the runtime directory and its files equal the repository, the module records the digest without running anything. After dot has written the directory once, matching files no longer count as applied, so a failed deployment is retried.
+- `llm` deploys on the first run and on `dot add llm`. On a deployed host a changed stack produces a warning; `dot llm deploy` applies it. A deployment pulls pinned images, runs preparation containers and recreates changed services.
+- `monitoring` checks that `.env.grafana` has all Grafana Cloud values before it copies `config.alloy`, because Alloy reads them at startup. Without a terminal it stops with the command to run; on a terminal `scripts/setup-grafana.sh` asks for the missing values.
+- Models and images are pinned in the runtime `.env`. To change a pin, edit `.env` and run `dot llm deploy`; `dot llm recreate` is for `.env` changes that need no download.
 
 ## Remote execution
 

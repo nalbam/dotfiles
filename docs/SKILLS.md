@@ -21,4 +21,4 @@
 - Claude·OpenCode의 `disable-model-invocation: true`와 Codex의 `policy.allow_implicit_invocation: false`는 명시 호출 정책이다. Codex의 `agents/openai.yaml`은 직접 관리하며 Claude 원본의 정책과 맞춘다.
 - `allowed-tools`는 권한 사전 허용 목록이므로 단순 도구 설명으로 추가하지 않는다. 읽기 전용 스킬은 본문에도 상태 변경 금지를 명시한다.
 - 원본은 `claude/skills/`다. 수정 후 `python3 scripts/gen-ai-tools.py`와 `--check`를 실행해 `codex/skills/`와 `opencode/skills/`를 갱신한다. 생성 파일은 직접 편집하지 않는다.
-- 스킬 디렉터리에는 Markdown 파일만 둔다. OpenCode는 스킬 디렉터리 최상위의 `*.md`도 스킬로 등록하므로 안내 문서는 이 파일처럼 `docs/`에 둔다.
+- 스킬 디렉터리에는 스킬 파일(`SKILL.md`, 참조 Markdown, 직접 관리하는 Codex `agents/openai.yaml`)만 두고 안내 문서는 두지 않는다. OpenCode는 스킬 디렉터리 최상위의 `*.md`도 스킬로 등록하므로 안내 문서는 이 파일처럼 `docs/`에 둔다.

@@ -1,4 +1,4 @@
-# Neovim / LazyVim configuration for macOS
+# Neovim / LazyVim configuration
 
 This configuration adds language tooling and local key mappings to LazyVim. It is an add-on: enable it with `dot add nvim`.
 
@@ -9,6 +9,8 @@ Install the tools with Homebrew:
 ```bash
 brew install neovim git ripgrep fd fzf lazygit tree-sitter-cli
 ```
+
+On Linux, install the same tools with Homebrew or the distribution's packages. The configuration uses the system clipboard (`unnamedplus`), which needs `xclip` or `xsel` on X11, `wl-clipboard` on Wayland, or `win32yank` on WSL.
 
 Use a Nerd Font for icons. A C compiler and curl are also required; on macOS, complete Xcode Command Line Tools installation before starting Neovim. The parser CLI comes from [tree-sitter-cli](https://formulae.brew.sh/formula/tree-sitter-cli).
 

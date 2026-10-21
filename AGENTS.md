@@ -15,7 +15,7 @@ Machine setup and maintenance for macOS, WSL2, DGX Spark, EC2 (k3s nodes), Raspb
 | `run.sh` | Bootstrap only: clone or download `~/.dotfiles`, then exec `bin/dot up` (`--vibe` → `dot vibe`). |
 | `bin/dot` | CLI. Commands: `up`, `run`, `add`, `remove`, `list`, `status`, `doctor`, `platform`, `upgrade-system`, `vibe`, `@HOST`, and module CLIs such as `dot llm`. |
 | `lib/modules.sh` | Module contract and `DOT_MODULE_ORDER` (the execution order). |
-| `modules/<name>.sh` | One module per file: `<name>::describe`, `<name>::up`, optional `supported`, `detect`, `requires`, `status`, `cli`. |
+| `modules/<name>.sh` | One module per file: `<name>::describe`, `<name>::up`, optional `supported`, `detect`, `status`, `cli`. |
 | `profiles/<platform>` | Default modules per platform. |
 | `config/shell/aliases` | All shell aliases and helper functions. |
 | `packages/Brewfile.darwin`, `packages/Brewfile.linux` | Declarative package lists (read these — do not enumerate packages here). |

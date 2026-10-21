@@ -17,7 +17,7 @@
 curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 ```
 
-`run.sh`는 `~/.dotfiles`를 준비한 뒤 `dot up`을 실행한다. Git을 아직 쓸 수 없으면(Command Line Tools가 없는 새 macOS 등) 저장소 압축 파일을 받고, 다음 `dot up`에서 Git checkout으로 바꾼다. 설치가 끝나면 `dot`이 `~/.local/bin/dot`에 연결된다.
+`run.sh`는 `~/.dotfiles`를 준비한 뒤 `dot up`을 실행한다. Git을 아직 쓸 수 없으면(Command Line Tools가 없는 새 macOS 등) 저장소 압축 파일을 받고, Homebrew 설치 등으로 Git을 쓸 수 있게 되면 `dot up` 끝에서 Git checkout으로 바꾼다. 설치가 끝나면 `dot`이 `~/.local/bin/dot`에 연결된다.
 
 완료 요약에 `⚠`나 `✗`가 있으면 해당 모듈의 로그를 확인하고 원인을 해결한 뒤 `dot up`을 다시 실행한다. 새 터미널에서 `dot doctor`로 셸·PATH·도구 상태를 확인한다.
 
@@ -44,7 +44,8 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 
 ### 업그레이드 정책
 
-- `dot up`은 사용자 영역 도구(Homebrew 패키지, Node.js, Claude Code, pip 도구, Oh My Zsh, AWS CLI, k3s 등)를 업그레이드한다. 모듈마다 성공한 시점을 기록하고, 6시간이 지나기 전에는 건너뛴다. 실패한 업그레이드는 기록하지 않으므로 다음 실행에서 다시 시도한다.
+- `dot up`은 사용자 영역 도구(Homebrew 패키지, Node.js, Claude Code, pip 도구, Oh My Zsh, AWS CLI, k3s patch 버전)를 업그레이드한다. 모듈마다 성공한 시점을 기록하고, 6시간이 지나기 전에는 건너뛴다. 실패한 업그레이드는 기록하지 않으므로 다음 실행에서 다시 시도한다.
+- 서비스를 중단시킬 수 있는 작업은 `dot up`이 자동으로 하지 않는다. 운영 중인 Spark 모델 스택이 저장소와 달라지면 경고만 하고 `dot llm deploy`를 안내한다. Docker 업그레이드는 `dot upgrade-system`으로 한다. k3s는 설치된 minor 버전 안에서만 자동으로 올린다.
 - 저장소의 설정 원본(Brewfile, 셸 설정, Spark 스택 등)이 바뀌면 6시간 간격과 관계없이 바로 반영한다.
 - OS 패키지(`apt upgrade`, macOS 업데이트)는 `dot up`에 포함하지 않는다. 커널·드라이버·Docker가 바뀌면 서비스가 재시작되고 재부팅이 필요할 수 있기 때문이다. 점검 시간에 `dot upgrade-system --yes`로 실행한다.
 
@@ -75,13 +76,13 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 | `python` | pip 도구(`toast-cli`) |
 | `claude` | Claude Code 설치, `claude update` |
 | `shell` | Zsh 로그인 셸, Oh My Zsh, Dracula, 셸·Vim·tmux 설정 |
-| `terminal` | iTerm2·Ghostty 설정(macOS) |
+| `terminal` | Ghostty 설정, iTerm2 Dracula 색상. iTerm2 프로필(`~/.iterm2/profiles.json`)은 iTerm2에서 직접 가져온다(import). |
 | `nvim` | [Neovim 설정](config/nvim/README.md) |
 | `ai` | Claude Code·Codex·OpenCode·Kiro 설정([AI Tools Sync](#ai-tools-sync)) |
-| `docker` | Docker Engine·Compose(Ubuntu 서버). `live-restore`가 켜진 경우에만 업그레이드한다. |
-| `k3s` | k3s 서버·에이전트. 업그레이드는 채널의 최신 바이너리를 SHA-256으로 검증한 뒤 교체한다. |
-| `llm` | DGX Spark 모델 서빙 스택([stacks/dgx-spark](stacks/dgx-spark/README.md)) |
-| `monitoring` | DGX Spark의 Grafana Alloy·DCGM Exporter |
+| `docker` | Docker Engine·Compose 설치(Ubuntu 서버). 업그레이드는 `dot upgrade-system`으로 한다. |
+| `k3s` | k3s 서버·에이전트. 채널의 최신 바이너리를 SHA-256으로 검증한 뒤 교체한다. minor 버전을 건너뛰는 업그레이드는 하지 않는다. |
+| `llm` | DGX Spark 모델 서빙 스택([stacks/dgx-spark](stacks/dgx-spark/README.md)). 처음과 `dot add llm`에서만 배포하고, 이후 변경은 `dot llm deploy`로 반영한다. |
+| `monitoring` | DGX Spark의 Grafana Alloy·DCGM Exporter. `llm` 스택이 먼저 배포되어 있어야 한다. |
 | `vibemon` | DGX Spark의 VibeMon 요약 수집기 |
 
 ## 머신별 설정
@@ -90,7 +91,7 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 
 | 파일 | 용도 |
 |------|------|
-| `~/.config/dotfiles/local.env` | 모듈 설정 변수. `dot`이 실행할 때마다 읽는다. |
+| `~/.config/dotfiles/local.env` | 모듈 설정 변수. `dot up`·`run`·`add`·`list`·`status`와 모듈 명령(`dot llm` 등)이 읽는다. 토큰이 있으면 mode `600`으로 둔다. |
 | `~/.config/dotfiles/hosts/<name>.env` | `dot @<name>`의 접속 정보 |
 | `~/.config/dotfiles/modules` | 켠 add-on(`name`)과 끈 모듈(`-name`). `dot add`/`dot remove`가 관리한다. |
 | `~/.config/dotfiles/platform` | `dot platform set`으로 고정한 플랫폼 |
@@ -102,7 +103,7 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 | `DOT_NODE_VERSION` | `24` | node |
 | `DOT_PIP_PACKAGES` | `toast-cli` | python |
 | `DOT_TIMEZONE`, `DOT_SWAP_SIZE` | `Asia/Seoul`, `4G` | server |
-| `DOT_K3S_CHANNEL` | `stable` | k3s. `v1.33`처럼 minor 버전으로 고정할 수 있다. |
+| `DOT_K3S_CHANNEL` | 새 설치는 `stable`, 기존 설치는 설치된 minor(예: `v1.33`) | k3s. minor 업그레이드는 다음 minor(예: `v1.34`)로 지정해 한 번에 하나씩 올린다. |
 | `DOT_K3S_URL`, `DOT_K3S_TOKEN`, `DOT_K3S_EXEC` | 없음 | k3s 첫 설치. URL이 있으면 에이전트로 설치한다. |
 | `DOT_SPARK_DIR` | `~/.config/dgx-spark` | llm·monitoring·vibemon |
 | `DOT_BREW_MIN_MEMORY_GIB` | `16` | brew(DGX Spark에서 이보다 여유 메모리가 적으면 업그레이드를 미룬다) |
@@ -125,22 +126,31 @@ DOT_IDENTITY=~/.ssh/id_ed25519
 ```bash
 dot add llm            # 모델 서빙 스택 배포 (기본 모드: models)
 dot llm mode flash     # Qwen3.8-Flash-Next 단독 서빙으로 전환
-dot add monitoring     # Grafana Cloud 토큰을 묻고 Alloy·DCGM Exporter 기동
+dot add monitoring     # Grafana Cloud 토큰·URL·사용자 ID를 묻고 Alloy·DCGM Exporter 기동
 dot @spark llm status  # 다른 머신에서 상태 확인
 ```
 
-모드·API·모니터링 상세는 [stacks/dgx-spark/README.md](stacks/dgx-spark/README.md)를 확인한다. Spark에서 Homebrew 업그레이드는 여유 메모리가 `DOT_BREW_MIN_MEMORY_GIB`보다 적으면 미룬다. 모델 서빙과 메모리를 공유하므로, 소스 빌드가 Flash 메모리 감시를 작동시키지 않게 하기 위해서다.
+운영 중인 스택은 `dot up`이 다시 배포하지 않는다. 배포는 이미지 pull, 준비용 컨테이너 실행, 컨테이너 재생성을 포함하므로 서빙이 끊겨도 되는 때에 `dot llm deploy`로 실행한다. 저장소가 스택을 바꾸면 `dot up`이 이를 경고로 알린다. 모드·API·모니터링 상세는 [stacks/dgx-spark/README.md](stacks/dgx-spark/README.md)를 확인한다. Spark에서 Homebrew 업그레이드는 여유 메모리가 `DOT_BREW_MIN_MEMORY_GIB`보다 적으면 미룬다. 모델 서빙과 메모리를 공유하므로, 소스 빌드가 Flash 메모리 감시를 작동시키지 않게 하기 위해서다.
 
 ## EC2 (k3s 노드)
 
 `ec2` 프로필은 서버 기본 구성과 셸만 설치한다. k3s는 add-on이다.
 
 ```bash
-dot add k3s                                    # 서버
-DOT_K3S_URL=https://10.0.0.10:6443 DOT_K3S_TOKEN=... dot add k3s   # 에이전트
+dot add k3s        # 서버. 에이전트는 먼저 local.env에 DOT_K3S_URL과 DOT_K3S_TOKEN을 둔다.
 ```
 
-첫 설치는 [k3s 설치 스크립트](https://docs.k3s.io/installation)를 사용한다. 이후 `dot up`은 `DOT_K3S_CHANNEL`의 최신 릴리스를 확인하고, 바이너리만 교체한 뒤 서비스를 재시작한다. 서비스 정의·플래그·노드 역할은 바뀌지 않는다. 클러스터 전체를 순서대로 올리려면 서버 노드부터 실행한다.
+에이전트의 `~/.config/dotfiles/local.env`(mode `600`) 예시. 토큰을 명령행에 쓰면 셸 기록에 남는다.
+
+```bash
+DOT_K3S_URL=https://k3s-server.example.internal:6443
+DOT_K3S_TOKEN=<server의 /var/lib/rancher/k3s/server/node-token 값>
+```
+
+첫 설치는 [k3s 설치 스크립트](https://docs.k3s.io/installation)를 사용한다. 이후 `dot up`은 채널의 최신 릴리스를 확인하고, 바이너리만 교체한 뒤 서비스(`k3s` 또는 `k3s-agent`)를 재시작한다. 서비스 정의·플래그·노드 역할은 바뀌지 않고, 실행 중인 Pod는 유지된다.
+
+- 채널을 지정하지 않으면 설치된 minor 버전의 patch만 올린다. 이미 설치된 k3s를 넘겨받아도 minor 버전은 바뀌지 않는다.
+- minor 업그레이드는 `DOT_K3S_CHANNEL`을 다음 minor로 바꾸고 서버 노드부터 `dot up`을 실행한 뒤 에이전트를 실행한다. 두 단계 이상 건너뛰는 채널이면 경고만 하고 업그레이드하지 않는다.
 
 ## macOS 설정과 인증
 

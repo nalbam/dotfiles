@@ -16,8 +16,8 @@ VibeMon 수집기를 Docker Compose와 user systemd로 운영한다. 운영 명�
 | 항목 | 값 |
 | --- | --- |
 | 런타임 디렉터리 | `~/.config/dgx-spark` (`DOT_SPARK_DIR`로 변경) |
-| Compose 프로젝트 이름 | 런타임 디렉터리 이름 (`dgx-spark`) |
-| 원본에서 복사하지 않는 파일 | `.env`, `.env.grafana`, `.env.*`, `backups/`, `grafana/model-targets.json`, `api/model-targets.json`, `__pycache__/`, `*.pyc`, `*.pyo`, `.DS_Store`, `bench/` |
+| Compose 프로젝트 이름 | `dgx-spark` (`docker-compose.yml`의 `name`으로 고정) |
+| 원본에서 복사하지 않는 파일 | `.env`, `.env.grafana`, `backups/`, `grafana/model-targets.json`, `api/model-targets.json`, `*.md`, `__pycache__/`, `*.pyc`, `*.pyo`, `.DS_Store`, `bench/` |
 
 복사는 원본에 있는 파일만 덮어쓰며 런타임 디렉터리의 다른 파일은 지우지 않는다.
 `.env`와 `.env.grafana`는 이 머신의 설정과 credential이며 저장소에 넣지 않는다.
@@ -33,17 +33,23 @@ VibeMon 수집기를 Docker Compose와 user systemd로 운영한다. 운영 명�
 | 명령 | 동작 |
 | --- | --- |
 | `dot add llm` | 원본을 런타임 디렉터리로 복사하고 `scripts/deploy.sh`와 `scripts/health-check.sh`를 실행한다. |
-| `dot add monitoring` | `.env.grafana`가 없으면 `scripts/setup-grafana.sh`를 실행한 뒤 배포한다. `llm`이 필요하다. |
+| `dot add monitoring` | 모니터링 파일을 복사하고 `scripts/setup-grafana.sh`를 실행한다. 없는 Grafana Cloud 값을 묻고 `dcgm-exporter`와 `alloy`를 기동한다. `llm` 스택이 먼저 배포되어 있어야 한다. |
 | `dot add vibemon` | `scripts/setup-vibemon.sh`로 VibeMon 요약 수집기를 설치·갱신한다. GPU 워크로드는 재시작하지 않는다. |
 
-`dot up`은 활성화된 모듈을 다시 적용한다. 모델·image 버전은 런타임 `.env`의 pin을 유지한다.
-저장소의 기본값을 바꿔도 기존 `.env` 값은 바뀌지 않는다. 버전을 올리려면 `.env`의 해당 값을
-수정한 뒤 `dot llm deploy`를 실행한다.
+`dot up`은 운영 중인 스택을 다시 배포하지 않는다. 저장소가 스택 파일을 바꾸면 경고로 알리고,
+배포는 서빙이 끊겨도 되는 때에 `dot llm deploy`로 실행한다. `monitoring`과 `vibemon`은 자기 파일이
+바뀌면 `dot up`에서 다시 설정한다. 이때 Alloy·DCGM Exporter나 수집기만 재시작하고 모델 서빙은
+재시작하지 않는다.
+
+모델·image 버전은 런타임 `.env`의 pin을 유지한다. 저장소의 기본값을 바꿔도 기존 `.env` 값은
+바뀌지 않는다. 버전을 올리려면 `.env`의 해당 값을 수정한 뒤 `dot llm deploy`를 실행한다.
+다운로드가 필요 없는 `.env` 변경(예: 컨텍스트 길이)은 `dot llm recreate`로 반영한다.
 
 ## 운영 명령
 
 ```bash
-dot llm deploy                     # 복사, 배포, health check
+dot llm deploy                     # 복사, image·모델 준비, 배포, health check
+dot llm recreate                   # .env 변경 반영(다운로드 없음)
 dot llm mode flash                 # flash | models | comfyui
 dot llm status
 dot llm logs -f llm embedding
@@ -82,8 +88,8 @@ Hugging Face snapshot을 준비한 뒤 offline 모드로 모델을 실행한다.
 3. 기동이나 health check가 실패하면 이전 모드로 복구한다.
 
 같은 모드를 다시 선택하면 현재 모드를 중지하지 않고 다시 배포한다. 진행 중인 요청은 전환 중에
-중단될 수 있으므로 전환 전에 확인한다. 새 원본을 처음 적용할 때는 런타임 디렉터리에서
-`DRY_RUN=true scripts/deploy.sh`로 설정을 검증한 뒤 전환한다.
+중단될 수 있으므로 전환 전에 확인한다. `dot llm mode`는 저장소의 스택 파일을 먼저 복사한다.
+저장소 변경은 적용 전에 [검증](#검증)의 테스트로 확인한다.
 
 ### Qwen3.8-Flash-Next (`flash`)
 
@@ -242,7 +248,11 @@ Token은 숨김 입력으로 받는다. 값은 저장소에 넣지 않는다.
 | `GCLOUD_RW_API_KEY` | Access policy token |
 
 `.env.grafana`가 있는데 키가 하나라도 없으면 배포는 Compose를 실행하기 전에 중단한다.
-`scripts/setup-grafana.sh`를 다시 실행하면 기존 값을 유지하고 없는 값만 입력받는다.
+터미널에서 `dot add monitoring`을 실행하면 기존 값을 유지하고 없는 값만 입력받는다. `dot up`은
+값이 빠진 상태에서 새 `config.alloy`를 복사하지 않는다(Alloy가 재시작할 때 빈 값을 읽지 않도록).
+
+이전 dockpad 설치는 `GCLOUD_RW_API_KEY`와 `GCLOUD_FM_COLLECTOR_ID`만 저장했다. 처음 `dot up` 전에
+터미널에서 `dot add monitoring`을 실행해 나머지 네 값을 추가한다.
 
 `.env.grafana`가 있으면 `dcgm-exporter`와 `alloy`가 배포·상태·health 대상에 포함된다.
 Alloy의 내장 Node Exporter는 GB10 sysfs에서 응답하지 않는 `cpufreq` collector를 비활성화한다.
@@ -256,16 +266,24 @@ HTTPS로 전송한다. 다른 mount나 컨테이너 overlay는 합산하지 않�
 1. VibeMon 계정에서 write 토큰을 발급한다.
 2. Spark 사용자의 `~/.config/vibemon/collector.env`에 `VIBEMON_WRITE_TOKEN=<토큰>` 한 줄을 저장하고
    권한을 `600`으로 설정한다. 토큰을 Git이나 명령 인자에 넣지 않는다.
-3. `dot add vibemon`을 실행한다. 설치 명령은 첫 Web 수신 확인을 기다린다.
+3. 로그인하지 않아도 수집기가 실행되도록 lingering을 켠다. 꺼져 있으면 설치가 중단된다.
+
+   ```bash
+   sudo loginctl enable-linger "$USER"
+   ```
+
+4. `dot add vibemon`을 실행한다. 설치 명령은 첫 Web 수신 확인을 기다린다.
 
 | 설정 | 위치 | 기본값 |
 | --- | --- | --- |
 | App revision, psutil 버전, URL | `vibemon.env` | 저장소에 고정 |
-| `VIBEMON_SOURCE_ID` | 환경변수 (`~/.config/dotfiles/local.env`) | `hostname -s` |
-| `VIBEMON_SOURCE_NAME` | 환경변수 (`~/.config/dotfiles/local.env`) | `DGX Spark` |
+| `VIBEMON_SOURCE_ID` | 환경변수 (`~/.config/dotfiles/local.env`) | 설치된 수집기의 값, 없으면 `hostname -s` |
+| `VIBEMON_SOURCE_NAME` | 환경변수 (`~/.config/dotfiles/local.env`) | 설치된 수집기의 값, 없으면 `DGX Spark` |
+
+설치된 수집기의 source ID를 유지하므로 다시 설치해도 VibeMon 이력이 한 source에 이어진다.
 
 수집기는 별도 venv에서 `dockpad-vibemon-collector.service`로 실행한다. 메모리 128M, CPU 한 코어의
-25%로 제한한다. 재부팅 후에도 실행하려면 lingering이 필요하다(`loginctl show-user "$USER" -p Linger`).
+25%로 제한한다. Lingering 상태는 `loginctl show-user "$USER" -p Linger`로 확인한다.
 `dot llm health`는 최근 120초 안의 실제 전송 확인을 검사한다. 잘못된 토큰·설정으로 인한 종료 코드
 `2`는 자동으로 재시작하지 않는다.
 
