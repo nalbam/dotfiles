@@ -63,7 +63,7 @@ Read the source file for exact packages and configuration values. The [AI settin
 | 2 | Create working directories and missing SSH keys | Set `~/.ssh` to mode `700` |
 | 3 | Clone or update `~/.dotfiles` | Skip if Git or macOS Command Line Tools are unavailable; retry after Step 5 if the checkout is still missing |
 | 4 | Copy SSH, AWS, and Git configuration | Preserve existing SSH/AWS config; compare and back up changed Git files |
-| 5 | Prepare package managers | Use APT on Linux and attempt Homebrew installation |
+| 5 | Prepare package managers | On Linux, install missing essential APT packages without upgrading the system; attempt Homebrew installation |
 | 6 | Install or update development tools | Apply the Brewfile, bootstrap Node.js 24 through nvm, update installed Claude Code, and install `toast-cli` through pip |
 | 7 | Apply OS settings | On macOS, check Command Line Tools and Rosetta, then apply key bindings and preferences |
 | 8 | Set up Zsh and Oh My Zsh | Change the default shell if needed |
@@ -86,7 +86,7 @@ does not install Node or change the default alias. Missing nvm remains optional 
 - Homebrew and Oh My Zsh bootstrap scripts use temporary files. Execution requires a successful download and Bash syntax check; staging files are removed when the helper exits.
 - Bootstrap success requires both a successful installer exit and the expected installed entry point. Incomplete Oh My Zsh directories are preserved under `~/.oh-my-zsh.backup.*/oh-my-zsh`, leaving the active path available for another attempt.
 - Update markers are stored at `~/.toast/last_update_*` with a six-hour interval.
-- APT, Homebrew, Claude, and pip update markers advance only after their checked operations succeed. Failed updates remain eligible on the next run.
+- Homebrew, Claude, and pip update markers advance only after their checked operations succeed. Failed updates remain eligible on the next run.
 - A changed Brewfile bypasses the update interval. `~/.Brewfile` stores the last successfully bundled content, so a failed bundle remains eligible for another attempt.
 - The pip package helper tries normal installation, `--user`, `--break-system-packages --user`, then sudo. The separate pip-tool upgrade has no sudo fallback.
 

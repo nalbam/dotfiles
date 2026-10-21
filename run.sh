@@ -481,27 +481,14 @@ _progress "Setting up package managers..."
 
 # Linux 설정 (APT 패키지 관리)
 if [ "${OS_NAME}" == "linux" ]; then
-  APT_TIMESTAMP_FILE=~/.toast/last_update_apt
-
-  if _should_update "$APT_TIMESTAMP_FILE"; then
-    _run "Updating APT packages..."
-    # 성공 시에만 timestamp 갱신 (실패 시 다음 실행에서 재시도)
-    if sudo apt update && sudo apt upgrade -y; then
-      _ok "APT packages updated"
-      date +%s > "$APT_TIMESTAMP_FILE"
-    else
-      _warn "APT update failed — will retry on next run"
-    fi
-  else
-    _skip "APT update (last update was less than 6 hours ago)"
-  fi
-
+  # System upgrades are not run here: on hosts serving workloads (e.g. GPU servers),
+  # `apt upgrade` can restart Docker and replace driver libraries before a reboot.
   # Query the complete package set, including unpacked but unconfigured packages.
   APT_PACKAGES=(build-essential procps curl file git unzip jq zsh)
   if ! APT_PACKAGE_STATUS=$(dpkg-query -W -f='${Status}\n' "${APT_PACKAGES[@]}" 2>/dev/null) ||
      printf '%s\n' "$APT_PACKAGE_STATUS" | grep -Eqvx '(install|hold) ok installed'; then
     _run "Installing essential packages (build-essential, git, zsh, jq, etc.)..."
-    if sudo apt install -y "${APT_PACKAGES[@]}"; then
+    if sudo apt update && sudo apt install -y "${APT_PACKAGES[@]}"; then
       _ok "Essential packages installed"
     else
       _warn "Failed to install essential packages — retry after resolving the APT error"
