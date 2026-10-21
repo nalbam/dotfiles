@@ -64,7 +64,7 @@ elif command == "curl":
         sys.exit("Unexpected network operation in offline test")
     Path(args[args.index("-o") + 1]).write_text('mkdir -p "$HOME/.oh-my-zsh/themes"\nprintf "# fixture\\n" > "$HOME/.oh-my-zsh/oh-my-zsh.sh"\n')
 elif command == "sudo":
-    if not args or args[0] != "apt" or args[1] not in {"update", "upgrade", "install"}:
+    if not args or args[0] != "apt" or args[1] not in {"update", "install"}:
         sys.exit("Unexpected privileged operation in offline test")
 elif command == "dpkg-query":
     print("install ok installed\n" * (len(args) - 2), end="")
@@ -147,7 +147,6 @@ elif command not in {"tput", "osascript", "defaults", "chflags"}:
             self.assertEqual((home / ".profile.backup").read_text(), "previous shell profile\n")
             self.assertEqual((home / ".profile.backup").stat().st_mode & 0o777, 0o600)
             self.assertEqual((home / ".toast/macos.applied").exists(), platform == "Darwin")
-            self.assertEqual((home / ".toast/last_update_apt").exists(), platform == "Linux")
             calls = [json.loads(line) for line in (home / "commands.jsonl").read_text().splitlines()]
             self.assertEqual(any(call[0] == "defaults" for call in calls), platform == "Darwin")
             stamps = {name: (home / name).stat().st_mtime_ns for name in expected}
