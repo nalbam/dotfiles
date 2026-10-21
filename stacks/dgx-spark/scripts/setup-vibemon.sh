@@ -3,18 +3,23 @@ set -euo pipefail
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 # Version metadata contains no secrets and is reviewed with deployment code.
-# Source identity is machine-specific: the environment wins, then the host name.
-source_id_override="${VIBEMON_SOURCE_ID:-}"
-source_name_override="${VIBEMON_SOURCE_NAME:-}"
-# shellcheck disable=SC1091
-source "$root/vibemon.env"
-VIBEMON_SOURCE_ID="${source_id_override:-$(hostname -s)}"
-VIBEMON_SOURCE_NAME="${source_name_override:-DGX Spark}"
 config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/vibemon"
 state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/vibemon-collector"
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}/vibemon-collector"
 unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
 unit_path="$unit_dir/dockpad-vibemon-collector.service"
+# Source identity is machine-specific. The environment wins; otherwise the
+# value of an installed collector is kept so its history stays in one source;
+# a new collector uses the host name.
+installed_value() {
+  [[ -f "$unit_path" ]] && sed -n "s/^ExecStart=.* $1 \"\\([^\"]*\\)\".*/\\1/p" "$unit_path" | head -1
+}
+source_id_override="${VIBEMON_SOURCE_ID:-$(installed_value --source-id || true)}"
+source_name_override="${VIBEMON_SOURCE_NAME:-$(installed_value --name || true)}"
+# shellcheck disable=SC1091
+source "$root/vibemon.env"
+VIBEMON_SOURCE_ID="${source_id_override:-$(hostname -s)}"
+VIBEMON_SOURCE_NAME="${source_name_override:-DGX Spark}"
 credential_file="$config_dir/collector.env"
 
 [[ "$VIBEMON_COLLECTOR_REVISION" =~ ^[a-f0-9]{40}$ ]] || { echo 'Collector revision must be a full Git SHA.' >&2; exit 2; }

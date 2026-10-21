@@ -6,7 +6,10 @@ terminal::supported() { dot_platform_is macos; }
 
 terminal::up() {
   local colors="$HOME/Library/Application Support/iTerm2/Dracula.itermcolors"
-  if [ ! -d "$HOME/.dracula/iterm" ]; then
+  . "$DOT_HOME/lib/repo.sh"
+  if [ ! -d "$HOME/.dracula/iterm" ] && ! dot_git_usable; then
+    dot_warn "Git is not usable yet; the iTerm2 colors are installed on the next run"
+  elif [ ! -d "$HOME/.dracula/iterm" ]; then
     dot_retry "Clone Dracula for iTerm2" git clone -q https://github.com/dracula/iterm.git "$HOME/.dracula/iterm" ||
       dot_warn "Failed to clone Dracula for iTerm2"
   fi

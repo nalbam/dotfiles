@@ -114,7 +114,7 @@ if [[ -s .env.grafana ]]; then
     grep -Eq "^${key}=(\"[^\"]|[^\"])" .env.grafana || missing_grafana_keys+=("$key")
   done
   if (( ${#missing_grafana_keys[@]} > 0 )); then
-    echo ".env.grafana is missing: ${missing_grafana_keys[*]}. Run scripts/setup-grafana.sh to add them." >&2
+    echo ".env.grafana is missing: ${missing_grafana_keys[*]}. Run dot add monitoring (or scripts/setup-grafana.sh) to add them." >&2
     exit 1
   fi
   compose+=(--profile monitoring)

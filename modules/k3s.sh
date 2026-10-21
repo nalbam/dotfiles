@@ -1,20 +1,48 @@
 # shellcheck shell=bash
 # k3s server or agent. Installed with the upstream script; upgraded by replacing
-# the binary with the newest release of DOT_K3S_CHANNEL, which keeps the
-# service definition, flags and node role unchanged.
+# the binary, which keeps the service definition, flags and node role.
 #
-# First install options (environment or ~/.config/dotfiles/local.env):
-#   DOT_K3S_CHANNEL  release channel or minor version, e.g. stable, v1.33 (default: stable)
-#   DOT_K3S_URL      server URL; when set, installs an agent
-#   DOT_K3S_TOKEN    cluster token for an agent
-#   DOT_K3S_EXEC     extra flags, passed as INSTALL_K3S_EXEC
+# Settings (environment or ~/.config/dotfiles/local.env):
+#   DOT_K3S_CHANNEL  release channel: a minor version such as v1.33, or stable.
+#                    Default: stable for a new install, the installed minor
+#                    version for an existing one (patch upgrades only).
+#   DOT_K3S_URL      server URL; when set, the first install creates an agent
+#   DOT_K3S_TOKEN    cluster token for an agent (keep it in local.env, mode 600)
+#   DOT_K3S_EXEC     extra flags for the first install, passed as INSTALL_K3S_EXEC
+#
+# Kubernetes supports one minor version per upgrade, servers before agents, so
+# an upgrade that would skip a minor version is refused.
 
-DOT_K3S_CHANNEL="${DOT_K3S_CHANNEL:-stable}"
+# The installed binary; DOT_SYSROOT lets tests and detection use a fixture root.
+K3S_BIN="${DOT_SYSROOT:-}/usr/local/bin/k3s"
 
-k3s::describe() { printf 'k3s Kubernetes (server or agent), channel %s\n' "$DOT_K3S_CHANNEL"; }
+k3s::describe() { printf 'k3s Kubernetes (server or agent)\n'; }
 k3s::supported() { dot_platform_is ec2 linux && [ "$(uname -s)" = Linux ] && dot_has systemctl; }
-k3s::detect() { [ -x /usr/local/bin/k3s ]; }
-k3s::status() { /usr/local/bin/k3s --version 2>/dev/null | head -1 || printf 'not installed\n'; }
+k3s::detect() { [ -x "$K3S_BIN" ]; }
+k3s::status() {
+  if [ -x "$K3S_BIN" ]; then
+    printf '%s (%s)\n' "$(_k3s_version)" "$(_k3s_channel)"
+  else
+    printf 'not installed\n'
+  fi
+}
+
+_k3s_version() {
+  "$K3S_BIN" --version 2>/dev/null | sed -n 's/^k3s version \([^ ]*\).*/\1/p' | head -1
+}
+
+# vX.Y of a version such as v1.33.4+k3s1.
+_k3s_minor() { printf '%s\n' "$1" | sed -n 's/^\(v[0-9]*\.[0-9]*\)\..*/\1/p'; }
+
+_k3s_channel() {
+  if [ -n "${DOT_K3S_CHANNEL:-}" ]; then
+    printf '%s\n' "$DOT_K3S_CHANNEL"
+  elif [ -x "$K3S_BIN" ]; then
+    _k3s_minor "$(_k3s_version)"
+  else
+    printf 'stable\n'
+  fi
+}
 
 _k3s_service() {
   if systemctl cat k3s-agent.service >/dev/null 2>&1; then printf 'k3s-agent\n'; else printf 'k3s\n'; fi
@@ -22,13 +50,15 @@ _k3s_service() {
 
 # The channel URL redirects to the release page of the newest version.
 _k3s_latest() {
-  curl -fsS -o /dev/null -w '%{redirect_url}' "https://update.k3s.io/v1-release/channels/$DOT_K3S_CHANNEL" |
+  curl -fsS -o /dev/null -w '%{redirect_url}' "https://update.k3s.io/v1-release/channels/$1" |
     sed -n 's#.*/releases/tag/##p'
 }
 
 _k3s_install() {
-  dot_run "Installing k3s ($DOT_K3S_CHANNEL${DOT_K3S_URL:+, agent of $DOT_K3S_URL})"
-  INSTALL_K3S_CHANNEL="$DOT_K3S_CHANNEL" INSTALL_K3S_EXEC="${DOT_K3S_EXEC:-}" \
+  local channel
+  channel=$(_k3s_channel)
+  dot_run "Installing k3s ($channel${DOT_K3S_URL:+, agent of $DOT_K3S_URL})"
+  INSTALL_K3S_CHANNEL="$channel" INSTALL_K3S_EXEC="${DOT_K3S_EXEC:-}" \
     K3S_URL="${DOT_K3S_URL:-}" K3S_TOKEN="${DOT_K3S_TOKEN:-}" \
     dot_install_script https://get.k3s.io || dot_die "k3s installation failed"
 }
@@ -36,19 +66,20 @@ _k3s_install() {
 # Downloads the release binary, verifies its published SHA-256, then swaps it
 # in and restarts the service. Running pods keep running during the restart.
 _k3s_upgrade() {
-  local version="$1" suffix="" service
+  local version="$1" binary sums service
   case "$(uname -m)" in
-    aarch64 | arm64) suffix="-arm64" ;;
-    armv7l) suffix="-armhf" ;;
+    aarch64 | arm64) binary=k3s-arm64; sums=sha256sum-arm64.txt ;;
+    armv7l) binary=k3s-armhf; sums=sha256sum-arm.txt ;;
+    *) binary=k3s; sums=sha256sum-amd64.txt ;;
   esac
   service=$(_k3s_service)
   (
     work=$(mktemp -d) || exit 1
     trap 'rm -rf "$work"' EXIT
     base="https://github.com/k3s-io/k3s/releases/download/$(printf '%s' "$version" | sed 's/+/%2B/g')"
-    dot_retry "Download k3s $version" curl -fsSL -o "$work/k3s" "$base/k3s$suffix" &&
-      dot_retry "Download checksums" curl -fsSL -o "$work/sums" "$base/sha256sum$(printf '%s' "${suffix:--amd64}").txt" || exit 1
-    expected=$(awk -v name="k3s$suffix" '$2 == name { print $1 }' "$work/sums")
+    dot_retry "Download k3s $version" curl -fsSL -o "$work/k3s" "$base/$binary" &&
+      dot_retry "Download checksums" curl -fsSL -o "$work/sums" "$base/$sums" || exit 1
+    expected=$(awk -v name="$binary" '$2 == name { print $1 }' "$work/sums")
     actual=$(sha256sum "$work/k3s" | cut -d' ' -f1)
     [ -n "$expected" ] && [ "$expected" = "$actual" ] || { echo "k3s checksum mismatch" >&2; exit 1; }
     chmod 755 "$work/k3s"
@@ -59,26 +90,42 @@ _k3s_upgrade() {
 }
 
 k3s::up() {
-  local current latest
-  if [ ! -x /usr/local/bin/k3s ]; then
+  local current latest channel current_minor latest_minor
+  if [ ! -x "$K3S_BIN" ]; then
     _k3s_install
     dot_stamp k3s
-    dot_ok "$(k3s::status)"
+    dot_ok "k3s $(k3s::status)"
     return 0
   fi
-  dot_due k3s || { dot_skip "$(k3s::status) checked $(dot_stamp_age k3s)"; return 0; }
-  current=$(/usr/local/bin/k3s --version 2>/dev/null | sed -n 's/^k3s version \([^ ]*\).*/\1/p')
-  latest=$(_k3s_latest)
-  [ -n "$latest" ] || { dot_warn "Could not resolve the newest k3s release for $DOT_K3S_CHANNEL"; return 0; }
+  dot_due k3s || { dot_skip "k3s $(_k3s_version) checked $(dot_stamp_age k3s)"; return 0; }
+  current=$(_k3s_version)
+  channel=$(_k3s_channel)
+  latest=$(_k3s_latest "$channel")
+  [ -n "$current" ] || { dot_warn "Could not read the installed k3s version"; return 0; }
+  [ -n "$latest" ] || { dot_warn "Could not resolve the newest k3s release for $channel"; return 0; }
   if [ "$current" = "$latest" ]; then
     dot_stamp k3s
-    dot_skip "k3s $current is the newest release of $DOT_K3S_CHANNEL"
+    dot_skip "k3s $current is the newest release of $channel"
     return 0
   fi
-  dot_run "Upgrading k3s $current -> $latest"
+  # Minor numbers of v1.X versions.
+  current_minor=$(_k3s_minor "$current"); current_minor=${current_minor#v1.}
+  latest_minor=$(_k3s_minor "$latest"); latest_minor=${latest_minor#v1.}
+  case "$current_minor$latest_minor" in
+    '' | *[!0-9]*) dot_warn "Unexpected k3s versions: $current, $latest"; return 0 ;;
+  esac
+  if [ "$latest_minor" -lt "$current_minor" ]; then
+    dot_warn "k3s $current is newer than channel $channel ($latest); nothing to do"
+    return 0
+  fi
+  if [ "$latest_minor" -gt $((current_minor + 1)) ]; then
+    dot_warn "k3s $current -> $latest skips a minor version; set DOT_K3S_CHANNEL=v1.$((current_minor + 1)) and upgrade servers before agents"
+    return 0
+  fi
+  dot_run "Upgrading k3s $current -> $latest ($(_k3s_service))"
   if _k3s_upgrade "$latest"; then
     dot_stamp k3s
-    dot_ok "$(k3s::status)"
+    dot_ok "k3s $(_k3s_version)"
   else
     dot_warn "k3s upgrade failed; the installed binary was kept"
   fi

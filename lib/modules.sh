@@ -6,7 +6,6 @@
 #   <name>::up         install when missing, upgrade when due     (required, idempotent)
 #   <name>::supported  return 0 when the module works here        (optional, default: yes)
 #   <name>::detect     return 0 when already installed            (optional, enables adoption)
-#   <name>::requires   print modules that must run with it        (optional)
 #   <name>::status     print a one-line state                     (optional)
 #   <name>::cli        handle `dot <name> ARGS...`                (optional)
 #
@@ -43,11 +42,6 @@ dot_module_supported() {
   if dot_fn "$1::supported"; then "$1::supported"; fi
 }
 
-dot_module_requires() {
-  dot_module_load "$1" || return 0
-  if dot_fn "$1::requires"; then "$1::requires"; fi
-}
-
 _dot_words() {
   [ -f "$1" ] || return 0
   sed 's/#.*//' "$1" | tr -s ' \t' '\n\n' | grep -v '^$'
@@ -71,22 +65,11 @@ dot_addon_set() {
 }
 
 # Prints the modules to run, in execution order: profile modules and enabled
-# add-ons plus their requirements, minus explicitly disabled modules.
+# add-ons, minus explicitly disabled modules.
 dot_selected_modules() {
-  local wanted disabled name requirement changed=true
+  local wanted disabled name
   wanted="$(dot_profile_modules; dot_addons_enabled)"
   disabled="$(dot_addons_disabled)"
-  while [ "$changed" = true ]; do
-    changed=false
-    for name in $wanted; do
-      for requirement in $(dot_module_requires "$name"); do
-        if ! dot_in_list "$requirement" $wanted; then
-          wanted="$wanted $requirement"
-          changed=true
-        fi
-      done
-    done
-  done
   for name in $DOT_MODULE_ORDER; do
     # shellcheck disable=SC2086
     dot_in_list "$name" $wanted || continue
@@ -128,24 +111,28 @@ dot_module_run() {
   )
 }
 
-# Serialize runs that change the machine. A lock left by a dead process is reclaimed.
+# Serialize runs that change the machine. The lock is a symlink whose target
+# is the owner's pid, created atomically together with its content. A lock
+# whose owner no longer exists is renamed aside (atomic) and taken again.
 dot_lock() {
-  local lock="$DOT_STATE/lock" owner
+  local lock="$DOT_STATE/lock" owner attempt=0
   mkdir -p "$DOT_STATE" || return 1
-  if ! mkdir "$lock" 2>/dev/null; then
-    owner=$(cat "$lock/pid" 2>/dev/null)
+  until ln -s "$$" "$lock" 2>/dev/null; do
+    owner=$(readlink "$lock" 2>/dev/null)
     if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then
-      dot_echo "  ✗ Another dot run is active (pid $owner)." 1 >&2
+      dot_echo "  ✗ Another dot run is active (pid $owner). If that process is not dot, remove $lock." 1 >&2
       return 1
     fi
-    rm -rf "$lock"
-    mkdir "$lock" || return 1
-  fi
-  printf '%s\n' "$$" > "$lock/pid"
+    attempt=$((attempt + 1))
+    [ "$attempt" -le 3 ] || return 1
+    mv "$lock" "$lock.stale.$$" 2>/dev/null && rm -f "$lock.stale.$$"
+  done
   DOT_LOCKED="$lock"
 }
 
 dot_unlock() {
-  [ -n "${DOT_LOCKED:-}" ] && rm -rf "$DOT_LOCKED"
+  if [ -n "${DOT_LOCKED:-}" ] && [ "$(readlink "$DOT_LOCKED" 2>/dev/null)" = "$$" ]; then
+    rm -f "$DOT_LOCKED"
+  fi
   DOT_LOCKED=""
 }

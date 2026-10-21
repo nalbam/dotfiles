@@ -5,7 +5,7 @@ claude::describe() { printf 'Claude Code CLI\n'; }
 # The native build is published for 64-bit macOS and Linux.
 claude::supported() { case "$DOT_ARCH" in x86_64 | arm64 | aarch64) return 0 ;; esac; return 1; }
 claude::detect() { dot_has claude; }
-claude::status() { claude --version 2>/dev/null | head -1 || printf 'not installed\n'; }
+claude::status() { if dot_has claude; then claude --version 2>/dev/null | head -1; else printf 'not installed\n'; fi; }
 
 claude::up() {
   if ! dot_has claude; then

@@ -1,7 +1,7 @@
 -- Loaded before lazy.nvim starts.
 local opt = vim.opt
 
--- macOS clipboard
+-- System clipboard (Linux needs a clipboard provider; see config/nvim/README.md)
 opt.clipboard = "unnamedplus"
 
 -- Editor behavior

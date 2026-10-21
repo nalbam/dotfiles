@@ -3,20 +3,22 @@
 #
 # stacks/dgx-spark is copied into a runtime directory where Docker Compose runs
 # it. Runtime-only files (.env, credentials, backups, generated targets) exist
-# only there and are never overwritten. The directory name is also the Compose
-# project name, so it must stay stable to keep the running containers.
+# only there and are never overwritten. docker-compose.yml fixes the Compose
+# project name (dgx-spark), so the running containers keep their identity even
+# if DOT_SPARK_DIR changes.
 
 DOT_SPARK_DIR="${DOT_SPARK_DIR:-$HOME/.config/dgx-spark}"
 DOT_SPARK_SOURCE="$DOT_HOME/stacks/dgx-spark"
 
 spark_supported() { dot_platform_is dgx-spark; }
 
-# Managed files, relative to the stack root, one per line.
+# Managed files, relative to the stack root, one per line. Documentation is
+# not copied, so a README change never counts as a stack change.
 spark_files() {
   (
     cd "$DOT_SPARK_SOURCE" || exit 1
     find . -type f \
-      ! -name .env ! -name '.env.grafana' ! -name 'model-targets.json' \
+      ! -name .env ! -name '.env.grafana' ! -name 'model-targets.json' ! -name '*.md' \
       ! -name '*.pyc' ! -name '*.pyo' ! -name .DS_Store \
       ! -path './backups/*' ! -path './bench/*' ! -path '*/__pycache__/*' | LC_ALL=C sort
   )
@@ -52,16 +54,34 @@ spark_digest() {
   rm -f "$list"
 }
 
-# Records first that dot has written the runtime directory: from then on,
-# matching files no longer prove that a module was applied (see spark_adoptable).
+# spark_sync [PREFIX...]: copy the managed files (limited to PREFIX...) into
+# the runtime directory. It first records that dot has written the runtime
+# directory: from then on, matching files no longer prove that a module was
+# applied (see spark_adoptable).
 spark_sync() {
   local file
   mkdir -p "$DOT_SPARK_DIR" || return 1
   [ -e "$DOT_STATE/applied/spark-synced" ] || : | dot_write "$DOT_STATE/applied/spark-synced" || return 1
-  spark_files | while IFS= read -r file; do
+  spark_scope "$@" | while IFS= read -r file; do
     mkdir -p "$DOT_SPARK_DIR/${file%/*}" &&
       cp -p "$DOT_SPARK_SOURCE/$file" "$DOT_SPARK_DIR/$file.dot-tmp" &&
       mv -f "$DOT_SPARK_DIR/$file.dot-tmp" "$DOT_SPARK_DIR/$file" || exit 1
+  done
+}
+
+# Grafana Cloud values that config.alloy reads from .env.grafana.
+SPARK_GRAFANA_KEYS="GCLOUD_RW_API_KEY GCLOUD_FM_COLLECTOR_ID GCLOUD_FM_URL GCLOUD_FM_USERNAME GCLOUD_PROM_URL GCLOUD_PROM_USERNAME"
+
+# Prints the keys missing from the runtime .env.grafana (nothing when complete).
+# A value exported in the environment (for example from local.env) counts,
+# because scripts/setup-grafana.sh uses it.
+spark_grafana_missing() {
+  local key value
+  for key in $SPARK_GRAFANA_KEYS; do
+    eval "value=\${$key:-}"
+    [ -z "$value" ] || continue
+    # Same rule as scripts/deploy.sh: a non-empty value, quoted or not.
+    grep -Eq "^$key=(\"[^\"]|[^\"])" "$DOT_SPARK_DIR/.env.grafana" 2>/dev/null || printf '%s\n' "$key"
   done
 }
 

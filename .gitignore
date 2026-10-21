@@ -53,3 +53,10 @@ docs/superpowers/
 # claude local env
 claude/env.local
 claude/.env.local
+
+# DGX Spark runtime files created when stack scripts run from a checkout
+stacks/dgx-spark/.env
+stacks/dgx-spark/.env.*
+!stacks/dgx-spark/.env.example
+stacks/dgx-spark/backups/
+stacks/dgx-spark/**/model-targets.json

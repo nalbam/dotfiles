@@ -59,7 +59,9 @@ apt::system_upgrade() {
      [ -n "$(docker ps -q --filter label=com.docker.compose.project 2>/dev/null)" ]; then
     dot_warn "Compose containers are running; Docker and NVIDIA upgrades restart them"
   fi
-  dot_sudo env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y || return 1
+  # Keep local configuration files when a package ships a new default, so no prompt blocks the run.
+  dot_sudo env DEBIAN_FRONTEND=noninteractive apt-get upgrade -y \
+    -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold || return 1
   if [ -f /var/run/reboot-required ]; then
     dot_warn "A reboot is required to finish the upgrade"
   fi

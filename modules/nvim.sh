@@ -2,7 +2,7 @@
 # Neovim configuration (config/nvim/nvim -> ~/.config/nvim).
 
 nvim::describe() { printf 'Neovim configuration\n'; }
-nvim::status() { nvim --version 2>/dev/null | head -1 || printf 'nvim not installed\n'; }
+nvim::status() { if dot_has nvim; then nvim --version | head -1; else printf 'nvim not installed\n'; fi; }
 
 # Digest of the repository configuration (file names and contents).
 _nvim_digest() {

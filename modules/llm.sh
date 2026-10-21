@@ -21,21 +21,25 @@ _llm_deploy() {
   HEALTH_WAIT_SECONDS="${HEALTH_WAIT_SECONDS:-1800}" spark_script health-check.sh || return 1
 }
 
-# Applies the stack when the repository changed it (or with --force). Models and
-# images are pinned in the runtime .env, so an unchanged stack has nothing to upgrade.
+# A routine dot up never redeploys a running stack: a deployment pulls images,
+# starts preparation containers next to the serving ones and may recreate
+# them. It deploys only the first time (no runtime .env yet) and on `dot add
+# llm`; a changed stack on a deployed host is reported and left to
+# `dot llm deploy`, which the operator runs when serving may be interrupted.
+# Models and images are pinned in the runtime .env.
 llm::up() {
-  if [ -f "$DOT_SPARK_DIR/.env" ] && spark_marked llm && [ "$DOT_FORCE" != true ]; then
+  if [ ! -f "$DOT_SPARK_DIR/.env" ] || [ "${DOT_ADDING:-}" = true ]; then
+    _llm_deploy || dot_die "Deployment failed; the previous containers keep running where possible"
+    spark_mark llm
+    dot_ok "Stack deployed (mode: $(spark_mode))"
+  elif spark_marked llm; then
     dot_skip "Stack matches the repository (mode: $(spark_mode))"
-    return 0
-  fi
-  if [ -f "$DOT_SPARK_DIR/.env" ] && spark_adoptable llm && [ "$DOT_FORCE" != true ]; then
+  elif spark_adoptable llm; then
     spark_mark llm
     dot_ok "Adopted the running stack; files already match (mode: $(spark_mode))"
-    return 0
+  else
+    dot_warn "The repository changed the model stack; deploy it when serving may restart: dot llm deploy"
   fi
-  _llm_deploy || dot_die "Deployment failed; the previous containers keep running where possible"
-  spark_mark llm
-  dot_ok "Stack deployed (mode: $(spark_mode))"
 }
 
 _llm_service() {
@@ -55,10 +59,13 @@ llm::cli() {
   case "$action" in
     deploy)
       if [ -n "${1:-}" ]; then _llm_service "$1" || return; fi
-      ONLY="${1:-}" _llm_deploy && spark_mark llm
+      ONLY="${1:-}" _llm_deploy || return
+      # A single-service deploy leaves the other services on their previous definition.
+      [ -n "${1:-}" ] || spark_mark llm
       ;;
     recreate)
-      # Apply .env changes (for example a new pin) without pulling images again.
+      # Apply runtime .env changes that need no new image or model download (for
+      # example a context length). A new model or image pin needs `dot llm deploy`.
       if [ -n "${1:-}" ]; then _llm_service "$1" || return; fi
       ONLY="${1:-}" SKIP_PULL=true FORCE_RECREATE=true _llm_deploy
       ;;
@@ -82,8 +89,10 @@ llm::cli() {
       cat <<'EOF'
 Usage: dot llm COMMAND
 
-  deploy [SERVICE]       Copy the stack, deploy and wait for health checks
-  recreate [SERVICE]     Recreate containers after editing the runtime .env
+  deploy [SERVICE]       Copy the stack, pull and prepare pinned images and
+                         models, deploy, and wait for health checks
+  recreate [SERVICE]     Recreate containers after a runtime .env change that
+                         needs no download (use deploy for a new model or image)
   mode models|flash|comfyui
                          Switch the serving mode (rolls back when unhealthy)
   status                 Show Compose services
@@ -92,9 +101,8 @@ Usage: dot llm COMMAND
   config                 Render the Compose configuration
   public-api             Publish the key-protected API through Tailscale Funnel
   start|stop|restart SERVICE
-
-The runtime directory is ${DOT_SPARK_DIR:-~/.config/dgx-spark}.
 EOF
+      printf '\nRuntime directory: %s\n' "$DOT_SPARK_DIR"
       ;;
     *) dot_echo "  ✗ Unknown llm command: $action (see dot llm help)" 1 >&2; return 2 ;;
   esac

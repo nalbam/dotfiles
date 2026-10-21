@@ -9,7 +9,7 @@ server::describe() { printf 'Server baseline: timezone, fail2ban, swap, AWS CLI 
 server::supported() {
   dot_platform_is ec2 linux && [ "$(uname -s)" = Linux ] && dot_has apt-get && dot_has systemctl
 }
-server::status() { aws --version 2>/dev/null | cut -d' ' -f1 || printf 'aws not installed\n'; }
+server::status() { if dot_has aws; then aws --version 2>&1 | cut -d' ' -f1; else printf 'aws not installed\n'; fi; }
 
 _server_timezone() {
   local current

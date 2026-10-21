@@ -18,17 +18,17 @@ vibemon::status() {
 # systemd lingering for the user; the script reports what is missing.
 vibemon::up() {
   if spark_marked vibemon $VIBEMON_FILES && systemctl --user is-active --quiet "$VIBEMON_UNIT" 2>/dev/null &&
-     [ "$DOT_FORCE" != true ]; then
+     [ "${DOT_ADDING:-}" != true ]; then
     dot_skip "Collector is active and matches the repository"
     return 0
   fi
   if spark_adoptable vibemon $VIBEMON_FILES && systemctl --user is-active --quiet "$VIBEMON_UNIT" 2>/dev/null &&
-     [ "$DOT_FORCE" != true ]; then
+     [ "${DOT_ADDING:-}" != true ]; then
     spark_mark vibemon $VIBEMON_FILES
     dot_ok "Adopted the active collector"
     return 0
   fi
-  spark_sync || dot_die "Failed to copy the stack into $DOT_SPARK_DIR"
+  spark_sync $VIBEMON_FILES || dot_die "Failed to copy the collector files into $DOT_SPARK_DIR"
   spark_script setup-vibemon.sh || dot_die "Collector setup failed"
   spark_mark vibemon $VIBEMON_FILES
   dot_ok "Collector is active"

@@ -1,2 +1,2 @@
-# Raspberry Pi. Homebrew is unavailable on 32-bit ARM; node builds from source there.
+# Raspberry Pi. Homebrew is unavailable on 32-bit ARM. Add-on: node (may build from source).
 base apt git python shell ai

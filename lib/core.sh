@@ -122,6 +122,15 @@ dot_backup() {
   dot_info "Backup: $1.backup"
 }
 
+# Prints the permission bits of FILE, or the umask default for a new file.
+dot_file_mode() {
+  if [ -f "$1" ]; then
+    stat -c %a "$1" 2>/dev/null || stat -f %Lp "$1"
+  else
+    printf '%o\n' $((0666 & ~$(umask)))
+  fi
+}
+
 # dot_install_file TARGET SOURCE [MODE]
 # TARGET is relative to $HOME, SOURCE to $DOT_HOME. Identical content is left
 # untouched; changed content is backed up, staged and replaced atomically.
@@ -139,7 +148,8 @@ dot_install_file() {
     dot_die "Failed to compare $2 with $target"
   elif [ "$comparison" -eq 1 ]; then
     temporary=$(mktemp "$target.tmp.XXXXXX") || dot_die "Failed to stage $target"
-    if ! cp "$source" "$temporary"; then
+    # mktemp creates mode 600; keep the existing mode, or use the umask for a new file.
+    if ! { cp "$source" "$temporary" && chmod "$(dot_file_mode "$target")" "$temporary"; }; then
       rm -f "$temporary"
       dot_die "Failed to copy $2"
     fi

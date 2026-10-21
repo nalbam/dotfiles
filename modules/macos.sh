@@ -18,8 +18,8 @@ macos::up() {
   fi
 
   # The key binding (₩ types `) is copied once so local edits survive.
-  if [ ! -f "$HOME/Library/KeyBindings/DefaultkeyBinding.dict" ]; then
-    dot_install_file Library/KeyBindings/DefaultkeyBinding.dict config/macos/DefaultkeyBinding.dict
+  if [ ! -f "$HOME/Library/KeyBindings/DefaultKeyBinding.dict" ]; then
+    dot_install_file Library/KeyBindings/DefaultKeyBinding.dict config/macos/DefaultKeyBinding.dict
   fi
 
   # Preferences are applied when their script changed or the last attempt

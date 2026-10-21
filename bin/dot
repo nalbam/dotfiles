@@ -122,6 +122,10 @@ _dot_parse_flags() {
 
 cmd_up() {
   _dot_parse_flags "$@" || exit 2
+  if [ -n "$DOT_ARGS" ]; then
+    dot_echo "  ✗ dot up takes no module names; use: dot run$DOT_ARGS" 1 >&2
+    exit 2
+  fi
   dot_require_platform
   dot_banner
   dot_lock || exit 1
@@ -133,6 +137,8 @@ cmd_up() {
     if [ $? -eq 3 ]; then
       dot_unlock
       dot_info "Checkout changed; restarting with the new version"
+      # The new version detects the platform again unless the caller chose it.
+      [ "$DOT_PLATFORM_SOURCE" = environment ] || unset DOT_PLATFORM
       local again="--no-pull"
       [ "$DOT_FORCE" = true ] && again="$again --force"
       # shellcheck disable=SC2086
@@ -141,13 +147,16 @@ cmd_up() {
   fi
 
   dot_load_local_env
+  # Detection must see tools installed outside the login PATH (Homebrew, ~/.local/bin).
+  dot_load_paths
   dot_adopt_modules
   # shellcheck disable=SC2046
   dot_execute $(dot_selected_modules)
   local status=$?
   # An archive install becomes a Git checkout once earlier modules made Git usable.
   if [ "$DOT_PULL" = true ] && [ ! -d "$DOT_HOME/.git" ]; then
-    dot_repo_sync >/dev/null
+    dot_title "Convert $DOT_HOME"
+    dot_repo_sync
   fi
   return $status
 }
@@ -188,24 +197,22 @@ cmd_run() {
 }
 
 cmd_add() {
-  local name requirement targets="$*"
+  local name
+  _dot_parse_flags "$@" || exit 2
+  # shellcheck disable=SC2086
+  set -- $DOT_ARGS
   [ $# -gt 0 ] || { dot_echo "  ✗ Name at least one module" 1 >&2; exit 2; }
   dot_require_platform
   _dot_validate_modules "$@" || exit 2
   for name in "$@"; do
     dot_addon_set "$name" enable
     dot_ok "Enabled $name"
-    for requirement in $(dot_module_requires "$name"); do
-      # A requirement that was disabled earlier must run again for this add-on.
-      if dot_in_list "$requirement" $(dot_addons_disabled); then
-        dot_addon_set "$requirement" reset
-      fi
-      targets="$targets $requirement"
-    done
   done
+  # Adding is an explicit request: install now and upgrade without waiting.
   DOT_FORCE=true
-  # shellcheck disable=SC2086
-  cmd_run $targets
+  DOT_ADDING=true
+  export DOT_ADDING
+  cmd_run "$@"
 }
 
 cmd_remove() {
@@ -222,6 +229,7 @@ cmd_remove() {
 cmd_list() {
   local name state selected profile enabled disabled
   dot_require_platform
+  dot_load_local_env
   selected="$(dot_selected_modules)"
   profile="$(dot_profile_modules)"
   enabled="$(dot_addons_enabled)"

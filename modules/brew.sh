@@ -6,7 +6,7 @@ brew::describe() { printf 'Homebrew and packages/Brewfile.%s\n' "$DOT_OS"; }
 # Homebrew does not support 32-bit ARM Linux.
 brew::supported() { [ "$DOT_ARCH" != armv7l ] && [ "$DOT_ARCH" != armv6l ]; }
 brew::detect() { dot_has brew; }
-brew::status() { brew --version 2>/dev/null | head -1; }
+brew::status() { if dot_has brew; then brew --version | head -1; else printf 'not installed\n'; fi; }
 
 _brew_install() {
   dot_run "Installing Homebrew"
