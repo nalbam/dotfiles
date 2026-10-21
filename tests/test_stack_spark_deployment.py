@@ -6,6 +6,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from dot_testlib import modern_bash_dir
+
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -94,7 +97,10 @@ elif "run" in args and os.environ.get("TEST_FAIL_DOWNLOAD") == "true":
             path.write_text(content)
             path.chmod(0o755)
         self.http_calls = self.root / "http.txt"
-        self.env = {**os.environ, "PATH": f"{binary}:{os.environ['PATH']}",
+        bash = modern_bash_dir(self.root)
+        if bash is None:
+            self.skipTest("the stack scripts need Bash 4.4 or newer")
+        self.env = {**os.environ, "PATH": f"{bash}:{binary}:{os.environ['PATH']}",
                     "XDG_CONFIG_HOME": str(self.root / "config"),
                     "TEST_DOCKER_CALLS": str(self.calls), "TEST_HTTP_CALLS": str(self.http_calls),
                     "TEST_COMPOSE_CONFIG": str(self.config),

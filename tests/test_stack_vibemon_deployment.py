@@ -8,6 +8,8 @@ import sys
 import tempfile
 import unittest
 
+from dot_testlib import modern_bash_dir
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -32,6 +34,7 @@ class VibeMonDeploymentTests(unittest.TestCase):
         python = self.binary / 'python3'
         python.write_text('''#!REALPY
 import json, os, pathlib, sys
+
 args = sys.argv[1:]
 if args[:2] == ['-m', 'venv']:
     root = pathlib.Path(args[2]); (root/'bin').mkdir(parents=True, exist_ok=True)
@@ -52,7 +55,10 @@ with open(os.environ['TEST_CALLS'], 'a') as f:f.write(json.dumps([os.path.basena
 '''.replace('REALPY', sys.executable))
             p.chmod(0o755)
         host = {key: value for key, value in os.environ.items() if not key.startswith(('VIBEMON_', 'XDG_'))}
-        self.env = {**host, 'PATH': str(self.binary) + ':' + os.environ['PATH'],
+        bash = modern_bash_dir(self.root)
+        if bash is None:
+            self.skipTest('the stack scripts need Bash 4.4 or newer')
+        self.env = {**host, 'PATH': bash + ':' + str(self.binary) + ':' + os.environ['PATH'],
                     'XDG_CONFIG_HOME': str(self.config), 'XDG_DATA_HOME': str(self.root / 'data'),
                     'XDG_STATE_HOME': str(self.root / 'state'), 'TEST_CALLS': str(self.log), 'TEST_ACK': 'yes'}
 

@@ -8,6 +8,8 @@ import sys
 import tempfile
 import unittest
 
+from dot_testlib import modern_bash_dir
+
 ROOT = Path(__file__).resolve().parents[1]
 ACCOUNT = {
     "GCLOUD_FM_URL": "https://fleet.example.net",
@@ -33,6 +35,7 @@ class GrafanaSetupTests(unittest.TestCase):
             "curl": f'''#!{sys.executable}
 import sys
 from pathlib import Path
+
 args = sys.argv[1:]
 if "--output" in args:
     Path(args[args.index("--output") + 1]).write_text("DCGM_FI_DEV_GPU_UTIL 1\\n")
@@ -48,7 +51,10 @@ os.execv("{sys.executable}", ["{sys.executable}", *sys.argv[1:]])
             (binary / name).write_text(content)
             (binary / name).chmod(0o755)
         self.env = {key: value for key, value in os.environ.items() if not key.startswith("GCLOUD_")}
-        self.env["PATH"] = f"{binary}:{os.environ['PATH']}"
+        bash = modern_bash_dir(binary.parent)
+        if bash is None:
+            self.skipTest("the stack scripts need Bash 4.4 or newer")
+        self.env["PATH"] = f"{bash}:{binary}:{os.environ['PATH']}"
 
     def run_setup(self, **values):
         return subprocess.run([str(self.spark / "scripts/setup-grafana.sh")], env={**self.env, **values},

@@ -34,6 +34,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes zsh
+      - name: Install Bash 5 on macOS
+        # The DGX Spark stack scripts need Bash 4.4+; macOS /bin/bash is 3.2 and
+        # still runs the dot CLI tests, which must stay Bash 3.2 compatible.
+        if: runner.os == 'macOS'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: '1'
+        run: brew list bash >/dev/null 2>&1 || brew install bash
       - name: Verify generated files and regressions
         run: |
           python scripts/gen-ai-tools.py --check

@@ -45,6 +45,28 @@ def clean_env(**overrides):
     return env
 
 
+def modern_bash_dir(root):
+    """Directory whose `bash` is Bash 4.4 or newer, or None.
+
+    The DGX Spark stack scripts run on DGX OS (Bash 5) and refuse older Bash;
+    macOS /bin/bash is 3.2, so tests put a newer Bash first in PATH.
+    """
+    candidates = [shutil.which("bash"), "/opt/homebrew/bin/bash", "/usr/local/bin/bash", "/usr/bin/bash", "/bin/bash"]
+    for candidate in filter(None, candidates):
+        if not os.access(candidate, os.X_OK):
+            continue
+        probe = subprocess.run([candidate, "-c", "echo $((BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1]))"],
+                               capture_output=True, text=True)
+        if probe.returncode == 0 and probe.stdout.strip().isdigit() and int(probe.stdout) >= 404:
+            directory = Path(root) / "modern-bash"
+            directory.mkdir(exist_ok=True)
+            link = directory / "bash"
+            if not link.exists():
+                link.symlink_to(candidate)
+            return str(directory)
+    return None
+
+
 def module_order():
     """DOT_MODULE_ORDER from lib/modules.sh, so tests follow new modules automatically."""
     for line in (ROOT / "lib/modules.sh").read_text().splitlines():

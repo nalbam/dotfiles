@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# Runs on DGX OS (Bash 5); empty arrays under set -u need Bash 4.4 or newer.
+(( BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] >= 404 )) || { echo "${0##*/} needs Bash 4.4 or newer." >&2; exit 1; }
 
 root="$(cd "$(dirname "$0")/.." && pwd)"
 # Version metadata contains no secrets and is reviewed with deployment code.
