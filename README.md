@@ -250,7 +250,7 @@ op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~
 
 ## Contributing
 
-별도 브랜치에서 변경하고 관련 검사를 실행한 뒤 PR을 만든다. 커밋은 Conventional Commits 형식을 권장한다. 에이전트는 요청 범위의 commit·push·PR 생성을 자율 수행하며, [Git Workflow](claude/rules/git-workflow.md)의 검증·저장소 소유 조건을 충족하면 merge·릴리즈·배포와 완료 후 브랜치 정리까지 진행한다.
+별도 브랜치에서 변경하고 관련 검사를 실행한 뒤 PR을 만든다. 커밋은 Conventional Commits 형식을 권장한다. 에이전트는 요청 범위의 commit·push·PR 생성을 자율 수행하며, merge·기본 브랜치 push·자동 merge 예약은 [Git Workflow](claude/rules/git-workflow.md)의 검증 조건과 저장소 소유 조건을, 릴리즈·배포는 요청 범위와 검증 조건을 충족하면 진행하고 완료 후 브랜치를 정리한다.
 
 ## License
 
