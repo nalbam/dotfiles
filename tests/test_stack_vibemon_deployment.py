@@ -124,9 +124,11 @@ with open(os.environ['TEST_CALLS'], 'a') as f:f.write(json.dumps([os.path.basena
         result = self.run_setup(XDG_CONFIG_HOME=str(config))
         self.assertEqual(result.returncode, 0, result.stderr)
         unit = config / 'systemd/user/dockpad-vibemon-collector.service'
+        # systemd-analyze --user needs the host's runtime directory, which setUp strips.
+        runtime = {key: os.environ[key] for key in ('XDG_RUNTIME_DIR',) if key in os.environ}
         result = subprocess.run(
             ['systemd-analyze', '--user', 'verify', str(unit)],
-            env={**self.env, 'XDG_CONFIG_HOME': str(config)},
+            env={**self.env, **runtime, 'XDG_CONFIG_HOME': str(config)},
             capture_output=True, text=True, timeout=20,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
