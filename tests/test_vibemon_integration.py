@@ -2,7 +2,7 @@
 """Run both real installers offline against temporary homes.
 
 DOTFILES_VIBEMON_INSTALLER=/path/to/vibemon-app/public/install/install.py \
-    python3 scripts/test_vibemon_integration.py
+    python3 tests/test_vibemon_integration.py
 """
 
 import json
@@ -13,6 +13,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dot_testlib import clean_env  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 INSTALLER = os.environ.get("DOTFILES_VIBEMON_INSTALLER")
@@ -30,8 +33,7 @@ class InstallerCoexistenceTests(unittest.TestCase):
                 for name in ("claude", "codex", "kiro", "scripts", "bin", "lib", "modules", "profiles"):
                     shutil.copytree(ROOT / name, repo / name, ignore=shutil.ignore_patterns("__pycache__"))
                 shutil.copy(ROOT / "run.sh", repo / "run.sh")
-                env = {"HOME": str(home), "PATH": os.environ["PATH"], "TERM": "dumb",
-                       "PYENV_VERSION": "", "PYTHONIOENCODING": "utf-8"}
+                env = clean_env(HOME=str(home), PYENV_VERSION="")
                 foreign = {"matcher": "startup", "hooks": [{"type": "command", "command": "romty hook test"}]}
                 for tool, filename in (("claude", "settings.json"), ("codex", "hooks.json")):
                     path = home / f".{tool}" / filename

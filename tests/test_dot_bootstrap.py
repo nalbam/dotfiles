@@ -10,7 +10,7 @@ import tarfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from dot_testlib import ROOT, Machine  # noqa: E402
+from dot_testlib import ROOT, Machine, module_order  # noqa: E402
 
 RECORDING_DOT = '#!/bin/bash\nprintf "%s\\n" "$@" > "$HOME/dot-args"\n'
 
@@ -193,17 +193,33 @@ class RepositorySyncTests(unittest.TestCase):
         git("add", "-A", cwd=work, env=self.git_env)
         git("commit", "-q", "-m", "new", cwd=work, env=self.git_env)
         git("push", "-q", "origin", "HEAD:main", cwd=work, env=self.git_env)
-        # Disable every profile module so only the sync and restart are exercised.
+        # Disable every module so only the sync and restart are exercised.
         machine.config.mkdir(parents=True)
-        (machine.config / "modules").write_text("".join(f"-{name}\n" for name in (
-            "base apt server git brew macos node python claude shell terminal nvim ai docker k3s "
-            "llm monitoring vibemon").split()))
-        result = machine.dot("up", **{k: v for k, v in self.git_env.items() if k.startswith("GIT_")})
+        (machine.config / "modules").write_text("".join(f"-{name}\n" for name in module_order()))
+        git_env = {k: v for k, v in self.git_env.items() if k.startswith("GIT_")}
+        result = machine.dot("up", **git_env)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("restarting with the new version", result.stdout)
         self.assertEqual(result.stdout.count("Sync "), 1, "the restarted run must not pull again")
         self.assertEqual(result.stdout.count("Summary"), 1)
         self.assertTrue((machine.repo / "NEW").exists())
+        # The restarted run detects the platform again instead of inheriting the
+        # value exported by the first run.
+        banners = [line for line in result.stdout.splitlines() if "dot · " in line]
+        self.assertEqual(len(banners), 2)
+        self.assertTrue(all(", detected)" in line for line in banners), banners)
+
+        # A platform chosen by the caller survives the restart.
+        (work / "NEWER").write_text("newer\n")
+        git("add", "-A", cwd=work, env=self.git_env)
+        git("commit", "-q", "-m", "newer", cwd=work, env=self.git_env)
+        git("push", "-q", "origin", "HEAD:main", cwd=work, env=self.git_env)
+        result = machine.dot("up", DOT_PLATFORM="linux", **git_env)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        banners = [line for line in result.stdout.splitlines() if "dot · " in line]
+        self.assertEqual(len(banners), 2)
+        self.assertTrue(all(line.strip().startswith("dot · linux") and ", environment)" in line
+                            for line in banners), banners)
 
 
 if __name__ == "__main__":

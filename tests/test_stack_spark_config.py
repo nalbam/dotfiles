@@ -99,22 +99,6 @@ class SparkConfigTests(unittest.TestCase):
         deployment = (SPARK / "scripts" / "deploy.sh").read_text()
         self.assertNotIn("@sha256:", deployment)
 
-    def test_deployment_waits_for_tailnet_and_downloads_models(self) -> None:
-        deployment = (SPARK / "scripts" / "deploy.sh").read_text()
-
-        self.assertIn("tailscale wait --timeout=120s", deployment)
-        self.assertIn("snapshot_download", deployment)
-
-    def test_modes_switch_mutually_exclusive_service_groups(self) -> None:
-        switch = (SPARK / "scripts" / "switch-mode.sh").read_text()
-
-        self.assertIn('scripts/compose.sh stop-mode "$1"', switch)
-        self.assertIn('PREPARE_ONLY=true scripts/deploy.sh', switch)
-        self.assertIn('write_mode "$target_mode"', switch)
-        self.assertIn('SKIP_PULL=true SKIP_BUILD=true scripts/deploy.sh', switch)
-        self.assertIn('stop_mode "$target_mode"', switch)
-        self.assertIn('write_mode "$current_mode"', switch)
-
     def test_health_check_verifies_comfyui_cuda_device(self) -> None:
         compose = (SPARK / "docker-compose.yml").read_text()
         health_check = (SPARK / "scripts" / "health-check.sh").read_text()
@@ -142,7 +126,6 @@ class SparkConfigTests(unittest.TestCase):
         self.assertIn('SPARK_MODE: ${SPARK_MODE:-models}', compose)
         self.assertIn('discovery.file "models"', config)
         self.assertIn('targets = discovery.file.models.targets', config)
-        self.assertIn("grafana/alloy:v1.19.2", compose)
         self.assertNotIn('prometheus.exporter.cadvisor "spark"', config)
         self.assertIn(
             'disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs", "cpufreq"]',

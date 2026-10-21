@@ -15,6 +15,9 @@ import tempfile
 import tomllib
 import unittest
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dot_testlib import clean_env  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -36,7 +39,9 @@ class DeploymentTests(unittest.TestCase):
         self.put(".dotfiles/codex/skills/demo/SKILL.md", "demo skill\n")
         self.put(".dotfiles/kiro/agents/default.json", '{}\n')
         self.put(".dotfiles/opencode/AGENTS.md", "shared OpenCode instructions\n")
-        self.env = dict(os.environ, HOME=str(self.home), TERM="dumb", PYENV_VERSION="")
+        # No host DOT_*/XDG_* settings and no host Homebrew: dot vibe must run the
+        # fixture python3 below and keep its lock and state inside the temporary home.
+        self.env = clean_env(HOME=str(self.home), PYENV_VERSION="")
         self.bin = Path(self.temp.name) / "bin"
         self.bin.mkdir()
         (self.bin / "python3").symlink_to(sys.executable)

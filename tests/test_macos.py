@@ -25,7 +25,7 @@ class MacOSSetupTests(unittest.TestCase):
         self.source = self.repo / "config/macos/defaults.sh"
         bindings = self.home / "Library/KeyBindings"
         bindings.mkdir(parents=True)
-        self.binding = bindings / "DefaultkeyBinding.dict"
+        self.binding = bindings / "DefaultKeyBinding.dict"
         self.binding.write_text("personal binding\n")
         self.marker = self.home / ".local/state/dotfiles/applied/macos-defaults"
         self.log = self.home / "commands"
@@ -291,11 +291,13 @@ printf "NEXT_STEP\n"
                 self.assert_continues(self.invoke(TEST_OS_ARCH=arch, TEST_ROSETTA_STATUS=status))
                 calls = self.log.read_text() if self.log.exists() else ""
                 self.assertEqual("--install-rosetta" in calls, expected)
+                # The installer needs administrator rights.
+                self.assertEqual("sudo softwareupdate --install-rosetta --agree-to-license" in calls, expected)
 
     def test_key_binding_is_copied_once_and_local_edits_survive(self):
         self.binding.unlink()
         self.assert_continues(self.invoke())
-        source = self.repo / "config/macos/DefaultkeyBinding.dict"
+        source = self.repo / "config/macos/DefaultKeyBinding.dict"
         self.assertEqual(self.binding.read_bytes(), source.read_bytes())
         self.binding.write_text("edited\n")
         self.assert_continues(self.invoke())

@@ -106,7 +106,6 @@ class FullRunTests(unittest.TestCase):
         (home / ".profile").write_text("previous shell profile\n")
         machine.env.update(TEST_OS=platform, TEST_ARCH=architecture, TEST_STUBS=str(machine.bin),
                            TEST_PYTHON=sys.executable, SHELL="/bin/zsh", USER="fixture",
-                           DOT_BREW_PREFIXES=str(machine.root / "no-brew"),
                            DOT_SYSROOT=str(machine.root / "sysroot"))
         if dgx:
             release = machine.root / "sysroot/etc/dgx-release"
@@ -133,6 +132,9 @@ class FullRunTests(unittest.TestCase):
         home, repo = machine.home, machine.repo
         first = self.up(machine)
         self.assertIn(f"dot · {expected_platform}", first.stdout)
+        # Detection reads the fixture root (DOT_SYSROOT), so a Docker or k3s on the
+        # host running the tests is never adopted.
+        self.assertFalse((machine.config / "modules").exists(), first.stdout)
         os_dir = platform.lower()
         expected = {".zshrc": "config/shell/zshrc", ".bashrc": "config/shell/bashrc",
                     ".profile": "config/shell/profile", ".aliases": "config/shell/aliases",
@@ -179,8 +181,7 @@ class FullRunTests(unittest.TestCase):
         self.check("Linux", "x86_64", "linux")
 
     def test_dgx_spark_without_addons(self):
-        machine = self.check("Linux", "aarch64", "dgx-spark", dgx=True)
-        self.assertFalse((machine.config / "modules").exists(), "nothing to adopt on a fresh Spark")
+        self.check("Linux", "aarch64", "dgx-spark", dgx=True)
 
     def test_legacy_markers_are_migrated(self):
         machine = self.prepare("Darwin", "arm64")

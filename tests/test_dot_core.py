@@ -17,9 +17,9 @@ class CoreTests(unittest.TestCase):
         self.home = Path(temporary.name) / "home"
         self.repo = self.home / ".dotfiles"
         self.repo.mkdir(parents=True)
-        self.env = {key: value for key, value in os.environ.items() if not key.startswith("BASH_FUNC_")}
-        for key in ("DOT_HOME", "DOT_CONFIG", "DOT_STATE", "DOT_FORCE", "XDG_CONFIG_HOME", "XDG_STATE_HOME"):
-            self.env.pop(key, None)
+        # Every DOT_* and XDG_* setting of the developer's shell changes behavior here.
+        self.env = {key: value for key, value in os.environ.items()
+                    if not key.startswith(("BASH_FUNC_", "DOT_", "XDG_"))}
         self.env.update(HOME=str(self.home), DOT_HOME=str(self.repo), DOT_COLOR="false",
                         TERM="dumb", BASH_ENV="")
 
@@ -210,6 +210,29 @@ RUNZSH=no dot_install_script https://example.invalid/install.sh 'one two' '' '*'
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual((self.home / target).read_text(), "settings")
                 self.assertEqual((self.home / target).stat().st_mode & 0o777, 0o600)
+
+    def test_replacement_keeps_the_target_mode(self):
+        (self.repo / "settings").write_text("new")
+        for mode in (0o644, 0o755, 0o640):
+            with self.subTest(mode=oct(mode)):
+                target = self.home / ".settings"
+                target.write_text(f"old {mode}")
+                target.chmod(mode)
+                result = self.install(".settings", "settings")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(target.read_text(), "new")
+                self.assertEqual(target.stat().st_mode & 0o777, mode)
+                target.unlink()
+
+    def test_new_file_uses_the_umask(self):
+        (self.repo / "settings").write_text("x")
+        for umask, mode in (("022", 0o644), ("077", 0o600), ("002", 0o664)):
+            with self.subTest(umask=umask):
+                target = self.home / ".settings"
+                target.unlink(missing_ok=True)
+                result = self.run_shell(f'umask {umask}\ndot_install_file .settings settings\n')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(target.stat().st_mode & 0o777, mode)
 
     def test_explicit_mode_is_applied(self):
         (self.repo / "settings").write_text("x")

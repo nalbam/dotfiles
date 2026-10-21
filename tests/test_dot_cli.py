@@ -2,7 +2,9 @@
 """Offline tests for bin/dot: detection, commands, module state, locking and remote execution."""
 
 import json
+import os
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -131,16 +133,32 @@ class CommandTests(unittest.TestCase):
         self.assertEqual((self.machine.config / "modules").read_text(), "-nvim\n-brew\n")
         self.assertTrue((self.machine.home / ".config/nvim").is_dir(), "remove must not uninstall")
 
-    def test_add_reenables_a_disabled_requirement(self):
+    def test_add_accepts_flags_and_marks_the_run_as_adding(self):
         module = self.machine.repo / "modules/nvim.sh"
-        module.write_text(module.read_text() + "nvim::requires() { printf 'git\\n'; }\n")
+        module.write_text(module.read_text() +
+                          'nvim::up() { printf \'adding=%s force=%s\\n\' "${DOT_ADDING:-}" "$DOT_FORCE"; }\n')
+        for args in (("add", "nvim"), ("add", "--no-pull", "nvim"), ("add", "nvim", "--force")):
+            with self.subTest(args=args):
+                result = self.machine.dot(*args)
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertIn("adding=true force=true", result.stdout)
+                self.assertEqual((self.machine.config / "modules").read_text(), "nvim\n")
+        result = self.machine.dot("add", "--bogus", "nvim")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Unknown option: --bogus", result.stderr)
+
+    def test_up_rejects_module_names(self):
+        result = self.machine.dot("up", "--no-pull", "shell")
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("dot run shell", result.stderr)
+        self.assertFalse(self.machine.state.exists(), "nothing runs before the arguments are checked")
+
+    def test_list_reads_local_env(self):
         self.machine.config.mkdir(parents=True)
-        (self.machine.config / "modules").write_text("-git\n")
-        result = self.machine.dot("add", "nvim")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertEqual((self.machine.config / "modules").read_text(), "nvim\n")
-        self.assertIn("] git", result.stdout)
-        self.assertTrue((self.machine.home / ".gitconfig").is_file())
+        (self.machine.config / "local.env").write_text("DOT_NODE_VERSION=22\n")
+        result = self.machine.dot("list")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Node.js 22", result.stdout)
 
     def test_unsupported_module_cannot_be_added(self):
         result = self.machine.dot("add", "llm")
@@ -172,30 +190,41 @@ cat "$DOT_CONFIG/modules"
         self.assertNotIn("monitoring", selected, "a disabled module is never adopted")
         self.assertEqual(lines[2:], ["vibemon", "-monitoring", "llm"])
 
-    def test_lock_refuses_live_owner_and_reclaims_stale_lock(self):
+    def live_lock(self):
         lock = self.machine.state / "lock"
-        lock.mkdir(parents=True)
+        lock.parent.mkdir(parents=True, exist_ok=True)
         sleeper = subprocess.Popen(["sleep", "30"])
         self.addCleanup(lambda: (sleeper.kill(), sleeper.wait()))
-        (lock / "pid").write_text(f"{sleeper.pid}\n")
+        lock.symlink_to(str(sleeper.pid))
+        return lock, sleeper
+
+    def test_lock_refuses_live_owner_and_reclaims_stale_lock(self):
+        lock, sleeper = self.live_lock()
         result = self.machine.shell('dot_lock && printf locked')
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Another dot run is active", result.stderr)
+        self.assertIn(f"Another dot run is active (pid {sleeper.pid})", result.stderr)
+        self.assertEqual(os.readlink(lock), str(sleeper.pid), "a refused run leaves the owner's lock")
         sleeper.kill()
         sleeper.wait()
-        result = self.machine.shell('dot_lock && printf locked && cat "$DOT_LOCKED/pid" >/dev/null && dot_unlock')
-        self.assertEqual(result.stdout, "locked", result.stderr)
-        self.assertFalse(lock.exists())
+        result = self.machine.shell('dot_lock && printf "locked %s" "$(readlink "$DOT_LOCKED")" && '
+                                    '[ "$(readlink "$DOT_LOCKED")" = "$$" ] && dot_unlock')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(result.stdout.startswith("locked "), result.stdout)
+        self.assertFalse(lock.exists() or lock.is_symlink())
+        self.assertEqual([p.name for p in lock.parent.iterdir() if p.name.startswith("lock")], [])
+
+    def test_unlock_keeps_a_lock_owned_by_another_process(self):
+        lock, sleeper = self.live_lock()
+        result = self.machine.shell(f'DOT_LOCKED="{lock}"; dot_unlock; printf "[%s]" "$DOT_LOCKED"')
+        self.assertEqual(result.stdout, "[]", result.stderr)
+        self.assertEqual(os.readlink(lock), str(sleeper.pid))
 
     def test_up_refuses_while_locked(self):
-        lock = self.machine.state / "lock"
-        lock.mkdir(parents=True)
-        sleeper = subprocess.Popen(["sleep", "30"])
-        self.addCleanup(lambda: (sleeper.kill(), sleeper.wait()))
-        (lock / "pid").write_text(f"{sleeper.pid}\n")
+        lock, sleeper = self.live_lock()
         result = self.machine.dot("up", "--no-pull")
         self.assertEqual(result.returncode, 1)
         self.assertNotIn("Summary", result.stdout)
+        self.assertEqual(os.readlink(lock), str(sleeper.pid))
 
     def test_module_cli_dispatch(self):
         result = self.machine.dot("llm", "help")
@@ -211,7 +240,7 @@ class RemoteTests(unittest.TestCase):
     def setUp(self):
         self.machine = Machine(self)
         self.calls = self.machine.root / "ssh-calls"
-        self.machine.stub("ssh", f'''python3 -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "$@" >> "{self.calls}"\n''')
+        self.machine.stub("ssh", f'''{shlex.quote(sys.executable)} -c 'import json, sys; print(json.dumps(sys.argv[1:]))' "$@" >> "{self.calls}"\n''')
 
     def ssh(self, *args, **env):
         result = self.machine.dot(*args, **env)

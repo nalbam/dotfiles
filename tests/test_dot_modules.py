@@ -3,6 +3,7 @@
 
 import hashlib
 from pathlib import Path
+import shlex
 import shutil
 import subprocess
 import sys
@@ -22,8 +23,7 @@ class ModuleCase(unittest.TestCase):
         self.machine = Machine(self)
         self.machine.uname(*self.platform)
         self.calls = self.machine.root / "calls"
-        self.machine.env.update(CALLS=str(self.calls), DOT_BREW_PREFIXES=str(self.machine.root / "no-brew"),
-                                DOT_SYSROOT=str(self.machine.root / "sysroot"))
+        self.machine.env.update(CALLS=str(self.calls), DOT_SYSROOT=str(self.machine.root / "sysroot"))
 
     def module(self, name, body, **env):
         """Load module NAME and run BODY; `run FN` executes FN in a subshell and prints rc=N."""
@@ -333,64 +333,222 @@ class ServerTests(ModuleCase):
 
 class K3sTests(ModuleCase):
     platform = ("Linux", "aarch64")
-    VERSION = "v1.36.5+k3s1"
+    LATEST = {"v1.35": "v1.35.9+k3s1", "v1.36": "v1.36.5+k3s1", "v1.37": "v1.37.2+k3s1",
+              "v1.38": "v1.38.1+k3s1", "stable": "v1.38.1+k3s1"}
 
     def setUp(self):
         super().setUp()
         self.binary = b"new k3s binary"
         self.sums = self.machine.root / "sums"
-        self.machine.stub("curl", RECORD + f'''case "$*" in
-  *redirect_url*) printf 'https://github.com/k3s-io/k3s/releases/tag/{self.VERSION}' ;;
-  *sha256sum*) while [ "$1" != -o ]; do shift; done; cp "{self.sums}" "$2" ;;
-  *) while [ "$1" != -o ]; do shift; done; printf 'new k3s binary' > "$2" ;;
-esac
-''')
-        self.machine.stub("sha256sum", 'python3 -c \'import hashlib,sys; '
-                                       'print(hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest(), sys.argv[1])\' "$1"\n')
+        pairs = " ".join(f"{channel}={version}" for channel, version in self.LATEST.items())
+        self.machine.stub("curl", RECORD + 'case "$*" in\n'
+                          '  *redirect_url*)\n'
+                          '    for url; do :; done\n'
+                          '    channel="${url##*/}"\n'
+                          f'    for pair in {pairs}; do\n'
+                          '      [ "${pair%%=*}" = "$channel" ] && printf "https://github.com/k3s-io/k3s/releases/tag/%s" "${pair#*=}"\n'
+                          '    done ;;\n'
+                          f'  *sha256sum*) while [ "$1" != -o ]; do shift; done; cp "{self.sums}" "$2" ;;\n'
+                          '  *) while [ "$1" != -o ]; do shift; done; printf "new k3s binary" > "$2" ;;\n'
+                          'esac\n')
+        self.machine.stub("sha256sum", f'{shlex.quote(sys.executable)} -c "import hashlib, sys; '
+                                       'print(hashlib.sha256(open(sys.argv[1], \'rb\').read()).hexdigest(), sys.argv[1])" "$1"\n')
         self.machine.stub("sudo", RECORD)
         self.machine.stub("systemctl", 'case "$1 $2" in "cat k3s-agent.service") exit "${AGENT:-1}" ;; esac\n')
 
+    def installed(self, version):
+        binary = self.machine.root / "sysroot/usr/local/bin/k3s"
+        binary.parent.mkdir(parents=True, exist_ok=True)
+        binary.write_text(f'#!/bin/sh\nprintf "k3s version {version} (abcdef)\\ngo version go1.24\\n"\n')
+        binary.chmod(0o755)
+
+    def verified_sums(self, name):
+        self.sums.write_text(f"{hashlib.sha256(self.binary).hexdigest()}  {name}\nffff  other\n")
+
+    def downloads(self):
+        return [call for call in self.recorded() if "redirect_url" not in call]
+
     def test_latest_parses_the_channel_redirect(self):
-        result = self.module("k3s", "_k3s_latest\n")
-        self.assertEqual(result.stdout.strip(), self.VERSION)
+        result = self.module("k3s", "_k3s_latest v1.36\n")
+        self.assertEqual(result.stdout.strip(), self.LATEST["v1.36"])
+
+    def test_channel_defaults(self):
+        result = self.module("k3s", "_k3s_channel\n")
+        self.assertEqual(result.stdout.strip(), "stable", "a new install follows stable")
+        self.installed("v1.36.2+k3s1")
+        result = self.module("k3s", "_k3s_channel\n")
+        self.assertEqual(result.stdout.strip(), "v1.36", "an installed node stays on its minor version")
+        result = self.module("k3s", "_k3s_channel\n", DOT_K3S_CHANNEL="v1.37")
+        self.assertEqual(result.stdout.strip(), "v1.37")
 
     def test_checksum_mismatch_keeps_the_binary(self):
         self.sums.write_text("0000 k3s-arm64\n")
-        result = self.module("k3s", f"run _k3s_upgrade {self.VERSION}\n")
+        result = self.module("k3s", f"run _k3s_upgrade {self.LATEST['v1.36']}\n")
         self.assertIn("rc=1", result.stdout)
         self.assertIn("checksum mismatch", result.stderr)
         self.assertFalse([call for call in self.recorded() if call.startswith("sudo")])
 
-    def test_verified_binary_replaces_the_agent(self):
-        digest = hashlib.sha256(self.binary).hexdigest()
-        self.sums.write_text(f"{digest}  k3s-arm64\nffff  k3s\n")
-        result = self.module("k3s", f"run _k3s_upgrade {self.VERSION}\n", AGENT="0")
+    def test_release_assets_per_architecture(self):
+        for arch, binary, sums in (("aarch64", "k3s-arm64", "sha256sum-arm64.txt"),
+                                   ("armv7l", "k3s-armhf", "sha256sum-arm.txt"),
+                                   ("x86_64", "k3s", "sha256sum-amd64.txt")):
+            with self.subTest(arch=arch):
+                self.machine.uname("Linux", arch)
+                self.verified_sums(binary)
+                result = self.module("k3s", f"run _k3s_upgrade {self.LATEST['v1.36']}\n")
+                self.assertIn("rc=0", result.stdout, result.stderr)
+                calls = self.recorded()
+                self.assertTrue(calls[0].endswith(f"v1.36.5%2Bk3s1/{binary}"), calls[0])
+                self.assertTrue(calls[1].endswith(f"v1.36.5%2Bk3s1/{sums}"), calls[1])
+
+    def test_patch_upgrade_replaces_the_agent_binary(self):
+        self.installed("v1.36.2+k3s1")
+        self.verified_sums("k3s-arm64")
+        result = self.module("k3s", "run k3s::up\n", AGENT="0")
         self.assertIn("rc=0", result.stdout, result.stderr)
-        calls = self.recorded()
-        self.assertIn("v1.36.5%2Bk3s1/k3s-arm64", calls[0])
-        self.assertIn("v1.36.5%2Bk3s1/sha256sum-arm64.txt", calls[1])
-        privileged = [call for call in calls if call.startswith("sudo")]
+        self.assertIn("v1.36.2+k3s1 -> v1.36.5+k3s1", result.stdout)
+        privileged = [call for call in self.recorded() if call.startswith("sudo")]
         self.assertTrue(privileged[0].startswith("sudo install -m 755 "))
+        self.assertEqual(privileged[1], "sudo mv -f /usr/local/bin/k3s.dot-new /usr/local/bin/k3s")
         self.assertEqual(privileged[-1], "sudo systemctl restart k3s-agent")
+        self.assertTrue((self.machine.state / "stamps/k3s").exists())
+
+    def test_current_release_is_stamped_without_download(self):
+        self.installed(self.LATEST["v1.36"])
+        result = self.module("k3s", "run k3s::up\n")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        self.assertIn("is the newest release of v1.36", result.stdout)
+        self.assertEqual(self.downloads(), [])
+        self.assertTrue((self.machine.state / "stamps/k3s").exists())
+        result = self.module("k3s", "run k3s::up\n")
+        self.assertIn("checked", result.stdout)
+        self.assertEqual(self.recorded(), [], "a stamped node makes no request until due")
+
+    def test_minor_upgrade_is_limited_to_one_version(self):
+        self.installed("v1.36.5+k3s1")
+        self.verified_sums("k3s-arm64")
+        result = self.module("k3s", "run k3s::up\n", DOT_K3S_CHANNEL="v1.38")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        self.assertIn("skips a minor version; set DOT_K3S_CHANNEL=v1.37", result.stdout)
+        self.assertEqual(self.downloads(), [])
+        self.assertFalse((self.machine.state / "stamps/k3s").exists())
+        result = self.module("k3s", "run k3s::up\n", DOT_K3S_CHANNEL="v1.37")
+        self.assertIn("v1.36.5+k3s1 -> v1.37.2+k3s1", result.stdout, result.stderr)
+        self.assertIn("sudo systemctl restart k3s", self.recorded())
+
+    def test_older_channel_changes_nothing(self):
+        self.installed("v1.36.5+k3s1")
+        result = self.module("k3s", "run k3s::up\n", DOT_K3S_CHANNEL="v1.35")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        self.assertIn("is newer than channel v1.35", result.stdout)
+        self.assertEqual(self.downloads(), [])
 
 
 class DockerTests(ModuleCase):
-    def test_upgrade_needs_live_restore(self):
-        daemon = Path("/etc/docker/daemon.json")
-        if daemon.exists() and '"live-restore"' in daemon.read_text():
-            self.skipTest("this host enables live-restore")
-        self.machine.stub("docker", 'printf "Docker version 0\\n"\n')
+    def setUp(self):
+        super().setUp()
         self.machine.stub("sudo", RECORD)
         self.machine.stub("apt-get", RECORD)
+        self.sysroot = self.machine.root / "sysroot"
+
+    def test_installed_docker_is_never_upgraded_or_regrouped(self):
+        self.machine.stub("docker", 'printf "Docker version 28.0.0\\n"\n')
         result = self.module("docker", "run docker::up\n", DOT_PLATFORM="linux")
         self.assertIn("rc=0", result.stdout, result.stderr)
-        self.assertIn("Docker upgrade skipped: live-restore is off", result.stdout)
-        self.assertFalse([call for call in self.recorded() if "apt-get" in call])
+        self.assertIn("upgrades run with dot upgrade-system", result.stdout)
+        self.assertEqual(self.recorded(), [])
         self.assertFalse((self.machine.state / "stamps/docker").exists())
+
+    def install(self):
+        self.machine.stub("dpkg-query", "exit 1\n")
+        body = ('dot_has() { [ "$1" != docker ] && command -v "$1" >/dev/null 2>&1; }\n'
+                '_docker_repository() { printf "repository\\n" >> "$CALLS"; }\n'
+                'run docker::up\n')
+        return self.module("docker", body, DOT_PLATFORM="linux")
+
+    def test_install_adds_the_repository_daemon_config_and_group(self):
+        result = self.install()
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        calls = self.recorded()
+        self.assertEqual(calls[0], "repository")
+        self.assertTrue(any(call.endswith("apt-get install -y -q docker-ce docker-ce-cli containerd.io "
+                                          "docker-buildx-plugin docker-compose-plugin") for call in calls), calls)
+        self.assertIn("sudo tee /etc/docker/daemon.json", calls)
+        self.assertIn("sudo systemctl restart docker", calls)
+        self.assertEqual(calls[-1], "sudo usermod -aG docker dotuser")
+
+    def test_existing_daemon_config_is_kept(self):
+        daemon = self.sysroot / "etc/docker/daemon.json"
+        daemon.parent.mkdir(parents=True)
+        daemon.write_text('{"data-root":"/data/docker"}\n')
+        result = self.install()
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        self.assertNotIn("sudo tee /etc/docker/daemon.json", self.recorded())
+
+
+class StatusTests(ModuleCase):
+    def test_absent_tools_are_reported(self):
+        for name in ("claude", "nvim", "server", "python", "brew"):
+            with self.subTest(module=name):
+                result = self.module(name, f"{name}::status\n")
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn("not installed", result.stdout)
+
+
+class ShellLoginTests(ModuleCase):
+    def oh_my_zsh(self, git_status):
+        for path in (".oh-my-zsh/.git", ".dracula/zsh/.git", ".oh-my-zsh/themes"):
+            (self.machine.home / path).mkdir(parents=True, exist_ok=True)
+        (self.machine.home / ".oh-my-zsh/oh-my-zsh.sh").write_text("# installed\n")
+        theme = self.machine.home / ".oh-my-zsh/themes/dracula.zsh-theme"
+        if not theme.is_symlink():
+            theme.symlink_to(self.machine.home / ".dracula/zsh/dracula.zsh-theme")
+        self.machine.stub("git", RECORD + f"exit {git_status}\n")
+
+    def test_stamp_only_after_successful_updates(self):
+        for status, stamped in ((1, False), (0, True)):
+            with self.subTest(git_status=status):
+                shutil.rmtree(self.machine.state, ignore_errors=True)
+                self.oh_my_zsh(status)
+                result = self.module("shell", "run shell::up\n", SHELL="/bin/zsh")
+                self.assertIn("rc=0", result.stdout, result.stderr)
+                self.assertEqual((self.machine.state / "stamps/shell").exists(), stamped)
+                self.assertEqual("Oh My Zsh update failed" in result.stdout, not stamped)
+                self.recorded()
+
+    def test_login_shell_prefers_the_system_zsh(self):
+        system = next((path for path in ("/bin/zsh", "/usr/bin/zsh") if Path(path).exists()), None)
+        if not system:
+            self.skipTest("no system zsh on this host")
+        self.machine.stub("zsh", "exit 0\n")
+        self.machine.stub("sudo", RECORD)
+        self.machine.stub("chsh", RECORD + "exit 1\n")
+        result = self.module("shell", "run _shell_login_zsh\n", SHELL="/bin/bash")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        calls = self.recorded()
+        # On Linux the login shell changes through sudo, never to the Homebrew zsh.
+        self.assertIn(f"sudo chsh -s {system} dotuser", calls)
+        self.assertFalse([call for call in calls if call.startswith("chsh")], calls)
+        self.assertFalse([call for call in calls if str(self.machine.bin / "zsh") in call], calls)
+
+    def test_theme_clones_wait_until_git_is_usable(self):
+        if not Path("/usr/bin/git").exists():
+            self.skipTest("/usr/bin/git is absent")
+        self.machine.uname("Darwin", "arm64")
+        self.machine.stub("xcode-select", "exit 2\n")
+        for module, function, message in (("shell", "_shell_dracula", "Dracula theme is installed on the next run"),
+                                          ("terminal", "terminal::up", "iTerm2 colors are installed on the next run")):
+            with self.subTest(module=module):
+                result = self.module(module, f"run {function}\n", DOT_PLATFORM="macos")
+                self.assertIn("rc=0", result.stdout, result.stderr)
+                self.assertIn(message, result.stdout)
+                self.assertFalse((self.machine.home / ".dracula").exists())
 
 
 class SparkTests(ModuleCase):
     platform = ("Linux", "aarch64")
+    GRAFANA = {"GCLOUD_RW_API_KEY": "token", "GCLOUD_FM_COLLECTOR_ID": "spark", "GCLOUD_FM_URL": "https://fm.example",
+               "GCLOUD_FM_USERNAME": "1", "GCLOUD_PROM_URL": "https://prom.example", "GCLOUD_PROM_USERNAME": "2"}
 
     def setUp(self):
         super().setUp()
@@ -398,7 +556,8 @@ class SparkTests(ModuleCase):
         self.runtime = self.machine.root / "dgx-spark"
         scripts = self.source / "scripts"
         for name in ("deploy.sh", "health-check.sh", "setup-grafana.sh", "setup-vibemon.sh"):
-            (scripts / name).write_text("#!/bin/sh\n" + RECORD + f'exit "${{FAIL_{name.split(".")[0].replace("-", "_").upper()}:-0}}"\n')
+            variable = "FAIL_" + name.split(".")[0].replace("-", "_").upper()
+            (scripts / name).write_text("#!/bin/sh\n" + RECORD + f'exit "${{{variable}:-0}}"\n')
             (scripts / name).chmod(0o755)
         (self.source / "grafana/model-targets.json").write_text("source must not be copied\n")
         self.machine.stub("systemctl", 'exit "${ACTIVE:-1}"\n')
@@ -413,8 +572,14 @@ class SparkTests(ModuleCase):
             (self.runtime / name).write_text(content)
         return runtime_only
 
+    def change(self, name, text="changed\n"):
+        (self.source / name).write_text(text)
+
     def scripts_called(self):
         return [call.split()[0] for call in self.recorded()]
+
+    def results(self, result):
+        return [line for line in result.stdout.splitlines() if line.startswith("rc=")]
 
     def test_llm_adopts_a_matching_runtime_without_deploying(self):
         self.install_runtime()
@@ -423,13 +588,29 @@ class SparkTests(ModuleCase):
         self.assertIn("Adopted the running stack", result.stdout)
         self.assertEqual(self.scripts_called(), [])
         self.assertTrue((self.machine.state / "applied/spark-llm").exists())
+        # Documentation is not part of the stack.
+        self.change("README.md", "# edited\n")
         result = self.module("llm", "run llm::up\n")
         self.assertIn("Stack matches the repository (mode: flash)", result.stdout)
 
-    def test_llm_deploys_changes_and_keeps_runtime_files(self):
+    def test_changed_stack_on_a_deployed_host_is_reported_not_deployed(self):
+        self.install_runtime()
+        self.module("llm", "run llm::up\n")
+        self.change("Caddyfile.api")
+        for env in ({}, {"DOT_FORCE": "true"}):
+            with self.subTest(env=env):
+                result = self.module("llm", "run llm::up\n", **env)
+                self.assertIn("rc=0", result.stdout, result.stderr)
+                self.assertIn("⚠", result.stdout)
+                self.assertIn("dot llm deploy", result.stdout)
+                self.assertEqual(self.scripts_called(), [])
+                self.assertNotEqual((self.runtime / "Caddyfile.api").read_text(), "changed\n",
+                                    "nothing is copied before the operator deploys")
+
+    def test_adding_deploys_changes_and_keeps_runtime_files(self):
         runtime_only = self.install_runtime()
-        (self.source / "docker-compose.yml").write_text((self.source / "docker-compose.yml").read_text() + "# new\n")
-        result = self.module("llm", "run llm::up\n")
+        self.change("docker-compose.yml", (self.source / "docker-compose.yml").read_text() + "# new\n")
+        result = self.module("llm", "run llm::up\n", DOT_ADDING="true")
         self.assertIn("rc=0", result.stdout, result.stderr)
         self.assertEqual(self.scripts_called(), ["deploy.sh", "health-check.sh"])
         self.assertTrue((self.runtime / "docker-compose.yml").read_text().endswith("# new\n"))
@@ -437,25 +618,21 @@ class SparkTests(ModuleCase):
             self.assertEqual((self.runtime / name).read_text(), content, name)
         self.assertTrue((self.machine.state / "applied/spark-llm").exists())
 
-    def test_llm_failure_is_not_marked(self):
+    def test_failed_deploy_is_not_marked_or_adopted_later(self):
         self.install_runtime()
-        (self.source / "Caddyfile.api").write_text("changed\n")
+        self.change("Caddyfile.api")
         for variable in ("FAIL_DEPLOY", "FAIL_HEALTH_CHECK"):
             with self.subTest(failure=variable):
-                result = self.module("llm", "run llm::up\n", **{variable: "1"})
+                result = self.module("llm", "run llm::up\n", DOT_ADDING="true", **{variable: "1"})
                 self.assertIn("rc=1", result.stdout)
                 self.assertIn("Deployment failed", result.stderr)
                 self.assertFalse((self.machine.state / "applied/spark-llm").exists())
                 self.recorded()
-
-    def test_runtime_written_by_dot_is_never_adopted(self):
-        self.install_runtime()
-        (self.source / "grafana/config.alloy").write_text("changed collector config\n")
-        result = self.module("llm", "dot_module_load monitoring\nrun llm::up\nrun monitoring::up\n")
-        self.assertEqual([line for line in result.stdout.splitlines() if line.startswith("rc=")],
-                         ["rc=0", "rc=0"], result.stderr)
+        # The runtime now matches the repository, but dot wrote it: no adoption.
+        result = self.module("llm", "run llm::up\n")
         self.assertNotIn("Adopted", result.stdout)
-        self.assertEqual(self.scripts_called(), ["deploy.sh", "health-check.sh", "setup-grafana.sh"])
+        self.assertIn("dot llm deploy", result.stdout)
+        self.assertFalse((self.machine.state / "applied/spark-llm").exists())
 
     def test_first_llm_install_deploys(self):
         result = self.module("llm", "run llm::up\n")
@@ -463,27 +640,83 @@ class SparkTests(ModuleCase):
         self.assertEqual(self.scripts_called(), ["deploy.sh", "health-check.sh"])
         self.assertFalse((self.runtime / "grafana/model-targets.json").exists())
         self.assertFalse((self.runtime / "bench").exists())
+        self.assertFalse(list(self.runtime.rglob("*.md")), "documentation is not copied")
 
-    def test_monitoring_adopts_or_requires_a_token(self):
+    def test_cli_deploy_marks_only_a_full_deploy(self):
+        self.install_runtime()
+        compose = "#!/bin/sh\n" + RECORD + '[ "$1" != has-service ] || [ "$2" = llm ]\n'
+        for root in (self.source, self.runtime):
+            (root / "scripts/compose.sh").write_text(compose)
+            (root / "scripts/compose.sh").chmod(0o755)
+        result = self.module("llm", "run llm::cli deploy llm\n")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        self.assertFalse((self.machine.state / "applied/spark-llm").exists())
+        self.recorded()
+        result = self.module("llm", "run llm::cli deploy\n")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        self.assertTrue((self.machine.state / "applied/spark-llm").exists())
+
+    def test_help_shows_the_runtime_directory(self):
+        result = self.module("llm", "llm::cli help\n")
+        self.assertIn("Usage: dot llm", result.stdout)
+        self.assertIn(f"Runtime directory: {self.runtime}", result.stdout)
+
+    def test_grafana_missing_keys(self):
+        self.runtime.mkdir()
+        (self.runtime / ".env.grafana").write_text('GCLOUD_RW_API_KEY="token"\nGCLOUD_FM_COLLECTOR_ID=""\n'
+                                                   'GCLOUD_FM_URL=https://fm.example\n')
+        result = self.module("monitoring", "spark_grafana_missing\n", GCLOUD_PROM_URL="https://prom.example")
+        self.assertEqual(result.stdout.split(),
+                         ["GCLOUD_FM_COLLECTOR_ID", "GCLOUD_FM_USERNAME", "GCLOUD_PROM_USERNAME"])
+
+    def test_monitoring_needs_the_model_stack(self):
+        result = self.module("monitoring", "run monitoring::up\n")
+        self.assertIn("rc=1", result.stdout)
+        self.assertIn("dot add llm", result.stderr)
+        self.assertEqual(self.scripts_called(), [])
+
+    def test_monitoring_adopts_a_matching_setup(self):
         self.install_runtime()
         result = self.module("monitoring", "run monitoring::up\n")
         self.assertIn("Adopted the existing monitoring setup", result.stdout, result.stderr)
         self.assertEqual(self.scripts_called(), [])
-        shutil.rmtree(self.machine.state)
-        (self.runtime / ".env.grafana").unlink()
+        result = self.module("monitoring", "run monitoring::up\n")
+        self.assertIn("Monitoring matches the repository", result.stdout)
+        result = self.module("monitoring", "run monitoring::up\n", DOT_ADDING="true", **self.GRAFANA)
+        self.assertEqual(self.scripts_called(), ["setup-grafana.sh"], result.stderr)
+
+    def test_missing_values_stop_before_any_file_changes(self):
+        self.install_runtime()
+        self.module("llm", "run llm::up\n")
+        self.change("grafana/config.alloy", "new collector config\n")
+        before = (self.runtime / "grafana/config.alloy").read_text()
         result = self.module("monitoring", "run monitoring::up\n")
         self.assertIn("rc=1", result.stdout)
-        self.assertIn("needs a terminal", result.stderr)
+        self.assertIn("Grafana Cloud values are missing", result.stderr)
+        self.assertIn("dot add monitoring", result.stderr)
+        self.assertEqual((self.runtime / "grafana/config.alloy").read_text(), before)
         self.assertEqual(self.scripts_called(), [])
-        result = self.module("monitoring", "run monitoring::up\n", GCLOUD_RW_API_KEY="token")
+
+    def test_monitoring_copies_only_its_files(self):
+        self.install_runtime()
+        self.module("llm", "run llm::up\n")
+        self.change("grafana/config.alloy", "new collector config\n")
+        self.change("Caddyfile.api")
+        result = self.module("monitoring", "run monitoring::up\n", **self.GRAFANA)
         self.assertIn("rc=0", result.stdout, result.stderr)
         self.assertEqual(self.scripts_called(), ["setup-grafana.sh"])
+        self.assertEqual((self.runtime / "grafana/config.alloy").read_text(), "new collector config\n")
+        self.assertNotEqual((self.runtime / "Caddyfile.api").read_text(), "changed\n")
 
     def test_vibemon_adopts_an_active_collector_or_sets_it_up(self):
         self.install_runtime()
         result = self.module("vibemon", "run vibemon::up\n", ACTIVE="0")
         self.assertIn("Adopted the active collector", result.stdout, result.stderr)
         self.assertEqual(self.scripts_called(), [])
+        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="0", DOT_FORCE="true")
+        self.assertIn("Collector is active and matches", result.stdout)
+        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="0", DOT_ADDING="true")
+        self.assertEqual(self.scripts_called(), ["setup-vibemon.sh"], result.stderr)
         shutil.rmtree(self.machine.state)
         result = self.module("vibemon", "run vibemon::up\n", ACTIVE="1")
         self.assertIn("rc=0", result.stdout, result.stderr)
@@ -491,13 +724,22 @@ class SparkTests(ModuleCase):
         result = self.module("vibemon", "run vibemon::up\n", ACTIVE="1", FAIL_SETUP_VIBEMON="1")
         self.assertIn("rc=1", result.stdout)
 
+    def test_vibemon_copies_only_its_files(self):
+        self.install_runtime()
+        self.module("llm", "run llm::up\n")
+        self.change("vibemon.env", "VIBEMON_URL=https://vibemon.io\n")
+        self.change("Caddyfile.api")
+        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="1")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        self.assertEqual((self.runtime / "vibemon.env").read_text(), "VIBEMON_URL=https://vibemon.io\n")
+        self.assertNotEqual((self.runtime / "Caddyfile.api").read_text(), "changed\n")
+
     def test_cli_validates_service_names(self):
         self.install_runtime()
         (self.runtime / "scripts/compose.sh").write_text("#!/bin/sh\n" + RECORD + '[ "$1" != has-service ] || [ "$2" = llm ]\n')
         (self.runtime / "scripts/compose.sh").chmod(0o755)
         result = self.module("llm", "run llm::cli restart 'bad;name'\nrun llm::cli restart nope\nrun llm::cli restart llm\n")
-        self.assertEqual([line for line in result.stdout.splitlines() if line.startswith("rc=")],
-                         ["rc=2", "rc=2", "rc=0"], result.stderr)
+        self.assertEqual(self.results(result), ["rc=2", "rc=2", "rc=0"], result.stderr)
         self.assertIn("compose.sh service restart llm", self.recorded())
 
 

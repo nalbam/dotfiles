@@ -47,7 +47,8 @@ class SparkDeploymentTests(unittest.TestCase):
             "uname": '#!/usr/bin/env bash\necho aarch64\n',
             "nvidia-smi": '#!/usr/bin/env bash\nexit 0\n',
             "systemctl": '#!/usr/bin/env bash\nexit 0\n',
-            "tailscale": '#!/usr/bin/env bash\nif [[ "$1" == ip ]]; then echo 100.100.100.100; fi\n',
+            "tailscale": '#!/usr/bin/env bash\n[[ "$1" != wait || -z "$TEST_FAIL_TAILNET" ]] || exit 1\n'
+                         'if [[ "$1" == ip ]]; then echo 100.100.100.100; fi\n',
             "curl": '''#!/usr/bin/env python3
 import json, os, sys
 from pathlib import Path
@@ -110,12 +111,20 @@ elif "run" in args and os.environ.get("TEST_FAIL_DOWNLOAD") == "true":
             capture_output=True, text=True, timeout=10,
         )
 
+    def test_unavailable_tailnet_stops_before_compose(self) -> None:
+        result = self.deploy("models", "llm", DRY_RUN="false", TEST_FAIL_TAILNET="1")
+        self.assertNotEqual(result.returncode, 0)
+        calls = [json.loads(line) for line in self.calls.read_text().splitlines()] if self.calls.exists() else []
+        self.assertFalse([call for call in calls if call[:2] == ["compose", "--profile"]], calls)
+        self.assertNotIn("TAILSCALE_IP", (self.spark / ".env").read_text(), ".env is not rewritten")
+
     def test_incomplete_grafana_environment_stops_before_compose(self) -> None:
         (self.spark / ".env.grafana").write_text('GCLOUD_RW_API_KEY="token"\nGCLOUD_FM_COLLECTOR_ID="host"\n')
         result = self.deploy("models", "llm", DRY_RUN="false")
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(".env.grafana is missing: GCLOUD_FM_URL GCLOUD_FM_USERNAME GCLOUD_PROM_URL GCLOUD_PROM_USERNAME",
                       result.stderr)
+        self.assertIn("Run dot add monitoring", result.stderr)
         for call in map(json.loads, self.calls.read_text().splitlines()):
             self.assertEqual(call[:2] if call[:1] == ["compose"] else ["compose", "version"], ["compose", "version"], call)
 

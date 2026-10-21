@@ -51,7 +51,8 @@ if os.path.basename(sys.argv[0]) == 'hostname': print('test-host')
 with open(os.environ['TEST_CALLS'], 'a') as f:f.write(json.dumps([os.path.basename(sys.argv[0]), *sys.argv[1:]])+'\\n')
 '''.replace('REALPY', sys.executable))
             p.chmod(0o755)
-        self.env = {**os.environ, 'PATH': str(self.binary) + ':' + os.environ['PATH'],
+        host = {key: value for key, value in os.environ.items() if not key.startswith(('VIBEMON_', 'XDG_'))}
+        self.env = {**host, 'PATH': str(self.binary) + ':' + os.environ['PATH'],
                     'XDG_CONFIG_HOME': str(self.config), 'XDG_DATA_HOME': str(self.root / 'data'),
                     'XDG_STATE_HOME': str(self.root / 'state'), 'TEST_CALLS': str(self.log), 'TEST_ACK': 'yes'}
 
@@ -91,6 +92,18 @@ with open(os.environ['TEST_CALLS'], 'a') as f:f.write(json.dumps([os.path.basena
         result = self.run_setup(VIBEMON_SOURCE_ID='lab-gpu', VIBEMON_SOURCE_NAME='Lab GPU')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--source-id "lab-gpu" --name "Lab GPU"', self.exec_start())
+
+    def test_installed_source_identity_is_kept(self):
+        result = self.run_setup(VIBEMON_SOURCE_ID='old-host', VIBEMON_SOURCE_NAME='Old Name')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        # A later setup without overrides keeps the collector's history in the same source,
+        # even though the host name (test-host) differs.
+        result = self.run_setup()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--source-id "old-host" --name "Old Name"', self.exec_start())
+        result = self.run_setup(VIBEMON_SOURCE_ID='new-id')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--source-id "new-id" --name "Old Name"', self.exec_start())
 
     def test_invalid_source_identity_is_rejected(self):
         result = self.run_setup(VIBEMON_SOURCE_ID='bad id')
