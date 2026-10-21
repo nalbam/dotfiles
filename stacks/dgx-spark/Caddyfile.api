@@ -1,0 +1,43 @@
+{
+	admin off
+}
+
+:18000, :18001 {
+	bind 127.0.0.1
+
+	@authorized {
+		path /v1/*
+		header Authorization "Bearer {$MODEL_API_KEY}"
+	}
+
+	handle @authorized {
+		handle /v1/models {
+			reverse_proxy 127.0.0.1:18002 {
+				header_up -Authorization
+			}
+		}
+
+		handle /v1/embeddings {
+			reverse_proxy 127.0.0.1:8001 {
+				header_up -Authorization
+			}
+		}
+
+		@reranker path /v1/rerank /v1/score
+		handle @reranker {
+			reverse_proxy 127.0.0.1:8002 {
+				header_up -Authorization
+			}
+		}
+
+		handle {
+			reverse_proxy 127.0.0.1:8000 {
+				header_up -Authorization
+			}
+		}
+	}
+
+	handle {
+		respond "Unauthorized" 401
+	}
+}

@@ -1,0 +1,2 @@
+# NVIDIA DGX Spark. Add-ons: llm, monitoring, vibemon (adopted when already installed)
+base apt git brew node python claude shell ai

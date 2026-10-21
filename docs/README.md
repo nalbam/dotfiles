@@ -4,22 +4,26 @@ Choose a guide by the task you want to complete.
 
 | Task | Start here |
 |------|------------|
-| Install or rerun dotfiles | [Quick Start](../README.md#quick-start) |
-| Understand installation order, backups, or failures | [Architecture](ARCHITECTURE.md) |
-| Edit, verify, or deploy AI settings | [AI Tools Sync](../README.md#ai-tools-sync) |
+| Install a machine or run `dot` | [Quick Start](../README.md#quick-start), [dot commands](../README.md#dot-명령) |
+| Check what a platform installs | [Platforms and modules](../README.md#플랫폼과-모듈) |
+| Keep machine-specific values out of Git | [Machine settings](../README.md#머신별-설정) |
+| Operate models, monitoring or VibeMon on DGX Spark | [DGX Spark stack](../stacks/dgx-spark/README.md) |
+| Upload Grafana dashboards | [Grafana dashboards](../stacks/grafana/README.md) |
+| Add a module or platform, or diagnose a run | [Architecture](ARCHITECTURE.md) |
+| Edit, verify or deploy AI settings | [AI Tools Sync](../README.md#ai-tools-sync) |
 | Choose a shared AI skill | [Skills](SKILLS.md) |
-| Prepare a fresh Ubuntu server as root | [Linux setup](../linux/README.md) |
-| Install the separate Neovim configuration | [Neovim setup](../nvim/README.md) |
-| Change shell helpers | [aliases](../aliases) |
+| Use the Neovim configuration | [Neovim](../config/nvim/README.md) |
+| Change shell helpers | [aliases](../config/shell/aliases) |
 | Work on this repository with an agent | [AGENTS.md](../AGENTS.md); `CLAUDE.md` links to the same file |
 
 ## Configuration sources
 
-- Packages: [macOS Brewfile](../darwin/Brewfile), [Linux Brewfile](../linux/Brewfile).
-- Shell startup: [Zsh](../zshrc), [Bash](../bashrc), [profile](../profile), and platform `zprofile.*.sh` files.
-- Git identities: [base configuration](../gitconfig), [nalbam](../gitconfig-nalbam), [nalbam-me](../gitconfig-nalbam-me), [nalbam-bot](../gitconfig-nalbam-bot), [bruce](../gitconfig-bruce), [yujh404](../gitconfig-yujh404).
-- Terminal and editor settings: [Ghostty](../ghostty/config), [iTerm2](../iterm2/profiles.json), [tmux](../tmux.conf), [Vim](../vimrc).
-- OS settings: [macos](../macos). The installer does not automatically apply every configuration file in the repository.
+- Platforms: [profiles](../profiles); modules: [modules](../modules).
+- Packages: [macOS Brewfile](../packages/Brewfile.darwin), [Linux Brewfile](../packages/Brewfile.linux).
+- Shell startup: [Zsh](../config/shell/zshrc), [Bash](../config/shell/bashrc), [profile](../config/shell/profile), [nvm loader](../config/shell/nvm.sh) and [platform zprofiles](../config/shell/zprofile).
+- Git identities: [base configuration](../config/git/gitconfig) and the `gitconfig-*` files next to it.
+- Terminal and editor settings: [Ghostty](../config/terminal/ghostty.config), [iTerm2](../config/terminal/iterm2-profiles.json), [tmux](../config/tmux/tmux.conf), [Vim](../config/vim/vimrc).
+- OS settings: [macOS preferences](../config/macos/defaults.sh).
 
 ## Documentation principles
 

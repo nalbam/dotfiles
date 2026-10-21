@@ -1,160 +1,182 @@
 # Architecture
 
-Use this guide when changing the installer or diagnosing a partial installation. For commands to install or deploy settings, start with the [main README](../README.md).
+Use this guide when you change the installer, add a module or platform, or diagnose a partial run. For commands, start with the [main README](../README.md).
+
+## Goals
+
+- **One command per machine.** `dot up` detects the machine, applies its profile and enabled add-ons, and upgrades what is due. Running it again converges the machine to the repository.
+- **Safe to rerun.** Every module is idempotent. Unchanged files are not rewritten, completed work is recorded, and failed work is retried on the next run.
+- **No surprise outages.** OS package upgrades, reboots and service restarts that the machine's workload depends on are explicit commands, not part of `dot up`.
+- **Public code, private machines.** Host names, account IDs and tokens live in `~/.config/dotfiles/` or in a stack's runtime directory, never in the repository.
+- **No build step.** Bash 3.2 (macOS `/bin/bash`) runs the CLI. Python 3.11+ standard libraries run AI settings sync and stack helpers.
 
 ## Entry points
 
 | Entry point | Purpose | Preconditions |
 |-------------|---------|---------------|
-| `run.sh` | Full development setup for macOS and APT-based Linux | Run as the target user; Bash, curl, network access, and access to sudo when requested |
-| `run.sh --vibe` | Deploy AI settings only | A populated `~/.dotfiles` checkout and Python 3.11+ |
-| `run.ps1` | Windows Git/Vim links, Git and 7-Zip packages, optional `custom.ps1` | Checkout at `$HOME\.dotfiles`, winget, and permission to create symlinks |
-| `linux/init.sh` | Prepare a fresh Ubuntu server | Root access; see the [Linux guide](../linux/README.md) |
-| `nvim/install.sh` | Copy the Neovim configuration | See the [Neovim guide](../nvim/README.md) |
+| `run.sh` | Bootstrap: prepare `~/.dotfiles`, then run `dot up` (or `dot vibe` with `--vibe`) | Regular user, Bash, curl, network |
+| `bin/dot` | CLI for all machine operations; linked to `~/.local/bin/dot` | A checkout or archive of this repository |
+| `run.ps1` | Windows Git/Vim links, Git and 7-Zip packages, optional `custom.ps1` | Checkout at `$HOME\.dotfiles`, winget, permission to create symlinks |
 
-`run.ps1`, `linux/init.sh`, and `nvim/install.sh` are separate entry points. The full Bash installer does not invoke them. AI settings deployment does not install all AI CLIs.
-
-## Core Components
+## Components
 
 ```mermaid
 flowchart TD
-    A[run.sh] --> B[OS and architecture detection]
-    A --> C[Clone or update ~/.dotfiles]
-    A --> D[Packages and shell setup]
-    A --> E[Copy user configuration]
-    A --> F[scripts/sync-ai-tools.py]
-    D --> G[Homebrew and platform Brewfile]
-    D --> H[APT on Linux]
-    D --> I[nvm and pip]
-    F --> J[Claude, Codex, OpenCode, and Kiro settings]
-    K[run.ps1] --> L[Windows links and winget packages]
+    R[run.sh] -->|clone or archive| H[~/.dotfiles]
+    R --> D[bin/dot]
+    D --> DT[lib/detect.sh: platform]
+    D --> RP[lib/repo.sh: pull, re-exec on change]
+    D --> M[lib/modules.sh: profile + add-ons]
+    M --> P[profiles/PLATFORM]
+    M --> C[~/.config/dotfiles/modules]
+    M --> MOD[modules/NAME.sh]
+    MOD --> CORE[lib/core.sh: files, retries, state]
+    MOD --> SP[lib/spark.sh: stack sync]
+    SP --> ST[stacks/dgx-spark -> ~/.config/dgx-spark]
+    MOD --> AI[scripts/sync-ai-tools.py]
+    D --> RM[lib/remote.sh: dot @HOST over SSH]
 ```
 
-The full installer reads its shell block before execution so a repository update cannot replace the script while the shell is still reading it. `_dotfiles` uses `git -C` to preserve the caller's working directory.
+| Path | Responsibility |
+|------|----------------|
+| `lib/core.sh` | Output, warnings, `dot_retry`, `dot_install_script`, checksum comparison, backups, atomic file install, upgrade stamps, applied markers, PATH and `local.env` loading |
+| `lib/detect.sh` | Platform detection from local files; overrides |
+| `lib/modules.sh` | Module contract, execution order, profiles, add-on state, adoption, lock |
+| `lib/repo.sh` | Pull the checkout; convert an archive into a Git checkout |
+| `lib/remote.sh` | `dot @HOST` command construction |
+| `lib/spark.sh` | Copy `stacks/dgx-spark` to its runtime directory and track what was applied |
+| `modules/*.sh` | One module per file |
+| `profiles/*` | Default modules per platform |
+| `config/`, `packages/` | Deployed sources and Brewfiles |
+| `stacks/` | Docker Compose stacks and dashboards operated by modules |
 
-Both full installation and `--vibe` read deployment sources from `~/.dotfiles`. Running a script in another checkout does not change that source path. `--vibe` skips repository updates and all package and shell setup.
+## Run sequence
 
-## Directory Structure
+`dot up [--force] [--no-pull]`:
 
-| Source | Owner or consumer |
-|--------|-------------------|
-| `run.sh`, `run.ps1` | Installation order and platform-specific entry points |
-| `darwin/Brewfile`, `linux/Brewfile` | Package selection; commented entries are inactive |
-| `aliases` | Shared shell aliases and helper functions |
-| `zshrc`, `bashrc`, `profile`, platform `zprofile.*.sh` | Shell initialization |
-| `shell/nvm.sh` | Shared nvm loading and selected Node PATH priority for Bash, Zsh, and the installer |
-| `gitconfig*` | Base Git settings and directory-specific identities |
-| `ssh/`, `aws/` | Templates; only the files selected by `run.sh` are deployed |
-| `macos` | macOS preferences applied in Step 7 |
-| `iterm2/`, `ghostty/`, `tmux.conf`, `vimrc` | Terminal and editor settings copied by the installer |
-| `nvim/` | Separately installed Neovim configuration |
-| `claude/`, `codex/`, `kiro/` | AI settings sources |
-| `opencode/` | Generated OpenCode instructions, shell deny rules, subagents, and skills |
-| `scripts/` | Skill generation, AI settings deployment, and isolated tests |
-| `AGENTS.md`, `CLAUDE.md` | Repository instructions; `CLAUDE.md` links to `AGENTS.md` |
+1. Detect the platform. An explicit `DOT_PLATFORM`, then `~/.config/dotfiles/platform`, then detection decides it. A restart after a pull detects it again with the new code.
+2. Take the run lock: `~/.local/state/dotfiles/run.lock` is a symlink to the owner's pid, created atomically. A lock whose process no longer exists is reclaimed.
+3. Pull `~/.dotfiles` (`git pull --ff-only`, three attempts). If `HEAD` changed, start again with `--no-pull` so the rest of the run uses the new code. A failed pull is a warning; the run continues with the current files.
+4. Load `~/.config/dotfiles/local.env` and add Homebrew and `~/.local/bin` to `PATH`.
+5. Adopt add-ons whose `detect` reports an existing installation, unless they are disabled.
+6. Run the selected modules in `DOT_MODULE_ORDER`. Each module runs in a subshell, so its failure or `exit` cannot stop the others.
+7. Print a summary. The exit status is `1` when a module failed, otherwise `0`. Warnings do not change the exit status.
+8. If the checkout is still an archive and Git now works, convert it.
 
-Read the source file for exact packages and configuration values. The [AI settings table](../README.md#원본과-배포-대상) maps repository files to deployed paths.
+## Platforms
 
-## Installation Flow
+Detection reads only local files, so it works offline and before any package is installed. Tests set `DOT_SYSROOT` to a fixture directory.
 
-| Step | Action | Condition or result |
-|------|--------|---------------------|
-| 1 | Detect OS and architecture | Reject an unrecognized OS |
-| 2 | Create working directories and missing SSH keys | Set `~/.ssh` to mode `700` |
-| 3 | Clone or update `~/.dotfiles` | Skip if Git or macOS Command Line Tools are unavailable; retry after Step 5 if the checkout is still missing |
-| 4 | Copy SSH, AWS, and Git configuration | Preserve existing SSH/AWS config; compare and back up changed Git files |
-| 5 | Prepare package managers | On Linux, install missing essential APT packages without upgrading the system; attempt Homebrew installation |
-| 6 | Install or update development tools | Apply the Brewfile, bootstrap Node.js 24 through nvm, update installed Claude Code, and install `toast-cli` through pip |
-| 7 | Apply OS settings | On macOS, check Command Line Tools and Rosetta, then apply key bindings and preferences |
-| 8 | Set up Zsh and Oh My Zsh | Change the default shell if needed |
-| 9 | Set up themes and terminal profiles | Apply Dracula resources; copy iTerm2/Ghostty settings on macOS |
-| 10 | Copy user configuration | Shell files, aliases, Vim, tmux, and the matching platform profile |
-| 11 | Deploy AI settings | Run `scripts/sync-ai-tools.py`; a failure stops installation |
+| Platform | Evidence, checked in this order |
+|----------|-------------------------------|
+| `macos` | `uname -s` is `Darwin` |
+| `wsl` | `WSL_DISTRO_NAME` is set, or `/proc/sys/kernel/osrelease` contains `microsoft` |
+| `dgx-spark` | `/etc/dgx-release` contains `DGX Spark`, or DMI `product_name` contains `DGX_Spark` |
+| `ec2` | DMI `sys_vendor` is `Amazon EC2`, DMI `board_asset_tag` starts with `i-`, or `/sys/hypervisor/uuid` starts with `ec2` |
+| `rpi` | `/proc/device-tree/model` contains `Raspberry Pi` |
+| `linux` | Any other Linux |
 
-Step 6 does not install global npm packages. Node.js is managed through nvm; package selection otherwise comes from the Brewfile and pip setup.
+To add a platform, add its detection to `dot_detect_platform`, its name to `DOT_PLATFORMS`, and a `profiles/<name>` file. Then review each module's `supported` function.
 
-Step 6 also deploys `shell/nvm.sh` to `~/.config/dotfiles/nvm.sh`. The installer selects
-Node.js 24 as the nvm default, applies its PATH priority, and checks the actual `node --version`
-before reporting success. Bash and Zsh source the same initializer. It loads an existing user
-or supported-platform Homebrew nvm installation, preserves an explicit `NVM_DIR` and selected
-version, and puts the selected executable ahead of an inherited system Node path. Shell startup
-does not install Node or change the default alias. Missing nvm remains optional at startup.
+## Modules
 
-## Updates and retries
+A module is `modules/<name>.sh`. Names use lowercase letters and digits only. The file defines:
 
-- `_retry` makes at most three attempts and waits 5 seconds, then 10 seconds. It preserves command errors so a failed download or Git operation can be diagnosed. It wraps selected downloads and Git operations, not every network call.
-- Homebrew and Oh My Zsh bootstrap scripts use temporary files. Execution requires a successful download and Bash syntax check; staging files are removed when the helper exits.
-- Bootstrap success requires both a successful installer exit and the expected installed entry point. Incomplete Oh My Zsh directories are preserved under `~/.oh-my-zsh.backup.*/oh-my-zsh`, leaving the active path available for another attempt.
-- Update markers are stored at `~/.toast/last_update_*` with a six-hour interval.
-- Homebrew, Claude, and pip update markers advance only after their checked operations succeed. Failed updates remain eligible on the next run.
-- A changed Brewfile bypasses the update interval. `~/.Brewfile` stores the last successfully bundled content, so a failed bundle remains eligible for another attempt.
-- The pip package helper tries normal installation, `--user`, `--break-system-packages --user`, then sudo. The separate pip-tool upgrade has no sudo fallback.
+| Function | Required | Contract |
+|----------|----------|----------|
+| `<name>::describe` | yes | Print one line for `dot list` and run headers. |
+| `<name>::up` | yes | Install when missing and upgrade when due. Must be idempotent. Fail with `dot_die` (non-zero exit); report recoverable problems with `dot_warn`. |
+| `<name>::supported` | no | Return `0` when the module works on this machine. Default: supported. |
+| `<name>::detect` | no | Return `0` when the software is already installed. Enables adoption as an add-on. |
+| `<name>::status` | no | Print a one-line state for `dot status`. |
+| `<name>::cli` | no | Handle `dot <name> ARGS...`. |
 
-## Configuration and backups
+Add the name to `DOT_MODULE_ORDER` in `lib/modules.sh` at the position that satisfies its dependencies (for example, `node` after `brew`, which installs nvm). Add it to a profile only when every machine of that platform needs it; otherwise it is an add-on.
 
-### User files
+### Selection
 
-When a source exists in `~/.dotfiles`, `_download` compares it with the destination using MD5. If the source is missing, it downloads the file from the repository's `main` branch. Changed content is staged in the destination directory before the existing file is backed up and atomically replaced. A failed copy or download leaves the destination unchanged. Identical content leaves both the destination and its backup unchanged. MD5 detects content changes; it does not authenticate a download.
+The modules for a run are the platform profile plus enabled add-ons, minus disabled modules, in `DOT_MODULE_ORDER`. A module that depends on another checks for it and stops with the command to run (for example, `monitoring` asks for `dot add llm`). `~/.config/dotfiles/modules` stores one entry per line: `name` enables a module, `-name` disables a profile module or blocks adoption. `dot add` and `dot remove` edit this file. `dot remove` never uninstalls software. `dot add` runs the named modules at once with `DOT_FORCE=true` and `DOT_ADDING=true`; modules that deploy services act on `DOT_ADDING`, not on `--force`.
 
-A checksum failure stops the installer before it replaces that file or accepts a completion marker. An empty or failed checksum is never treated as an equality result.
+### Upgrades
 
-Copied SSH/AWS files and backups receive mode `600`. Backups are staged and atomically replaced too: a failed backup copy leaves the previous backup intact, and replacing a backup does not modify other hardlinks to it. These backups hold the previous version of each file, not a complete system snapshot. The full installer has no global rollback.
+- `dot_due NAME` is true when `DOT_FORCE=true` (`--force`), or when `~/.local/state/dotfiles/stamps/NAME` is missing, unreadable, non-numeric or older than six hours (`DOT_UPGRADE_INTERVAL`).
+- A module calls `dot_stamp NAME` only after the checked upgrade succeeded. A failed upgrade stays due.
+- A changed source is applied immediately, independent of the stamp. `dot_applied FILE KEY` compares the file with `~/.local/state/dotfiles/applied/KEY`, and `dot_mark_applied` records it after success. The Brewfile and macOS preferences use this.
+- Work that can interrupt a service is never automatic: a deployed Spark stack is redeployed only by `dot llm deploy`, Docker is upgraded only by `dot upgrade-system`, and k3s upgrades stay within the installed minor version unless `DOT_K3S_CHANNEL` names the next one.
+- OS packages are upgraded only by `dot upgrade-system --yes`. Without `--yes` it lists the pending upgrades. On DGX Spark it explains that driver, CUDA, Docker and kernel upgrades restart GPU workloads.
 
-### macOS preferences
+The previous installer's records migrate once in the `base` module: `~/.toast/macos.applied`, `~/.toast/last_update_{brew,claude,pip}` and `~/.Brewfile`.
 
-`macos` closes System Settings but keeps the terminal running. Preferences that require a new session take effect after logout or restart.
+## Files and backups
 
-`~/.toast/macos.applied` records the source content only after all preference commands succeed. `~/.macos.backup` is a file backup and does not indicate successful application. If settings change or application fails, the next run tries again.
+`dot_install_file TARGET SOURCE [MODE]` installs `$DOT_HOME/SOURCE` at `$HOME/TARGET`:
 
-The startup-sound setting requests sudo only when it needs to change. Screen-lock configuration uses `sysadminctl`, reads the login password from the terminal, and verifies that the effective delay is immediate. Without a terminal or a successful verification, the preference step warns and leaves the completion marker unchanged.
+- Identical content (MD5) leaves the target and its backup untouched.
+- A replaced file keeps the target's permission bits; a new file gets the umask default.
+- Changed content is staged next to the target, the previous file is copied to `TARGET.backup` (mode `600`), and the staged file replaces the target atomically.
+- A failed copy, backup, checksum or replace stops the module and leaves the target unchanged. A failed checksum is never treated as equal.
+- A directory at the target, or a backup path that is a symlink or not a regular file, stops the module.
+- Targets under `.ssh/` and `.aws/` get mode `600`.
 
-### AI settings
+MD5 detects content changes; it does not authenticate content.
 
-The Python sync process acquires a lock, validates source paths and all merge results, then applies changes. It backs up changed or removed managed files and replaces each written file atomically. It updates target manifests after all file operations succeed.
+## Network operations
 
-Codex approval and sandbox selection follow the repository when its config declares `default_permissions`. Hook registrations that invoke dotfiles-owned scripts are refreshed individually; other hooks under the same event retain their commands and matchers. Removed machine scripts also lose their registrations. Other existing JSON/TOML values and local Codex rules outside the managed block are preserved.
+- `dot_retry` makes at most three attempts, waiting 5 seconds and then 10 seconds, and keeps the command's diagnostics visible.
+- `dot_install_script URL` downloads an installer to a temporary file, checks Bash syntax, runs it, and removes the file. A partial download never runs.
+- Release downloads that replace system binaries are verified with the publisher's checksums (k3s).
 
-A manifest lists previously deployed files; pruning affects only those files. VibeMon scripts belong to its installer: legacy entries are released without copying or deleting those files. Shared settings files are also preserved when their source disappears. Unmanaged files remain in place. Missing or empty source directories preserve the corresponding deployed files and manifest. Generic Codex terminal defaults belong to dotfiles; VibeMon does not edit `config.toml`.
+## Resilience contracts
 
-A write failure can leave earlier files updated. There is no transaction across all files and manifests. Fix the reported cause and rerun the sync. See [preservation and failure handling](../README.md#기존-설정-보존과-실패-처리).
+Keep these when editing modules; they exist because of real failures on constrained platforms (Raspberry Pi, locked-down machines, WSL, GPU servers):
 
-## AI instructions and skills
+- Retries: at most 3 attempts with 5 s and 10 s waits.
+- Upgrade throttle: 6 h stamps; stamp only after success. Changed sources bypass the throttle.
+- File operations: checksum before overwrite, backup before replace, `600` for credentials and backups.
+- pip fallback chain: `pip install` → `--user` → `--break-system-packages --user` → `sudo` (PEP 668 systems).
+- macOS: never execute `/usr/bin/git` without Command Line Tools (it opens an installer dialog).
+- OS upgrades stay out of `dot up`.
 
-Global instructions live in `claude/CLAUDE.md` and `claude/rules/`; `codex/AGENTS.md` and `opencode/AGENTS.md` are generated from them. They apply ISO 24495-1 principles for reader needs, navigation, understanding, and use, together with ASD-STE100 principles for short, clear, unambiguous wording. Project-specific commands belong in repository instructions.
+## DGX Spark stack
 
-`claude/skills/` is the source for shared skills, and `claude/agents/` is the source for subagents. `scripts/gen-ai-tools.py` adapts tool-specific syntax and writes `codex/skills/` and `opencode/`. It converts Claude subagent `tools` lists into OpenCode permission allowlists and Claude `Bash(...)` deny rules into `opencode/opencode.json`. It preserves manually maintained Codex metadata. Its `--check` mode reports mismatches and stale generated files. The generator stops without writing files when a source no longer fits its conversion rules.
+`stacks/dgx-spark` is a Docker Compose project with its own scripts ([stack guide](../stacks/dgx-spark/README.md)). `lib/spark.sh` copies its files to `DOT_SPARK_DIR` (default `~/.config/dgx-spark`), where Compose runs. `docker-compose.yml` fixes the project name `dgx-spark`, so the containers keep their identity even if the directory changes.
+
+- Runtime-only files are never copied or overwritten: `.env`, `.env.grafana`, `backups/`, generated `model-targets.json`, `bench/`, caches. Documentation (`*.md`) is not copied. Files removed from the repository are not deleted from the runtime directory.
+- Each Spark module copies and tracks only the files it depends on. It records their source digest in `applied/spark-<module>`: `llm` uses the whole stack; `monitoring` uses `grafana/`, `scripts/setup-grafana.sh` and `docker-compose.yml`; `vibemon` uses `vibemon.env` and its scripts.
+- Adoption: on a host set up before dot, when dot has never written the runtime directory and its files equal the repository, the module records the digest without running anything. After dot has written the directory once, matching files no longer count as applied: `monitoring` and `vibemon` retry a failed setup on the next run, and `llm` reports that the stack is not applied until `dot llm deploy` succeeds.
+- `llm` deploys on the first run and on `dot add llm`. On a deployed host a changed stack produces a warning; `dot llm deploy` applies it. A deployment pulls pinned images, runs preparation containers and recreates changed services.
+- `monitoring` checks that `.env.grafana` has all Grafana Cloud values before it copies `config.alloy`, because Alloy reads them at startup. Without a terminal it stops with the command to run; on a terminal `scripts/setup-grafana.sh` asks for the missing values.
+- Models and images are pinned in the runtime `.env`. To change a pin, edit `.env` and run `dot llm deploy`; `dot llm recreate` is for `.env` changes that need no download.
+
+## Remote execution
+
+`dot @HOST ARGS...` runs `"$HOME/.dotfiles/bin/dot" ARGS...` on HOST over SSH. Arguments are quoted with `printf %q`, which both Bash and Zsh login shells accept. A terminal is allocated when the local side has one, so `sudo` and setup prompts work. Connection details come from `~/.config/dotfiles/hosts/HOST.env` (`DOT_HOST`, optional `DOT_USER`, `DOT_IDENTITY`, `DOT_SSH_OPTIONS`); without that file, HOST is passed to `ssh` as is. Remote runs use the remote checkout, so merge changes to `main` before `dot @HOST up`.
 
 ## Failure diagnosis
 
 | Symptom | Check and next action |
 |---------|-----------------------|
-| Full install reports warnings | Read the corresponding warning lines, fix the cause, and rerun; exit status alone does not prove every package was installed |
-| Repository update fails | Inspect `~/.dotfiles` Git state and network access; the installer can continue with that checkout |
-| Command Line Tools dialog opens | Complete installation, then rerun |
-| macOS settings are retried | Check authentication and the preference error; a file backup is not an application marker |
-| AI sync fails | Check the reported file, lock, Python version, or merge error; rerun after resolving it |
-| New instructions do not appear | Compare deployed files with the intended checkout and confirm the tool's instruction path and session |
+| Summary lists `✗ module` | Read that module's lines above the summary, fix the cause, and run `dot run module` or `dot up` |
+| Summary lists `⚠ module` | The module finished but skipped or deferred something; read its `⚠` lines |
+| `Another dot run is active` | Wait for it, or remove `~/.local/state/dotfiles/run.lock` if that process is not dot |
+| Pull failed | Inspect `git -C ~/.dotfiles status`; local commits or network problems block a fast-forward |
+| Wrong platform | `dot platform`, then `dot platform set NAME` |
+| Command Line Tools dialog opens | Complete installation, then run `dot up` |
+| An add-on keeps coming back | Adoption found it installed; use `dot remove NAME` to stop managing it |
+| Spark deployment failed | `dot llm health`, `dot llm logs`; the previous mode is restored by `dot llm mode` on failure |
+| AI sync fails | Check the reported file, lock, Python version or merge error; rerun after resolving it |
+
+## AI instructions and skills
+
+Global instructions live in `claude/CLAUDE.md` and `claude/rules/`; `codex/AGENTS.md` and `opencode/AGENTS.md` are generated from them. `claude/skills/` and `claude/agents/` are the sources for shared skills and subagents. `scripts/gen-ai-tools.py` writes `codex/skills/` and `opencode/`, and `--check` reports mismatches. The `ai` module runs `scripts/sync-ai-tools.py`, which validates every merge result before it writes, backs up changed files, replaces files atomically and updates manifests last. See [AI Tools Sync](../README.md#ai-tools-sync).
 
 ## Verification
 
-Run the complete regression suite and generated-skill check from the repository root:
-
 ```bash
 python3 scripts/gen-ai-tools.py --check
-python3 -m unittest discover -s scripts -p 'test_*.py'
-bash -n run.sh
+python3 -m unittest discover -s tests -p 'test_*.py'
+for f in run.sh bin/dot lib/*.sh modules/*.sh; do bash -n "$f"; done
 git diff --check
 ```
 
-For a focused macOS check, use:
-
-```bash
-python3 scripts/test_macos.py
-bash -n macos
-```
-
-Tests use temporary homes and mocked system or Git commands. Server tests also start a temporary local HTTP server. PowerShell tests are skipped when its runtime is absent. Tests do not validate real package installation, live OS preferences, or external accounts. Deployment comparisons are documented in [AI Tools Sync](../README.md#배포와-결과-확인).
-
-`scripts/test_full_installer.py` runs all 11 steps for simulated macOS and Linux machines. It verifies installed files, machine-specific SSH/AWS settings, backups, completion markers, and an unchanged second installation. Package managers, network downloads, and system preference commands are simulated at the command boundary.
-
-The [Checks workflow](../.github/workflows/check.yml) runs generated-file checks, regressions, and shell syntax checks for pull requests and pushes to `main`. It tests macOS and Linux with Python 3.11 and the latest stable Python 3. Linux jobs install Zsh so shared helpers are exercised in both shells. The optional VibeMon integration test requires a separate checkout and is not part of these jobs.
+Tests run offline in temporary homes. System commands (package managers, `sudo`, `ssh`, `curl`, `systemctl`, `docker`) are replaced by stubs at the command boundary, and detection uses `DOT_SYSROOT` fixtures. Tests do not prove real package installation, live OS preferences, GPU workloads or external accounts; verify those on a machine with `dot up` and `dot status`. The [Checks workflow](../.github/workflows/check.yml) runs these checks on Linux and macOS with Python 3.11 and the latest Python 3.

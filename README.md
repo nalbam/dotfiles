@@ -1,52 +1,171 @@
 # dotfiles
 
-macOS·Ubuntu 계열 Linux에서 개인 개발 환경을 설치하고 설정을 동기화한다. Windows PowerShell 설치기는 Git/Vim 링크와 기본 패키지만 구성한다.
+명령 하나로 머신을 감지해 기본 환경을 설치하고, 다시 실행하면 설치한 도구를 최신으로 유지한다. macOS 워크스테이션, WSL2, DGX Spark, EC2(k3s 노드), Raspberry Pi, 일반 Ubuntu/Debian을 지원한다. 모델 서빙·모니터링 같은 추가 구성은 add-on 모듈로 켠다.
 
 - 처음 설치: [Quick Start](#quick-start)
+- 매일 쓰는 명령: [dot 명령](#dot-명령)
+- 머신별 동작: [플랫폼과 모듈](#플랫폼과-모듈)
+- DGX Spark 모델 서빙: [stacks/dgx-spark](stacks/dgx-spark/README.md)
 - AI 지침·스킬 수정 및 배포: [AI Tools Sync](#ai-tools-sync)
-- 설치 순서·실패 처리 확인: [Architecture](docs/ARCHITECTURE.md)
-- Ubuntu 서버 준비 또는 Neovim 설치: [문서 인덱스](docs/README.md)
-
-## Supported Platforms
-
-| 환경 | 진입점 | 범위 |
-|------|--------|------|
-| macOS arm64 / x86_64 | `run.sh` | 패키지·셸·사용자 설정·AI 설정 |
-| Ubuntu/WSL x86_64, Raspberry Pi aarch64 / armv7l | `run.sh` | APT·Homebrew 시도, 셸·사용자 설정·AI 설정 |
-| Windows PowerShell | `run.ps1` | Git/Vim 심볼릭 링크, Git·7-Zip 설치, 선택적 `custom.ps1` 실행 |
-
-Linux 경로는 APT를 사용한다. Raspberry Pi에서는 패키지와 Node.js가 소스 빌드되어 오래 걸릴 수 있다. 패키지 설치 범위는 각 플랫폼의 Brewfile과 명령 실행 결과로 확인한다.
+- 설계·실패 처리: [Architecture](docs/ARCHITECTURE.md)
 
 ## Quick Start
 
-### macOS / Linux
-
-로그인한 일반 사용자로 실행한다. Bash·curl·네트워크가 필요하며, 시스템 변경 단계에서 `sudo` 인증을 요청할 수 있다. AI 설정 동기화 단계에는 Python 3.11 이상이 필요하다.
+로그인한 일반 사용자로 실행한다. Bash·curl·네트워크가 필요하고, 시스템 변경 단계에서 `sudo` 암호를 물을 수 있다.
 
 ```bash
 curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 ```
 
-이미 `~/.dotfiles`에 clone한 경우:
+`run.sh`는 `~/.dotfiles`를 준비한 뒤 `dot up`을 실행한다. Git을 아직 쓸 수 없으면(Command Line Tools가 없는 새 macOS 등) 저장소 압축 파일을 받고, Homebrew 설치 등으로 Git을 쓸 수 있게 되면 `dot up` 끝에서 Git checkout으로 바꾼다. 설치가 끝나면 `dot`이 `~/.local/bin/dot`에 연결된다.
+
+완료 요약에 `⚠`나 `✗`가 있으면 해당 모듈의 로그를 확인하고 원인을 해결한 뒤 `dot up`을 다시 실행한다. 새 터미널에서 `dot doctor`로 셸·PATH·도구 상태를 확인한다.
+
+이전 설치기를 쓰던 머신은 같은 명령(`tt`)을 한 번 실행하면 새 구조로 바뀐다. 이전 `~/.toast` 기록은 그대로 이어받으므로 macOS 설정을 다시 적용하지 않는다.
+
+## dot 명령
+
+| 명령 | 동작 |
+|------|------|
+| `dot` / `dot up` | 저장소를 갱신하고, 프로필과 켠 add-on을 설치한다. 마지막 업그레이드 후 6시간이 지났으면 설치한 도구를 업그레이드한다. |
+| `dot up --force` | 6시간 간격을 무시하고 바로 업그레이드한다. |
+| `dot list` | 모든 모듈과 이 머신에서의 상태(`profile`·`enabled`·`available`·`disabled`·`unsupported`)를 보여준다. |
+| `dot status` | 플랫폼, checkout, 모듈별 마지막 업그레이드 시점과 상태를 보여준다. |
+| `dot add MODULE...` | add-on을 켜고 바로 설치한다. 예: `dot add k3s`, `dot add llm monitoring` |
+| `dot remove MODULE...` | 모듈 관리를 끈다. 설치된 소프트웨어는 지우지 않는다. 프로필 모듈도 끌 수 있다. |
+| `dot run MODULE...` | 지정한 모듈만 실행한다. 예: `dot run shell` |
+| `dot vibe` | AI 도구 설정만 배포한다(`dot run ai`). |
+| `dot upgrade-system [--yes]` | OS 패키지 업그레이드. `--yes` 없이는 대상만 보여준다. `dot up`은 OS 패키지를 업그레이드하지 않는다. |
+| `dot platform [set NAME\|reset]` | 감지된 플랫폼을 보거나 고정한다. |
+| `dot doctor` | 셸·PATH·Python·Homebrew·Git 신원을 점검한다. |
+| `dot llm ...` | DGX Spark 모델 스택 운영. `dot llm help` 참고. |
+| `dot @HOST COMMAND...` | 다른 머신에서 SSH로 `dot`을 실행한다. 예: `dot @spark llm status`, `dot @web-1 up` |
+| `dot @HOST bootstrap` | 원격 머신에 dotfiles를 처음 설치한다. |
+
+### 업그레이드 정책
+
+- `dot up`은 사용자 영역 도구(Homebrew 패키지, Node.js, Claude Code, pip 도구, Oh My Zsh, AWS CLI, k3s patch 버전)를 업그레이드한다. 모듈마다 성공한 시점을 기록하고, 6시간이 지나기 전에는 건너뛴다. 실패한 업그레이드는 기록하지 않으므로 다음 실행에서 다시 시도한다.
+- 서비스를 중단시킬 수 있는 작업은 `dot up`이 자동으로 하지 않는다. 운영 중인 Spark 모델 스택이 저장소와 달라지면 경고만 하고 `dot llm deploy`를 안내한다. Docker 업그레이드는 `dot upgrade-system`으로 한다. k3s는 설치된 minor 버전 안에서만 자동으로 올린다.
+- 저장소의 설정 원본(Brewfile, 셸 설정, Spark 스택 등)이 바뀌면 6시간 간격과 관계없이 바로 반영한다.
+- OS 패키지(`apt upgrade`, macOS 업데이트)는 `dot up`에 포함하지 않는다. 커널·드라이버·Docker가 바뀌면 서비스가 재시작되고 재부팅이 필요할 수 있기 때문이다. 점검 시간에 `dot upgrade-system --yes`로 실행한다.
+
+## 플랫폼과 모듈
+
+`dot`은 로컬 커널·펌웨어 정보만으로 플랫폼을 감지한다(네트워크를 쓰지 않는다). 감지가 맞지 않으면 `dot platform set NAME`으로 고정한다.
+
+| 플랫폼 | 감지 기준 | 기본 프로필 | 주요 add-on |
+|--------|-----------|-------------|-------------|
+| `macos` | `uname`이 Darwin | base git brew macos node python claude shell terminal ai | nvim |
+| `wsl` | `WSL_DISTRO_NAME` 또는 커널 이름의 `microsoft` | base apt git brew node python claude shell ai | nvim |
+| `dgx-spark` | `/etc/dgx-release` 또는 DMI 제품명 | base apt git brew node python claude shell ai | llm monitoring vibemon |
+| `ec2` | DMI 제조사 `Amazon EC2`, 인스턴스 asset tag, Xen UUID | base apt server git shell ai | k3s docker brew node |
+| `rpi` | device tree 모델명 | base apt git python shell ai | node nvim |
+| `linux` | 그 밖의 Linux | base apt git brew node python claude shell ai | server docker k3s nvim |
+
+기본 프로필은 [`profiles/`](profiles), 실행 순서와 모듈 계약은 [Architecture](docs/ARCHITECTURE.md#modules)를 따른다. 이미 설치된 add-on(예: Spark에서 이미 운영 중인 모델 스택, EC2의 k3s)은 첫 `dot up`에서 자동으로 켜져 계속 관리된다. `dot remove`로 끈 모듈은 자동으로 다시 켜지지 않는다.
+
+| 모듈 | 설치·업그레이드 내용 |
+|------|----------------------|
+| `base` | `~/.ssh`(700)·SSH 키·SSH/AWS 템플릿, `~/.local/bin/dot` 링크 |
+| `apt` | 필수 APT 패키지. 빠진 패키지가 있을 때만 index를 갱신한다. |
+| `server` | 시간대, fail2ban, fstrim, 스왑, AWS CLI v2 |
+| `git` | `~/.gitconfig`와 디렉터리별 신원 파일 |
+| `brew` | Homebrew와 [`packages/Brewfile.<os>`](packages) |
+| `macos` | Command Line Tools, Rosetta 2, 키 바인딩, [시스템 설정](config/macos/defaults.sh) |
+| `node` | nvm과 Node.js 24(최신 24.x) |
+| `python` | pip 도구(`toast-cli`) |
+| `claude` | Claude Code 설치, `claude update` |
+| `shell` | Zsh 로그인 셸, Oh My Zsh, Dracula, 셸·Vim·tmux 설정 |
+| `terminal` | Ghostty 설정, iTerm2 Dracula 색상. iTerm2 프로필(`~/.iterm2/profiles.json`)은 iTerm2에서 직접 가져온다(import). |
+| `nvim` | [Neovim 설정](config/nvim/README.md) |
+| `ai` | Claude Code·Codex·OpenCode·Kiro 설정([AI Tools Sync](#ai-tools-sync)) |
+| `docker` | Docker Engine·Compose 설치(Ubuntu 서버). 업그레이드는 `dot upgrade-system`으로 한다. |
+| `k3s` | k3s 서버·에이전트. 채널의 최신 바이너리를 SHA-256으로 검증한 뒤 교체한다. minor 버전을 건너뛰는 업그레이드는 하지 않는다. |
+| `llm` | DGX Spark 모델 서빙 스택([stacks/dgx-spark](stacks/dgx-spark/README.md)). 처음과 `dot add llm`에서만 배포하고, 이후 변경은 `dot llm deploy`로 반영한다. |
+| `monitoring` | DGX Spark의 Grafana Alloy·DCGM Exporter. `llm` 스택이 먼저 배포되어 있어야 한다. |
+| `vibemon` | DGX Spark의 VibeMon 요약 수집기 |
+
+## 머신별 설정
+
+저장소는 공개 저장소다. 호스트 이름, 계정 ID, 토큰처럼 머신을 식별하는 값은 저장소 밖 `~/.config/dotfiles/`에 둔다.
+
+| 파일 | 용도 |
+|------|------|
+| `~/.config/dotfiles/local.env` | 모듈 설정 변수. `dot up`·`run`·`add`·`list`·`status`와 모듈 명령(`dot llm` 등)이 읽는다. 토큰이 있으면 mode `600`으로 둔다. |
+| `~/.config/dotfiles/hosts/<name>.env` | `dot @<name>`의 접속 정보 |
+| `~/.config/dotfiles/modules` | 켠 add-on(`name`)과 끈 모듈(`-name`). `dot add`/`dot remove`가 관리한다. |
+| `~/.config/dotfiles/platform` | `dot platform set`으로 고정한 플랫폼 |
+
+`local.env`에서 쓰는 주요 변수:
+
+| 변수 | 기본값 | 모듈 |
+|------|--------|------|
+| `DOT_NODE_VERSION` | `24` | node |
+| `DOT_PIP_PACKAGES` | `toast-cli` | python |
+| `DOT_TIMEZONE`, `DOT_SWAP_SIZE` | `Asia/Seoul`, `4G` | server |
+| `DOT_K3S_CHANNEL` | 새 설치는 `stable`, 기존 설치는 설치된 minor(예: `v1.33`) | k3s. minor 업그레이드는 다음 minor(예: `v1.34`)로 지정해 한 번에 하나씩 올린다. |
+| `DOT_K3S_URL`, `DOT_K3S_TOKEN`, `DOT_K3S_EXEC` | 없음 | k3s 첫 설치. URL이 있으면 에이전트로 설치한다. |
+| `DOT_SPARK_DIR` | `~/.config/dgx-spark` | llm·monitoring·vibemon |
+| `DOT_BREW_MIN_MEMORY_GIB` | `16` | brew(DGX Spark에서 이보다 여유 메모리가 적으면 업그레이드를 미룬다) |
+| `VIBEMON_SOURCE_ID`, `VIBEMON_SOURCE_NAME` | 호스트 이름, `DGX Spark` | vibemon |
+
+원격 호스트 파일 예시(`~/.config/dotfiles/hosts/spark.env`):
 
 ```bash
-bash ~/.dotfiles/run.sh
+DOT_HOST=spark-01.example.ts.net
+DOT_USER=me
+DOT_IDENTITY=~/.ssh/id_ed25519
 ```
 
-`bash ~/.dotfiles/run.sh --help`는 파일을 바꾸지 않고 옵션을 표시한다. 알 수 없는 옵션은 설치를 시작하지 않고 종료 코드 `2`를 반환한다.
+파일이 없으면 `dot @NAME`의 `NAME`을 SSH 대상(`~/.ssh/config` 별칭 또는 `user@host`)으로 쓴다. 원격 명령은 그 머신의 `~/.dotfiles`(Git `main`)로 실행한다. 원격에 변경을 반영하려면 먼저 `main`에 merge한 뒤 `dot @HOST up`을 실행한다.
 
-전체 설치는 `~/.dotfiles`를 clone하거나 갱신하고, 사용자 설정을 복사하며, 기본 셸을 Zsh로 변경한다. 기존 checkout의 갱신이 실패하면 경고를 출력하고 현재 파일로 계속한다. AI 설정만 바꾸려면 [AI Tools Sync](#ai-tools-sync)를 사용한다.
+## DGX Spark
 
-완료 메시지와 함께 경고가 표시되면 해당 단계의 로그를 확인한다. 오류나 경고의 원인을 해결한 뒤 같은 명령을 다시 실행한다. 새 터미널에서 `command -v git zsh`와 `type cx`로 도구 경로와 셸 별칭 로딩을 확인할 수 있다. 별칭이 있다는 사실만으로 해당 AI CLI가 설치됐다고 판단하지 않는다.
+`dgx-spark` 프로필은 개발 환경만 설치한다. 모델 서빙·모니터링·VibeMon은 add-on이며, 이미 운영 중이면 첫 `dot up`에서 자동으로 이어받는다. 파일이 저장소와 같으면 컨테이너를 다시 만들지 않는다.
 
-### Node.js 버전 확인
+```bash
+dot add llm            # 모델 서빙 스택 배포 (기본 모드: models)
+dot llm mode flash     # Qwen3.8-Flash-Next 단독 서빙으로 전환
+dot add monitoring     # Grafana Cloud 토큰·URL·사용자 ID를 묻고 Alloy·DCGM Exporter 기동
+dot @spark llm status  # 다른 머신에서 상태 확인
+```
 
-전체 설치는 nvm의 기본 버전을 Node.js 24로 설정한다. Bash와 Zsh는 공통 설정
-`~/.config/dotfiles/nvm.sh`를 읽어 nvm이 선택한 실행 파일을 Homebrew의 Node보다 먼저 찾는다.
-터미널 시작 시 Node를 설치하거나 다른 버전을 강제로 선택하지 않는다.
-프로젝트가 `.nvmrc`를 제공하면 해당 디렉터리에서 `nvm use`로 버전을 선택한다.
+운영 중인 스택은 `dot up`이 다시 배포하지 않는다. 배포는 이미지 pull, 준비용 컨테이너 실행, 컨테이너 재생성을 포함하므로 서빙이 끊겨도 되는 때에 `dot llm deploy`로 실행한다. 저장소가 스택을 바꾸면 `dot up`이 이를 경고로 알린다. 모드·API·모니터링 상세는 [stacks/dgx-spark/README.md](stacks/dgx-spark/README.md)를 확인한다. Spark에서 Homebrew 업그레이드는 여유 메모리가 `DOT_BREW_MIN_MEMORY_GIB`보다 적으면 미룬다. 모델 서빙과 메모리를 공유하므로, 소스 빌드가 Flash 메모리 감시를 작동시키지 않게 하기 위해서다.
 
-동기화 후 새 터미널에서 확인한다.
+## EC2 (k3s 노드)
+
+`ec2` 프로필은 서버 기본 구성과 셸만 설치한다. k3s는 add-on이다.
+
+```bash
+dot add k3s        # 서버. 에이전트는 먼저 local.env에 DOT_K3S_URL과 DOT_K3S_TOKEN을 둔다.
+```
+
+에이전트의 `~/.config/dotfiles/local.env`(mode `600`) 예시. 토큰을 명령행에 쓰면 셸 기록에 남는다.
+
+```bash
+DOT_K3S_URL=https://k3s-server.example.internal:6443
+DOT_K3S_TOKEN=<server의 /var/lib/rancher/k3s/server/node-token 값>
+```
+
+첫 설치는 [k3s 설치 스크립트](https://docs.k3s.io/installation)를 사용한다. 이후 `dot up`은 채널의 최신 릴리스를 확인하고, 바이너리만 교체한 뒤 서비스(`k3s` 또는 `k3s-agent`)를 재시작한다. 서비스 정의·플래그·노드 역할은 바뀌지 않고, 실행 중인 Pod는 유지된다.
+
+- 채널을 지정하지 않으면 설치된 minor 버전의 patch만 올린다. 이미 설치된 k3s를 넘겨받아도 minor 버전은 바뀌지 않는다.
+- minor 업그레이드는 `DOT_K3S_CHANNEL`을 다음 minor로 바꾸고 서버 노드부터 `dot up`을 실행한 뒤 에이전트를 실행한다. 두 단계 이상 건너뛰는 채널이면 경고만 하고 업그레이드하지 않는다.
+
+## macOS 설정과 인증
+
+[`config/macos/defaults.sh`](config/macos/defaults.sh)는 소리, 키보드, Finder, Dock, 터미널, 화면 잠금 설정을 적용한다. System Settings를 닫지만 Terminal을 종료하지는 않는다. 즉시 반영되지 않는 UI 설정은 로그아웃하거나 재시작하면 적용된다.
+
+- 키를 길게 누르면 악센트 메뉴 대신 문자를 반복한다. 반복 속도는 `KeyRepeat=2`, 시작 지연은 `InitialKeyRepeat=15`다.
+- 자동 대문자 변환은 끄고, 스페이스 두 번으로 마침표 추가는 켠다. Finder에는 경로 막대와 상태 막대를 표시한다.
+- 부팅음이 이미 꺼져 있으면 해당 `sudo` 인증을 생략한다.
+- 화면 잠금이 즉시 잠금이 아니면 macOS 로그인 암호를 터미널에서 입력받는다. 터미널이 없거나 실제 잠금 시간이 바뀌지 않으면 이 단계는 실패한다. 터미널에서 재실행하거나 System Settings > Lock Screen에서 암호 요구 시간을 즉시로 바꾼다.
+
+적용에 성공한 설정 내용은 `~/.local/state/dotfiles/applied/macos-defaults`에 기록한다. 설정 파일이 바뀌거나 적용에 실패하면 다음 실행에서 다시 시도한다.
+
+## Node.js 버전 확인
+
+`node` 모듈은 nvm의 기본 버전을 Node.js 24로 설정한다. Bash와 Zsh는 공통 설정 `~/.config/dotfiles/nvm.sh`를 읽어 nvm이 선택한 실행 파일을 Homebrew의 Node보다 먼저 찾는다. 터미널 시작 시 Node를 설치하거나 다른 버전을 강제로 선택하지 않는다. 프로젝트가 `.nvmrc`를 제공하면 해당 디렉터리에서 `nvm use`로 버전을 선택한다.
 
 ```bash
 node --version
@@ -54,11 +173,9 @@ command -v node
 nvm current
 ```
 
-다른 버전을 선택하지 않았다면 `v24.x.x`와 nvm 디렉터리의 실행 파일이 표시된다.
-기존 터미널에서 Homebrew Node가 계속 실행되면 `nvm deactivate` 후 `nvm use default`를
-실행한다. 설치 중 실제 버전이 24가 아니면 성공 대신 경고를 출력한다.
+다른 버전을 선택하지 않았다면 `v24.x.x`와 nvm 디렉터리의 실행 파일이 표시된다. 기존 터미널에서 Homebrew Node가 계속 실행되면 `nvm deactivate` 후 `nvm use default`를 실행한다. 설치 후 실제 버전이 24가 아니면 모듈은 실패로 끝난다.
 
-### Windows (PowerShell)
+## Windows (PowerShell)
 
 저장소를 `$HOME\.dotfiles`에 준비하고, `winget`과 심볼릭 링크 생성 권한이 있는 PowerShell에서 실행한다.
 
@@ -66,53 +183,32 @@ nvm current
 & "$HOME\.dotfiles\run.ps1"
 ```
 
-Git 기본 설정과 디렉터리별 신원 프로필, Vim 설정을 링크한다. 기존 대상 파일이 있으면 링크 생성을 건너뛴다. 링크 생성이나 winget 설치가 실패하면 즉시 중단한다. 이 경로는 Zsh·macOS 설정·AI 설정을 동기화하지 않는다. Windows에서 AI 설정을 동기화하려면 WSL의 `run.sh`를 사용한다.
-
-### macOS 설정과 인증
-
-[`macos`](macos)는 소리, 키보드, Finder, Dock, 터미널, 화면 잠금 설정을 적용한다. System Settings를 닫지만 Terminal을 종료하지는 않는다. 즉시 반영되지 않는 UI 설정은 설치 후 로그아웃하거나 재시작하면 적용된다.
-
-- 키를 길게 누르면 악센트 메뉴 대신 문자를 반복한다. 반복 속도는 `KeyRepeat=2`, 시작 지연은 `InitialKeyRepeat=15`다.
-- 자동 대문자 변환은 끄고, 스페이스 두 번으로 마침표 추가는 켠다. Finder에는 경로 막대와 상태 막대를 표시한다.
-- 부팅음이 이미 꺼져 있으면 해당 `sudo` 인증을 생략한다.
-- 화면 잠금이 즉시 잠금이 아니면 macOS 로그인 암호를 터미널에서 입력받는다. 터미널이 없거나 실제 잠금 시간이 바뀌지 않으면 이 단계는 실패한다. 터미널에서 재실행하거나 System Settings > Lock Screen에서 암호 요구 시간을 즉시로 바꾼다.
-
-성공한 설정 내용은 `~/.toast/macos.applied`에 기록한다. 설정이 바뀌거나 적용에 실패하면 다음 실행에서 다시 시도한다. `~/.macos.backup`은 파일 백업이며 적용 완료 기록이 아니다.
-
-## What Gets Installed
-
-정확한 패키지 목록은 [macOS Brewfile](darwin/Brewfile)과 [Linux Brewfile](linux/Brewfile)을 확인한다. 주석 처리된 항목은 설치하지 않는다.
-
-| 구성 | 설치 동작 |
-|------|-----------|
-| 셸 | Zsh·Oh My Zsh·Dracula 테마, 별칭·공통 nvm 초기화·플랫폼별 프로필 |
-| 개발 도구 | 플랫폼별 Brewfile, nvm을 통한 Node.js 24, pip를 통한 `toast-cli` |
-| 터미널·앱 | macOS Brewfile의 Ghostty·VS Code 등. iTerm2 프로필은 복사하지만 iTerm2 앱 설치는 포함하지 않음 |
-| AI 설정 | Claude Code·Codex·Kiro 지침·설정·스킬 배포 |
-
-AI 설정 배포와 CLI 설치는 별개다. `claude`가 이미 설치되어 있으면 업데이트를 시도한다. NPM 전역 패키지는 설치하지 않는다. 일부 macOS 앱은 Brewfile의 사용자 조건을 만족할 때만 설치한다.
+Git 기본 설정과 디렉터리별 신원 프로필, Vim 설정을 링크한다. 기존 대상 파일이 있으면 링크 생성을 건너뛴다. 링크 생성이나 winget 설치가 실패하면 즉시 중단한다. Zsh·macOS 설정·AI 설정은 다루지 않는다. Windows에서 전체 환경을 쓰려면 WSL에서 `run.sh`를 실행한다.
 
 ## Repository Layout
 
 | 경로 | 역할 |
 |------|------|
-| `run.sh`, `run.ps1` | 플랫폼별 설치 진입점 |
-| `aliases`, `bashrc`, `zshrc`, `profile` | 셸 명령·환경 설정 |
-| `gitconfig*`, `ssh/`, `aws/` | Git 프로필과 SSH·AWS 템플릿 |
-| `darwin/`, `linux/` | Brewfile·플랫폼별 프로필, 별도 Ubuntu 서버 준비 스크립트 |
-| `macos`, `iterm2/`, `ghostty/`, `tmux.conf`, `vimrc` | OS·터미널·편집기 설정 |
-| `nvim/` | 별도로 설치하는 Neovim 설정 |
-| `claude/`, `codex/`, `kiro/` | AI 도구에 배포할 원본 |
-| `scripts/` | 스킬 생성·AI 설정 배포·격리 테스트 |
-| `docs/` | 문서 인덱스·설치 구조 |
+| `run.sh` | 부트스트랩. `~/.dotfiles`를 준비하고 `dot up`을 실행한다. |
+| `bin/dot` | CLI 진입점 |
+| `lib/` | 공통 함수(출력·재시도·파일 교체·상태), 플랫폼 감지, 모듈 실행기, 저장소 갱신, 원격 실행, Spark 스택 동기화 |
+| `modules/` | 모듈 하나당 파일 하나. 설치·업그레이드 로직 |
+| `profiles/` | 플랫폼별 기본 모듈 목록 |
+| `config/` | 배포하는 설정 원본: 셸, Git, SSH/AWS 템플릿, Vim, tmux, macOS, 터미널, Neovim |
+| `packages/` | 플랫폼별 Brewfile |
+| `stacks/` | DGX Spark Compose 스택과 Grafana 대시보드 |
+| `claude/`, `codex/`, `kiro/`, `opencode/` | AI 도구에 배포할 원본과 생성본 |
+| `scripts/` | AI 설정 생성·배포 |
+| `tests/` | 임시 홈에서 실행하는 회귀 테스트 |
+| `run.ps1` | Windows Git/Vim 링크 |
 
 ## Key Commands & Aliases
 
-설치 후 새 셸에서 사용하는 주요 명령이다. 전체 정의는 [`aliases`](aliases)를 확인한다.
+설치 후 새 셸에서 사용하는 주요 명령이다. 전체 정의는 [`config/shell/aliases`](config/shell/aliases)를 확인한다.
 
 | 명령 | 동작 |
 |------|------|
-| `tt` | 전체 dotfiles 설치 다시 실행 |
+| `tt` | `dot up` 실행. `dot`이 없으면 부트스트랩을 내려받아 실행한다. |
 | `c <workspace>` | toast-cli로 워크스페이스 이동 |
 | `av <profile> <cmd>` | aws-vault 프로필로 실행. 예: `av n kubectl get pods` |
 | `nn` / `nnn` / `nb` | lockfile 유지 재설치 / lockfile 삭제 후 의존성 다시 결정 / build |
@@ -163,21 +259,21 @@ Codex와 Claude는 요청 범위에서 문제가 없음을 검증한 릴리즈·
 ```bash
 python3 scripts/gen-ai-tools.py
 python3 scripts/gen-ai-tools.py --check
-python3 scripts/test_ai_tools.py
-bash -n run.sh
+python3 -m unittest discover -s tests -p 'test_ai_tools.py'
+bash -n run.sh bin/dot
 git diff --check
 ```
 
-`--check`는 생성 파일의 내용과 오래된 잔여 파일을 검사한다. 생성기는 원본이 바뀌어 변환 규칙이 맞지 않으면 파일을 쓰지 않고 오류로 종료한다. 예를 들어 서브에이전트에 지원하지 않는 frontmatter 필드나 `tools` 이름이 있거나, deny 규칙이 `Bash(...)` 형식이 아니거나, `claude/CLAUDE.md`에서 변환 대상 문장(제목, `rules/` 안내, 스킬 호출 문법)이 바뀐 경우다. 테스트는 임시 홈을 사용하며 실제 설정 배포나 원격 push를 하지 않는다. macOS 설치 단계를 변경했다면 `python3 scripts/test_macos.py`와 `bash -n macos`도 실행한다.
+`--check`는 생성 파일의 내용과 오래된 잔여 파일을 검사한다. 생성기는 원본이 바뀌어 변환 규칙이 맞지 않으면 파일을 쓰지 않고 오류로 종료한다. 예를 들어 서브에이전트에 지원하지 않는 frontmatter 필드나 `tools` 이름이 있거나, deny 규칙이 `Bash(...)` 형식이 아니거나, `claude/CLAUDE.md`에서 변환 대상 문장(제목, `rules/` 안내, 스킬 호출 문법)이 바뀐 경우다. 테스트는 임시 홈을 사용하며 실제 설정 배포나 원격 push를 하지 않는다. macOS 모듈을 변경했다면 `python3 -m unittest discover -s tests -p 'test_macos.py'`와 `bash -n config/macos/defaults.sh`도 실행한다.
 
-설치기·셸·플랫폼 설정을 함께 변경했다면 `python3 -m unittest discover -s scripts -p 'test_*.py'`로 전체 회귀 검사를 실행한다. 서버 검사는 임시 로컬 HTTP 서버도 실행한다. PowerShell이 없는 환경에서는 Windows 검사만 건너뛰며, 실제 OS 설정 적용과 패키지 설치는 별도 검증이 필요하다.
+설치기·셸·플랫폼 설정을 함께 변경했다면 `python3 -m unittest discover -s tests -p 'test_*.py'`로 전체 회귀 검사를 실행한다. 서버 검사는 임시 로컬 HTTP 서버도 실행한다. PowerShell이 없는 환경에서는 Windows 검사만 건너뛰며, 실제 OS 설정 적용과 패키지 설치는 별도 검증이 필요하다.
 
 ### 배포와 결과 확인
 
-각 머신의 `~/.dotfiles`에 원하는 변경을 반영한 뒤 실행한다. `--vibe`는 checkout을 갱신하지 않으며, 다른 경로에서 호출해도 원본은 항상 `~/.dotfiles`에서 읽는다.
+`dot vibe`는 checkout을 갱신하지 않고, 실행한 `dot`이 속한 checkout(기본 `~/.dotfiles`)을 원본으로 읽는다. 먼저 `dot up`이나 `git -C ~/.dotfiles pull`로 원하는 변경을 반영한다.
 
 ```bash
-bash ~/.dotfiles/run.sh --vibe
+dot vibe
 cmp ~/.dotfiles/codex/AGENTS.md ~/.codex/AGENTS.md
 cmp ~/.dotfiles/claude/CLAUDE.md ~/.claude/CLAUDE.md
 diff -qr ~/.dotfiles/codex/skills ~/.agents/skills
@@ -214,7 +310,7 @@ VibeMon 저장소가 있으면 두 실제 설치기의 실행 순서·재설치�
 
 ```bash
 DOTFILES_VIBEMON_INSTALLER=/path/to/vibemon-app/public/install/install.py \
-  python3 scripts/test_vibemon_integration.py
+  python3 tests/test_vibemon_integration.py
 ```
 
 [`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과와 상위 디렉터리 구조를 확인한 뒤 배포한다. 원본 하위 디렉터리를 읽지 못하면 삭제된 파일로 취급하지 않고 배포 전에 중단한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
@@ -233,7 +329,7 @@ OpenCode 서브에이전트는 Claude `tools` 목록을 권한 허용 목록으�
 
 ## Security
 
-`run.sh`는 없는 SSH 키를 생성하고 SSH 디렉터리를 `700`으로 설정한다. 설치기가 복사하는 SSH·AWS 파일과 백업에는 `600`을 적용한다. Git 설정은 디렉터리별 프로필을 사용하므로 변경 전 `gitconfig*`의 이름·이메일을 확인한다.
+`base` 모듈은 없는 ED25519 SSH 키를 생성하고 SSH 디렉터리를 `700`으로 설정한다. 설치기가 복사하는 SSH·AWS 파일과 백업에는 `600`을 적용한다. Git 설정은 디렉터리별 프로필을 사용하므로 변경 전 `gitconfig*`의 이름·이메일을 확인한다.
 
 1Password CLI를 통한 자격 증명 가져오기는 수동 작업이다. 다음은 이 저장소 소유자의 vault 경로를 사용하는 예시이며, 자신의 항목으로 바꿔 실행한다. 출력 대상은 로컬 평문 파일이고 기존 내용은 덮어쓴다. 먼저 필요한 백업을 준비하고 값을 로그·Git에 남기지 않는다.
 
@@ -246,7 +342,7 @@ op read op://keys/aws-credentials/notesPlain > ~/.aws/credentials && chmod 600 ~
 
 ## Documentation
 
-[문서 인덱스](docs/README.md)에서 설치 구조, 플랫폼별 추가 설정, AI 지침과 스킬로 이동할 수 있다.
+[문서 인덱스](docs/README.md)에서 설계, 플랫폼별 추가 설정, AI 지침과 스킬로 이동할 수 있다.
 
 ## Contributing
 

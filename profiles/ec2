@@ -1,0 +1,2 @@
+# AWS EC2 server, usually a k3s node. Add-ons: k3s, docker, brew, node
+base apt server git shell ai

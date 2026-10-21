@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deploy AI settings from ~/.dotfiles using only Python 3.11+ standard libraries."""
+"""Deploy AI settings from $DOT_HOME (default ~/.dotfiles) using only Python 3.11+ standard libraries."""
 
 import sys
 
@@ -530,9 +530,9 @@ def sync_lock(home):
 
 def main():
     home = Path.home().resolve()
-    repo = home / ".dotfiles"
+    repo = Path(os.environ.get("DOT_HOME") or home / ".dotfiles").expanduser().resolve()
     if not repo.is_dir():
-        sys.exit("Dotfiles not installed: ~/.dotfiles")
+        sys.exit(f"Dotfiles not installed: {repo}")
     try:
         with sync_lock(home):
             plans = [plan_target(home, repo, *target) for target in TARGETS]

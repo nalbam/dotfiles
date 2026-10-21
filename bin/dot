@@ -1,0 +1,360 @@
+#!/bin/bash
+# dot: detect this machine, apply its profile, keep it upgraded.
+# Bash 3.2 compatible. Run `dot help` for usage.
+
+_dot_self="$0"
+while [ -L "$_dot_self" ]; do
+  _dot_link="$(readlink "$_dot_self")"
+  case "$_dot_link" in
+    /*) _dot_self="$_dot_link" ;;
+    *) _dot_self="$(dirname "$_dot_self")/$_dot_link" ;;
+  esac
+done
+DOT_HOME="$(cd "$(dirname "$_dot_self")/.." && pwd)" || exit 1
+export DOT_HOME
+
+# shellcheck source=../lib/core.sh
+. "$DOT_HOME/lib/core.sh"
+# shellcheck source=../lib/detect.sh
+. "$DOT_HOME/lib/detect.sh"
+# shellcheck source=../lib/modules.sh
+. "$DOT_HOME/lib/modules.sh"
+# shellcheck source=../lib/repo.sh
+. "$DOT_HOME/lib/repo.sh"
+# shellcheck source=../lib/remote.sh
+. "$DOT_HOME/lib/remote.sh"
+
+dot_usage() {
+  cat <<'EOF'
+Usage: dot [COMMAND] [OPTIONS]
+
+Machine setup
+  up [--force] [--no-pull]   Install the profile and enabled add-ons, then upgrade
+                             what is due (default command). --force ignores the
+                             6-hour upgrade interval.
+  run MODULE... [--force]    Run only the named modules.
+  add MODULE...              Enable add-on modules and install them now.
+  remove MODULE...           Stop managing modules (installed software stays).
+  list                       Show every module and its state on this machine.
+  status                     Show platform, checkout and module state.
+  doctor                     Check shell, PATH and tool prerequisites.
+  platform [set NAME|reset]  Show or override the detected platform.
+  upgrade-system [--yes]     Upgrade OS packages (never part of `dot up`).
+  vibe                       Deploy AI tool settings only (same as `dot run ai`).
+
+Module commands
+  llm COMMAND                Operate the DGX Spark model stack (`dot llm help`).
+
+Other machines
+  @HOST COMMAND...           Run dot on HOST over SSH (`dot @spark llm status`).
+  @HOST bootstrap            Install dotfiles on HOST.
+
+Platforms: macos, wsl, dgx-spark, ec2, rpi, linux
+EOF
+}
+
+dot_banner() {
+  local commit=""
+  if [ -d "$DOT_HOME/.git" ] && dot_has git; then
+    commit=" @ $(git -C "$DOT_HOME" rev-parse --short HEAD 2>/dev/null)"
+  fi
+  dot_echo "\n  dot · $DOT_PLATFORM ($DOT_OS/$DOT_ARCH, $DOT_PLATFORM_SOURCE)$commit" 6
+}
+
+dot_require_platform() {
+  if ! dot_detect; then
+    dot_echo "  ✗ Unsupported platform: ${DOT_PLATFORM:-$(uname -s)}. Use: $DOT_PLATFORMS" 1 >&2
+    exit 2
+  fi
+}
+
+# Runs modules in order and prints a summary. Returns 1 when any module failed.
+dot_execute() {
+  local total=0 index=0 name status before after failed="" warned="" ok=""
+  DOT_WARN_FILE="$(mktemp "${TMPDIR:-/tmp}/dot-warnings.XXXXXX")" || return 1
+  export DOT_WARN_FILE DOT_FORCE
+  for name in "$@"; do total=$((total + 1)); done
+  for name in "$@"; do
+    index=$((index + 1))
+    if dot_module_load "$name"; then
+      dot_title "[$index/$total] $name — $("$name::describe")"
+    else
+      dot_title "[$index/$total] $name"
+    fi
+    before=$(wc -l < "$DOT_WARN_FILE")
+    dot_module_run "$name"
+    status=$?
+    after=$(wc -l < "$DOT_WARN_FILE")
+    if [ "$status" -ne 0 ]; then
+      failed="$failed $name"
+    elif [ "$after" -gt "$before" ]; then
+      warned="$warned $name"
+    else
+      ok="$ok $name"
+    fi
+  done
+  rm -f "$DOT_WARN_FILE"
+  DOT_WARN_FILE=""
+
+  dot_echo "\n  Summary ($DOT_PLATFORM)" 6
+  [ -z "$ok" ] || dot_echo "  ✓$ok" 2
+  [ -z "$warned" ] || dot_echo "  ⚠$warned — review the ⚠ lines above" 3
+  if [ -n "$failed" ]; then
+    dot_echo "  ✗$failed — fix the error above and run the command again" 1
+    return 1
+  fi
+  return 0
+}
+
+_dot_parse_flags() {
+  DOT_ARGS=""
+  DOT_PULL=true
+  local arg
+  for arg in "$@"; do
+    case "$arg" in
+      --force | -f) DOT_FORCE=true ;;
+      --no-pull) DOT_PULL=false ;;
+      -*) dot_echo "  ✗ Unknown option: $arg" 1 >&2; return 2 ;;
+      *) DOT_ARGS="$DOT_ARGS $arg" ;;
+    esac
+  done
+}
+
+cmd_up() {
+  _dot_parse_flags "$@" || exit 2
+  if [ -n "$DOT_ARGS" ]; then
+    dot_echo "  ✗ dot up takes no module names; use: dot run$DOT_ARGS" 1 >&2
+    exit 2
+  fi
+  dot_require_platform
+  dot_banner
+  dot_lock || exit 1
+  trap dot_unlock EXIT
+
+  if [ "$DOT_PULL" = true ]; then
+    dot_title "Sync $DOT_HOME"
+    dot_repo_sync
+    if [ $? -eq 3 ]; then
+      dot_unlock
+      dot_info "Checkout changed; restarting with the new version"
+      # The new version detects the platform again unless the caller chose it.
+      [ "$DOT_PLATFORM_SOURCE" = environment ] || unset DOT_PLATFORM
+      local again="--no-pull"
+      [ "$DOT_FORCE" = true ] && again="$again --force"
+      # shellcheck disable=SC2086
+      exec "$DOT_HOME/bin/dot" up $again
+    fi
+  fi
+
+  dot_load_local_env
+  # Detection must see tools installed outside the login PATH (Homebrew, ~/.local/bin).
+  dot_load_paths
+  dot_adopt_modules
+  # shellcheck disable=SC2046
+  dot_execute $(dot_selected_modules)
+  local status=$?
+  # An archive install becomes a Git checkout once earlier modules made Git usable.
+  if [ "$DOT_PULL" = true ] && [ ! -d "$DOT_HOME/.git" ]; then
+    dot_title "Convert $DOT_HOME"
+    dot_repo_sync
+  fi
+  return $status
+}
+
+_dot_validate_modules() {
+  local name
+  for name in "$@"; do
+    dot_in_list "$name" $DOT_MODULE_ORDER && dot_module_load "$name" || {
+      dot_echo "  ✗ Unknown module: $name (see dot list)" 1 >&2
+      return 2
+    }
+    if ! dot_module_supported "$name"; then
+      dot_echo "  ✗ $name is not supported on $DOT_PLATFORM" 1 >&2
+      return 2
+    fi
+  done
+}
+
+_dot_ordered() {
+  local name
+  for name in $DOT_MODULE_ORDER; do
+    dot_in_list "$name" "$@" && printf '%s\n' "$name"
+  done
+}
+
+cmd_run() {
+  _dot_parse_flags "$@" || exit 2
+  # shellcheck disable=SC2086
+  set -- $DOT_ARGS
+  [ $# -gt 0 ] || { dot_echo "  ✗ Name at least one module" 1 >&2; exit 2; }
+  dot_require_platform
+  _dot_validate_modules "$@" || exit 2
+  dot_lock || exit 1
+  trap dot_unlock EXIT
+  dot_load_local_env
+  # shellcheck disable=SC2046
+  dot_execute $(_dot_ordered "$@")
+}
+
+cmd_add() {
+  local name
+  _dot_parse_flags "$@" || exit 2
+  # shellcheck disable=SC2086
+  set -- $DOT_ARGS
+  [ $# -gt 0 ] || { dot_echo "  ✗ Name at least one module" 1 >&2; exit 2; }
+  dot_require_platform
+  _dot_validate_modules "$@" || exit 2
+  for name in "$@"; do
+    dot_addon_set "$name" enable
+    dot_ok "Enabled $name"
+  done
+  # Adding is an explicit request: install now and upgrade without waiting.
+  DOT_FORCE=true
+  DOT_ADDING=true
+  export DOT_ADDING
+  cmd_run "$@"
+}
+
+cmd_remove() {
+  local name
+  [ $# -gt 0 ] || { dot_echo "  ✗ Name at least one module" 1 >&2; exit 2; }
+  dot_require_platform
+  for name in "$@"; do
+    dot_in_list "$name" $DOT_MODULE_ORDER || { dot_echo "  ✗ Unknown module: $name" 1 >&2; exit 2; }
+    dot_addon_set "$name" disable
+    dot_ok "$name is no longer managed on this machine; installed software was left in place"
+  done
+}
+
+cmd_list() {
+  local name state selected profile enabled disabled
+  dot_require_platform
+  dot_load_local_env
+  selected="$(dot_selected_modules)"
+  profile="$(dot_profile_modules)"
+  enabled="$(dot_addons_enabled)"
+  disabled="$(dot_addons_disabled)"
+  printf '  %-11s %-12s %s\n' MODULE STATE DESCRIPTION
+  for name in $DOT_MODULE_ORDER; do
+    dot_module_load "$name" || continue
+    if ! dot_module_supported "$name"; then
+      state="unsupported"
+    elif dot_in_list "$name" $disabled; then
+      state="disabled"
+    elif dot_in_list "$name" $profile; then
+      state="profile"
+    elif dot_in_list "$name" $enabled || dot_in_list "$name" $selected; then
+      state="enabled"
+    else
+      state="available"
+    fi
+    printf '  %-11s %-12s %s\n' "$name" "$state" "$("$name::describe")"
+  done
+}
+
+cmd_status() {
+  local name line
+  dot_require_platform
+  dot_banner
+  dot_load_local_env
+  dot_load_paths
+  if [ -d "$DOT_HOME/.git" ]; then
+    line=$(git -C "$DOT_HOME" status --short --branch 2>/dev/null | head -1)
+    dot_info "Checkout: $DOT_HOME ($line)"
+  else
+    dot_info "Checkout: $DOT_HOME (archive; converted to Git on the next dot up)"
+  fi
+  for name in $(dot_selected_modules); do
+    dot_module_load "$name" || continue
+    line=""
+    if dot_fn "$name::status"; then line="$( ( "$name::status" ) 2>/dev/null | head -1)"; fi
+    printf '  %-11s %-10s %s\n' "$name" "$(dot_stamp_age "$name")" "$line"
+  done
+}
+
+cmd_doctor() {
+  local issues=0 shell_name python_ok
+  dot_require_platform
+  dot_load_paths
+  dot_banner
+  _check() {
+    if eval "$2" >/dev/null 2>&1; then dot_ok "$1"; else dot_warn "$1 — $3"; issues=$((issues + 1)); fi
+  }
+  _check "dot is on PATH" '[ "$(command -v dot)" -ef "$DOT_HOME/bin/dot" ]' "run: dot run base"
+  _check "Checkout is a Git repository" '[ -d "$DOT_HOME/.git" ]' "run: dot up"
+  shell_name="$(basename "${SHELL:-}")"
+  _check "Login shell is zsh" '[ "$shell_name" = zsh ]' "run: dot run shell"
+  python_ok='python3 -c "import sys; sys.exit(sys.version_info < (3, 11))"'
+  _check "Python 3.11+ for AI sync" "$python_ok" "install a newer python3"
+  if dot_platform_is macos wsl dgx-spark linux; then
+    _check "Homebrew" 'command -v brew' "run: dot run brew"
+  fi
+  _check "Git identity" 'git config --global user.name' "run: dot run git"
+  [ "$issues" -eq 0 ]
+}
+
+cmd_platform() {
+  case "${1:-}" in
+    '')
+      dot_require_platform
+      if [ "$DOT_PLATFORM_SOURCE" = detected ]; then
+        printf '%s\n' "$DOT_PLATFORM"
+      else
+        printf '%s (%s; detected: %s)\n' "$DOT_PLATFORM" "$DOT_PLATFORM_SOURCE" "$(dot_detect_platform)"
+      fi
+      ;;
+    set)
+      dot_in_list "${2:-}" $DOT_PLATFORMS || { dot_echo "  ✗ Use one of: $DOT_PLATFORMS" 1 >&2; exit 2; }
+      printf '%s\n' "$2" | dot_write "$DOT_CONFIG/platform" && dot_ok "Platform set to $2"
+      ;;
+    reset)
+      rm -f "$DOT_CONFIG/platform" && dot_ok "Platform detection restored: $(dot_detect_platform)"
+      ;;
+    *) dot_echo "  ✗ Usage: dot platform [set NAME|reset]" 1 >&2; exit 2 ;;
+  esac
+}
+
+cmd_upgrade_system() {
+  local yes=false
+  [ "${1:-}" = --yes ] || [ "${1:-}" = -y ] && yes=true
+  dot_require_platform
+  dot_module_load apt
+  dot_module_load macos
+  case "$DOT_PLATFORM" in
+    macos) macos::system_upgrade "$yes" ;;
+    *) apt::system_upgrade "$yes" ;;
+  esac
+}
+
+main() {
+  local command="${1:-up}"
+  [ $# -eq 0 ] || shift
+  case "$command" in
+    up) cmd_up "$@" ;;
+    run) cmd_run "$@" ;;
+    add) cmd_add "$@" ;;
+    remove) cmd_remove "$@" ;;
+    list) cmd_list ;;
+    status) cmd_status ;;
+    doctor) cmd_doctor ;;
+    platform) cmd_platform "$@" ;;
+    upgrade-system) cmd_upgrade_system "$@" ;;
+    vibe) cmd_run ai "$@" ;;
+    help | -h | --help) dot_usage ;;
+    @*) dot_remote "${command#@}" "$@" ;;
+    *)
+      if dot_in_list "$command" $DOT_MODULE_ORDER && dot_module_load "$command" && dot_fn "$command::cli"; then
+        dot_require_platform
+        dot_load_local_env
+        dot_load_paths
+        "$command::cli" "$@"
+      else
+        dot_echo "  ✗ Unknown command: $command" 1 >&2
+        dot_usage >&2
+        exit 2
+      fi
+      ;;
+  esac
+}
+
+main "$@"
