@@ -1,6 +1,6 @@
 # Neovim / LazyVim configuration for macOS
 
-This configuration adds language tooling and local key mappings to LazyVim. Install it separately; `run.sh` does not run `nvim/install.sh`.
+This configuration adds language tooling and local key mappings to LazyVim. It is an add-on: enable it with `dot add nvim`.
 
 ## Prerequisites
 
@@ -16,14 +16,12 @@ The first launch needs network access to download the plugin manager and plugins
 
 ## Install
 
-From the repository root:
-
 ```bash
-bash nvim/install.sh
+dot add nvim
 nvim
 ```
 
-The installer copies `nvim/nvim/` to `~/.config/nvim`. It moves an existing configuration, including a symlink, to `~/.config/nvim.bak-<timestamp>` and prints the backup path. If that path already exists, it adds a numeric suffix to preserve earlier backups. It does not back up Neovim's separate plugin, cache, or state directories.
+The `nvim` module copies `config/nvim/nvim/` to `~/.config/nvim` and keeps it current on each `dot up`. It installs the configuration when `~/.config/nvim` is missing or when the repository version changed since the last install; local edits and Neovim's own `lazy-lock.json` stay until then. Before it replaces a configuration, it moves the existing one, including a symlink, to `~/.config/nvim.bak-<timestamp>` and prints the backup path; if that path exists, it appends `.1`. Use `dot remove nvim` to manage the configuration yourself. Neovim's plugin, cache and state directories are not backed up.
 
 Wait for plugin installation to finish. Open `:Lazy` to inspect plugin status, `:Mason` to inspect external tools, and `:LazyHealth` to load plugins and check their health, as described in the [LazyVim installation guide](https://www.lazyvim.org/installation). If installation fails, use the reported error to check network access or the missing tool before retrying.
 

@@ -37,14 +37,18 @@ jobs:
       - name: Verify generated files and regressions
         run: |
           python scripts/gen-ai-tools.py --check
-          python -m unittest discover -s scripts -p 'test_*.py' -v
+          python -m unittest discover -s tests -p 'test_*.py' -v
       - name: Check shell syntax and whitespace
         shell: bash
         run: |
-          for file in run.sh aliases bashrc profile macos shell/nvm.sh darwin/*.sh linux/*.sh nvim/install.sh; do
+          for file in run.sh bin/dot lib/*.sh modules/*.sh config/shell/aliases config/shell/bashrc \
+              config/shell/profile config/shell/nvm.sh config/shell/zprofile/*.sh config/macos/defaults.sh \
+              stacks/dgx-spark/scripts/*.sh stacks/grafana/*.sh; do
             bash -n "$file"
           done
-          for file in aliases profile shell/nvm.sh zshrc darwin/*.sh linux/zprofile.*.sh; do
+          # Shared shell startup files must also parse in Zsh. (Tests run bin/dot with /bin/bash,
+          # which is Bash 3.2 on macOS runners.)
+          for file in config/shell/aliases config/shell/profile config/shell/nvm.sh config/shell/zshrc config/shell/zprofile/*.sh; do
             zsh -n "$file"
           done
           git show --format= --check --diff-merges=first-parent HEAD
