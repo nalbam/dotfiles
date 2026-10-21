@@ -1,0 +1,26 @@
+FROM nvcr.io/nvidia/pytorch@sha256:7531d90bcbe0e43e1f7363029c7e145ce90eebeb494a7b4695fdba0329d7c3c3
+
+ADD --checksum=sha256:b4607842d426260009fd374f676589eb286c2d5232e5796bf494b7f8debcbd65 \
+    https://codeload.github.com/ashhart/TensorFold/tar.gz/17c73e189f5e6a5304cda7ea37f086f9c49b4788 \
+    /tmp/tensorfold.tar.gz
+RUN mkdir -p /opt/tensorfold-source && tar -xzf /tmp/tensorfold.tar.gz --strip-components=1 -C /opt/tensorfold-source \
+    && python3 -m pip install --no-cache-dir /opt/tensorfold-source "transformers==5.17.0" "av==19.0.1"
+
+# Keep the upstream source and license with the patched runtime.
+ADD --checksum=sha256:b96e49acf4ff246a950632d8de037378008837deb0b789f44fe6cf64750e1a38 \
+    https://codeload.github.com/MiaAI-Lab/Qwen3.8-Flash-Next-Single-DGX-Spark-TensorFold/tar.gz/4c0dea8ebe93a1d445d6a716b5a38995ff6e9362 \
+    /tmp/miaai.tar.gz
+RUN mkdir -p /opt/miaai && tar -xzf /tmp/miaai.tar.gz --strip-components=1 -C /opt/miaai
+RUN cd "$(python3 -c 'import pathlib, tensorfold; print(pathlib.Path(tensorfold.__file__).parent.parent)')" \
+    && patch -p0 --forward < /opt/miaai/patches/0002-flash-next-v061.patch
+COPY scripts/install-tensorfold-patches.py /opt/dockpad/install-tensorfold-patches.py
+COPY tensorfold /opt/dockpad/tensorfold
+RUN python3 /opt/dockpad/install-tensorfold-patches.py
+RUN python3 -c "import tensorfold.cuda.server, tensorfold.vision.qwen_cuda, tensorfold.vision.videos, av; \
+    from transformers.models.qwen3_5.modeling_qwen3_5 import Qwen3_5VisionModel" && tensorfold --version
+COPY tests/test_tensorfold_runtime.py /opt/dockpad/tests/test_tensorfold_runtime.py
+RUN python3 -m unittest discover -s /opt/dockpad/tests
+COPY scripts/serve-flash.py scripts/flash-health.py scripts/flash-vocabulary.py /opt/dockpad/
+LABEL io.dockpad.miaai-revision="4c0dea8ebe93a1d445d6a716b5a38995ff6e9362"
+ENV HF_HOME=/root/.cache/huggingface
+ENTRYPOINT ["/opt/nvidia/nvidia_entrypoint.sh"]

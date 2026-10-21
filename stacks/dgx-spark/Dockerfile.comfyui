@@ -1,0 +1,50 @@
+ARG NGC_PYTORCH_IMAGE=nvcr.io/nvidia/pytorch:25.11-py3
+FROM ${NGC_PYTORCH_IMAGE}
+
+ARG COMFYUI_VERSION=v0.34.5
+
+WORKDIR /opt/ComfyUI
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ffmpeg \
+    git \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone --branch "${COMFYUI_VERSION}" --depth 1 \
+      https://github.com/Comfy-Org/ComfyUI.git . \
+    && sed -i '/^torch\b/d; /^torchvision\b/d; /^torchaudio\b/d; /^nvidia/d' requirements.txt \
+    && pip install --no-cache-dir -r requirements.txt
+
+# NGC PyTorch and PyPI torchaudio have incompatible custom ABIs on ARM64.
+# ComfyUI imports torchaudio unconditionally, but image workflows do not use it.
+RUN site_packages="$(python -c 'import site; print(site.getsitepackages()[0])')" \
+    && mkdir -p "$site_packages/torchaudio" \
+    && printf '%s\n' \
+      '__version__ = "0.0.0+ngc-stub"' \
+      'from . import functional, transforms' \
+      > "$site_packages/torchaudio/__init__.py" \
+    && printf '%s\n' \
+      'def _unavailable(*args, **kwargs):' \
+      '    raise RuntimeError("torchaudio is unavailable in this NGC image")' \
+      '' \
+      'resample = _unavailable' \
+      'bass_biquad = _unavailable' \
+      'equalizer_biquad = _unavailable' \
+      'treble_biquad = _unavailable' \
+      > "$site_packages/torchaudio/functional.py" \
+    && printf '%s\n' \
+      'class _Unavailable:' \
+      '    def __init__(self, *args, **kwargs):' \
+      '        raise RuntimeError("torchaudio is unavailable in this NGC image")' \
+      '' \
+      'MelScale = _Unavailable' \
+      'MelSpectrogram = _Unavailable' \
+      > "$site_packages/torchaudio/transforms.py" \
+    && python -c 'import torchaudio, torchaudio.functional, torchaudio.transforms; assert torchaudio.__version__.endswith("ngc-stub")'
+
+EXPOSE 8188
+
+CMD ["python", "main.py", "--listen", "0.0.0.0", "--port", "8188"]

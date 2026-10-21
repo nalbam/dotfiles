@@ -1,0 +1,240 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}, "id": 1, "panels": [], "title": "DGX Spark Overview", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"mappings": [{"options": {"0": {"color": "red", "text": "Down"}, "1": {"color": "green", "text": "Up"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "unit": "none"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1}, "id": 2,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "max(up{job=\"integrations/node_exporter\",instance=~\"$instance\"})", "refId": "A"}],
+      "title": "Host", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 75}, {"color": "red", "value": 95}]}, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1}, "id": 3,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "max(DCGM_FI_DEV_GPU_UTIL{job=\"dcgm-exporter\",instance=~\"$instance\"})", "refId": "A"}],
+      "title": "GPU Util", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 75}, {"color": "red", "value": 90}]}, "unit": "celsius"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1}, "id": 4,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "max(DCGM_FI_DEV_GPU_TEMP{job=\"dcgm-exporter\",instance=~\"$instance\"})", "refId": "A"}],
+      "title": "Temp", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"decimals": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 100}]}, "unit": "watt"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1}, "id": 5,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "max(DCGM_FI_DEV_POWER_USAGE{job=\"dcgm-exporter\",instance=~\"$instance\"})", "refId": "A"}],
+      "title": "Power", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "현재 활성화된 ComfyUI 또는 모델 실행군의 가용 상태다.",
+      "fieldConfig": {"defaults": {"mappings": [{"options": {"0": {"color": "red", "text": "Down"}, "1": {"color": "green", "text": "Up"}}, "type": "value"}], "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "unit": "none"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1}, "id": 6,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "min((probe_success{job=\"comfyui\",instance=~\"$instance\"} and (timestamp(probe_success{job=\"comfyui\",instance=~\"$instance\"}) > time() - 45)) or (up{instance=~\"$instance\",service!=\"\"} and (timestamp(up{instance=~\"$instance\",service!=\"\"}) > time() - 45)))", "instant": true, "range": false, "refId": "A"}],
+      "title": "Workload", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1}, "id": 7,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto"},
+      "targets": [{"expr": "count((probe_success{job=\"comfyui\",instance=~\"$instance\"} and (timestamp(probe_success{job=\"comfyui\",instance=~\"$instance\"}) > time() - 45)) or max by (service) (up{instance=~\"$instance\",service!=\"\"} and (timestamp(up{instance=~\"$instance\",service!=\"\"}) > time() - 45)))", "instant": true, "range": false, "refId": "A"}],
+      "title": "Active Services", "type": "stat"
+    },
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5}, "id": 8, "panels": [], "title": "Unified System Resources", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "max": 100, "min": 0, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 6}, "id": 9,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "100 * (1 - avg(rate(node_cpu_seconds_total{job=\"integrations/node_exporter\",instance=~\"$instance\",mode=\"idle\"}[$__rate_interval])))", "legendFormat": "CPU", "refId": "A"}],
+      "title": "CPU Usage", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "GB10은 CPU와 GPU가 128 GB unified memory를 공유하므로 host memory를 전체 메모리 압력으로 본다.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "max": 100, "min": 0, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 6}, "id": 10,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "100 * (1 - node_memory_MemAvailable_bytes{job=\"integrations/node_exporter\",instance=~\"$instance\"} / node_memory_MemTotal_bytes{job=\"integrations/node_exporter\",instance=~\"$instance\"})", "legendFormat": "Unified memory", "refId": "A"}],
+      "title": "Unified Memory Usage", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "max": 100, "min": 0, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 6}, "id": 11,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "100 * (1 - node_filesystem_avail_bytes{job=\"integrations/node_exporter\",instance=~\"$instance\",mountpoint=\"/\"} / node_filesystem_size_bytes{job=\"integrations/node_exporter\",instance=~\"$instance\",mountpoint=\"/\"})", "legendFormat": "Root disk", "refId": "A"}],
+      "title": "Root Disk Usage", "type": "timeseries"
+    },
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 13}, "id": 12, "panels": [], "title": "GB10 GPU", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "max": 100, "min": 0, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 14}, "id": 13,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "DCGM_FI_DEV_GPU_UTIL{job=\"dcgm-exporter\",instance=~\"$instance\"}", "legendFormat": "GPU", "refId": "A"}, {"expr": "DCGM_FI_DEV_MEM_COPY_UTIL{job=\"dcgm-exporter\",instance=~\"$instance\"}", "legendFormat": "Memory controller", "refId": "B"}],
+      "title": "GPU and Memory Controller", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "unit": "celsius"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 14}, "id": 14,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "DCGM_FI_DEV_GPU_TEMP{job=\"dcgm-exporter\",instance=~\"$instance\"}", "legendFormat": "Temperature", "refId": "A"}],
+      "title": "GPU Temperature", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "unit": "watt"}, "overrides": [{"matcher": {"id": "byName", "options": "SM clock"}, "properties": [{"id": "unit", "value": "hertz"}]}]},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 14}, "id": 15,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "DCGM_FI_DEV_POWER_USAGE{job=\"dcgm-exporter\",instance=~\"$instance\"}", "legendFormat": "Power", "refId": "A"}, {"expr": "DCGM_FI_DEV_SM_CLOCK{job=\"dcgm-exporter\",instance=~\"$instance\"} * 1000000", "legendFormat": "SM clock", "refId": "B"}],
+      "title": "GPU Power and Clock", "type": "timeseries"
+    },
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 21}, "id": 16, "panels": [], "title": "Model Services", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"mappings": [{"options": {"0": {"color": "red", "text": "Down"}, "1": {"color": "green", "text": "Up"}}, "type": "value"}], "noValue": "Inactive", "thresholds": {"mode": "absolute", "steps": [{"color": "red", "value": null}, {"color": "green", "value": 1}]}, "unit": "none"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 22}, "id": 17,
+      "options": {"colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "horizontal", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "name"},
+      "targets": [{"expr": "max by (service) (up{instance=~\"$instance\",service!=\"\"} and (timestamp(up{instance=~\"$instance\",service!=\"\"}) > time() - 45))", "instant": true, "range": false, "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "Service Health", "type": "stat"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "unit": "short"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 22}, "id": 18,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (service) (vllm:num_requests_running{job=\"vllm\",instance=~\"$instance\"})", "legendFormat": "{{service}} running", "refId": "A"}, {"expr": "sum by (service) (vllm:num_requests_waiting{job=\"vllm\",instance=~\"$instance\"})", "legendFormat": "{{service}} waiting", "refId": "B"}],
+      "title": "Request Concurrency", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "max": 100, "min": 0, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 22}, "id": 19,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "100 * vllm:kv_cache_usage_perc{job=\"vllm\",instance=~\"$instance\"}", "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "KV Cache Usage", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "unit": "reqps"}, "overrides": []},
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 22}, "id": 20,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (service) (rate(vllm:request_success_total{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval]))", "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "Completed Requests / sec", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "unit": "ops"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 27}, "id": 21,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum by (service) (rate(vllm:prompt_tokens_total{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval]))", "legendFormat": "{{service}} prompt", "refId": "A"}, {"expr": "sum by (service) (rate(vllm:generation_tokens_total{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval]))", "legendFormat": "{{service}} generation", "refId": "B"}],
+      "title": "Token Throughput", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "unit": "s"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 27}, "id": 22,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (service, le) (rate(vllm:time_to_first_token_seconds_bucket{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval])))", "legendFormat": "{{service}} TTFT p95", "refId": "A"}, {"expr": "histogram_quantile(0.95, sum by (service, le) (rate(vllm:e2e_request_latency_seconds_bucket{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval])))", "legendFormat": "{{service}} E2E p95", "refId": "B"}],
+      "title": "Request Latency p95", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "max": 100, "min": 0, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 27}, "id": 23,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "100 * sum by (service) (rate(vllm:prefix_cache_hits_total{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval])) / clamp_min(sum by (service) (rate(vllm:prefix_cache_queries_total{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval])), 1e-9)", "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "Prefix Cache Hit Rate", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "description": "MTP가 제안한 token 중 target model이 수락한 비율이다. 값이 낮으면 speculative decoding의 비용이 이득보다 클 수 있다.",
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "max": 100, "min": 0, "unit": "percent"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 34}, "id": 27,
+      "options": {"legend": {"calcs": ["lastNotNull", "mean"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "100 * sum by (service) (rate(vllm:spec_decode_num_accepted_tokens_total{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval])) / clamp_min(sum by (service) (rate(vllm:spec_decode_num_draft_tokens_total{job=\"vllm\",instance=~\"$instance\"}[$__rate_interval])), 1e-9)", "legendFormat": "{{service}}", "refId": "A"}],
+      "title": "MTP Draft Acceptance Rate", "type": "timeseries"
+    },
+    {"collapsed": false, "gridPos": {"h": 1, "w": 24, "x": 0, "y": 41}, "id": 24, "panels": [], "title": "Host I/O", "type": "row"},
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "unit": "Bps"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 42}, "id": 25,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum(rate(node_network_receive_bytes_total{job=\"integrations/node_exporter\",instance=~\"$instance\",device!~\"lo|veth.*|docker.*|br-.*\"}[$__rate_interval]))", "legendFormat": "receive", "refId": "A"}, {"expr": "sum(rate(node_network_transmit_bytes_total{job=\"integrations/node_exporter\",instance=~\"$instance\",device!~\"lo|veth.*|docker.*|br-.*\"}[$__rate_interval]))", "legendFormat": "transmit", "refId": "B"}],
+      "title": "Network Throughput", "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"drawStyle": "line", "fillOpacity": 10, "lineInterpolation": "linear", "lineWidth": 1, "pointSize": 5, "showPoints": "never", "spanNulls": false}, "unit": "Bps"}, "overrides": []},
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 42}, "id": 26,
+      "options": {"legend": {"calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "targets": [{"expr": "sum(rate(node_disk_read_bytes_total{job=\"integrations/node_exporter\",instance=~\"$instance\",device!~\"loop.*|ram.*\"}[$__rate_interval]))", "legendFormat": "read", "refId": "A"}, {"expr": "sum(rate(node_disk_written_bytes_total{job=\"integrations/node_exporter\",instance=~\"$instance\",device!~\"loop.*|ram.*\"}[$__rate_interval]))", "legendFormat": "write", "refId": "B"}],
+      "title": "Disk Throughput", "type": "timeseries"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 42,
+  "tags": ["comfyui", "dgx-spark", "gpu", "vllm", "prometheus"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "includeAll": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": {},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(node_uname_info{job=\"integrations/node_exporter\"}, instance)",
+        "includeAll": false,
+        "name": "instance",
+        "options": [],
+        "query": {"query": "label_values(node_uname_info{job=\"integrations/node_exporter\"}, instance)", "refId": "StandardVariableQuery"},
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "DGX Spark - Prometheus",
+  "uid": "dgx-spark",
+  "version": 3
+}

@@ -1,0 +1,309 @@
+name: dgx-spark
+
+x-vllm-common: &vllm-common
+  image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.30.0}
+  restart: unless-stopped
+  ipc: host
+  gpus: all
+  entrypoint: []
+  environment:
+    HF_HUB_DISABLE_TELEMETRY: "1"
+    HF_HUB_OFFLINE: "1"
+    TRANSFORMERS_OFFLINE: "1"
+  volumes:
+    - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+  ulimits:
+    memlock: -1
+    stack: 67108864
+
+services:
+  api-gateway:
+    profiles: [public]
+    image: caddy:2.11.4-alpine
+    restart: unless-stopped
+    network_mode: host
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        export MODEL_API_KEY="$$(cat /run/secrets/model_api_key)"
+        test -n "$$MODEL_API_KEY"
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    volumes:
+      - ./Caddyfile.api:/etc/caddy/Caddyfile:ro
+      - ${HOME}/.config/spark-secret-key:/run/secrets/model_api_key:ro
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      api-catalog:
+        condition: service_healthy
+
+  api-catalog:
+    profiles: [public]
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.30.0}
+    restart: unless-stopped
+    entrypoint: [python3, -B, /opt/dockpad/api/catalog.py]
+    ports:
+      - 127.0.0.1:18002:8080
+    volumes:
+      - ./api:/opt/dockpad/api:ro
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [CMD, python3, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+
+  comfyui:
+    profiles: [comfyui]
+    image: ${COMFYUI_IMAGE:-dockpad-comfyui:v0.34.5}
+    build:
+      context: .
+      dockerfile: Dockerfile.comfyui
+      args:
+        NGC_PYTORCH_IMAGE: ${NGC_PYTORCH_IMAGE:-nvcr.io/nvidia/pytorch:25.11-py3}
+        COMFYUI_VERSION: ${COMFYUI_VERSION:-v0.34.5}
+    restart: unless-stopped
+    init: true
+    ipc: host
+    gpus: all
+    ports:
+      - 127.0.0.1:8188:8188
+      - ${TAILSCALE_IP:?TAILSCALE_IP is required}:8188:8188
+    volumes:
+      - ${COMFYUI_DATA_PATH:?COMFYUI_DATA_PATH is required}/models:/opt/ComfyUI/models
+      - ${COMFYUI_DATA_PATH:?COMFYUI_DATA_PATH is required}/input:/opt/ComfyUI/input
+      - ${COMFYUI_DATA_PATH:?COMFYUI_DATA_PATH is required}/output:/opt/ComfyUI/output
+      - ${COMFYUI_DATA_PATH:?COMFYUI_DATA_PATH is required}/user:/opt/ComfyUI/user
+      - ${COMFYUI_DATA_PATH:?COMFYUI_DATA_PATH is required}/custom_nodes:/opt/ComfyUI/custom_nodes
+      - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:8188/]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 2m
+
+  llm:
+    <<: *vllm-common
+    profiles: [models]
+    labels:
+      io.dockpad.hf-model: ${LLM_MODEL:-nvidia/Qwen3.6-35B-A3B-NVFP4}
+      io.dockpad.metrics-port: "8000"
+      io.dockpad.api-kind: chat
+    ports:
+      - 127.0.0.1:8000:8000
+      - ${TAILSCALE_IP:?TAILSCALE_IP is required}:8000:8000
+    command:
+      - vllm
+      - serve
+      - ${LLM_MODEL:-nvidia/Qwen3.6-35B-A3B-NVFP4}
+      - --port
+      - "8000"
+      - --trust-remote-code
+      - --tensor-parallel-size
+      - "1"
+      - --kv-cache-dtype
+      - fp8
+      - --attention-backend
+      - flashinfer
+      - --moe-backend
+      - marlin
+      - --max-model-len
+      - ${LLM_MAX_MODEL_LEN:-262144}
+      - --gpu-memory-utilization
+      - "0.50"
+      - --max-num-seqs
+      - "8"
+      - --max-num-batched-tokens
+      - "8192"
+      - --enable-chunked-prefill
+      - --async-scheduling
+      - --enable-prefix-caching
+      - --load-format
+      - fastsafetensors
+      - --enable-auto-tool-choice
+      - --tool-call-parser
+      - qwen3_xml
+      - --reasoning-parser
+      - qwen3
+      - --default-chat-template-kwargs
+      - '{"enable_thinking":false}'
+      - --mm-encoder-tp-mode
+      - data
+      - --speculative-config
+      - '{"method":"mtp","num_speculative_tokens":3,"moe_backend":"triton"}'
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:8000/health]
+      interval: 10s
+      timeout: 5s
+      retries: 180
+      start_period: 5m
+
+  embedding:
+    <<: *vllm-common
+    profiles: [models]
+    labels:
+      io.dockpad.hf-model: ${EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-4B}
+      io.dockpad.metrics-port: "8001"
+      io.dockpad.api-kind: embedding
+    depends_on:
+      llm:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:8001:8001
+      - ${TAILSCALE_IP:?TAILSCALE_IP is required}:8001:8001
+    command:
+      - vllm
+      - serve
+      - ${EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-4B}
+      - --port
+      - "8001"
+      - --runner
+      - pooling
+      - --max-model-len
+      - "32768"
+      - --gpu-memory-utilization
+      - "0.13"
+      - --max-num-seqs
+      - "32"
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:8001/health]
+      interval: 10s
+      timeout: 5s
+      retries: 180
+      start_period: 3m
+
+  reranker:
+    <<: *vllm-common
+    profiles: [models]
+    labels:
+      io.dockpad.hf-model: ${RERANKER_MODEL:-Qwen/Qwen3-Reranker-0.6B}
+      io.dockpad.metrics-port: "8002"
+      io.dockpad.api-kind: reranker
+    depends_on:
+      embedding:
+        condition: service_healthy
+    ports:
+      - 127.0.0.1:8002:8002
+      - ${TAILSCALE_IP:?TAILSCALE_IP is required}:8002:8002
+    command:
+      - vllm
+      - serve
+      - ${RERANKER_MODEL:-Qwen/Qwen3-Reranker-0.6B}
+      - --port
+      - "8002"
+      - --runner
+      - pooling
+      - --max-model-len
+      - "32768"
+      - --gpu-memory-utilization
+      - "0.06"
+      - --max-num-seqs
+      - "32"
+      - --hf-overrides
+      - '{"architectures":["Qwen3ForSequenceClassification"],"classifier_from_token":["no","yes"],"is_original_qwen3_reranker":true}'
+      - --chat-template
+      - examples/pooling/score/template/qwen3_reranker.jinja
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:8002/health]
+      interval: 10s
+      timeout: 5s
+      retries: 180
+      start_period: 2m
+
+  flash:
+    <<: *vllm-common
+    entrypoint: [/opt/nvidia/nvidia_entrypoint.sh]
+    profiles: [flash]
+    image: ${FLASH_IMAGE:-dockpad-tensorfold-flash:v0.6.1-ko2}
+    build:
+      context: .
+      dockerfile: Dockerfile.flash
+    mem_limit: 112g
+    memswap_limit: 112g
+    labels:
+      io.dockpad.hf-model: ${FLASH_MODEL:-TensorFold/Qwen3.8-Flash-Next-MLX-4bit-MTP}
+      io.dockpad.hf-revision: ${FLASH_REVISION:-2b170fa6309d5d1ee380b35636075fac7945f286}
+      io.dockpad.metrics-port: "8000"
+      io.dockpad.flash-recipe: tensorfold
+      io.dockpad.api-kind: chat
+    environment:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_OFFLINE: "1"
+      TRANSFORMERS_OFFLINE: "1"
+      FLASH_MODEL: ${FLASH_MODEL:-TensorFold/Qwen3.8-Flash-Next-MLX-4bit-MTP}
+      FLASH_REVISION: ${FLASH_REVISION:-2b170fa6309d5d1ee380b35636075fac7945f286}
+      FLASH_MAX_MODEL_LEN: ${FLASH_MAX_MODEL_LEN:-262144}
+      FLASH_MAX_NUM_SEQS: ${FLASH_MAX_NUM_SEQS:-4}
+      FLASH_HOST_RESERVE_GIB: ${FLASH_HOST_RESERVE_GIB:-8}
+      FLASH_THINKING_BUDGET: ${FLASH_THINKING_BUDGET:-512}
+      FLASH_DRAFT_VOCAB: ${FLASH_DRAFT_VOCAB:-multilingual}
+      TENSORFOLD_NO_UPDATE_CHECK: "1"
+      TENSORFOLD_PREFILL_ROWS: "2048"
+      TENSORFOLD_VISION_WORKSPACE_MIB: "0"
+      TENSORFOLD_IMAGE_TOKENS: "16384"
+      TENSORFOLD_VIDEO_TOKENS: "16384"
+      TENSORFOLD_MTP_COPY: "1"
+      TORCH_EXTENSIONS_DIR: /cache/torch_extensions
+      TRITON_CACHE_DIR: /cache/triton
+      MAX_JOBS: "2"
+    volumes:
+      - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+      - ${HOME}/.cache/tensorfold-qwen38:/cache
+    ports:
+      - 127.0.0.1:8000:8000
+      - ${TAILSCALE_IP:?TAILSCALE_IP is required}:8000:8000
+    command:
+      - python3
+      - /opt/dockpad/serve-flash.py
+    healthcheck:
+      test: [CMD, python3, /opt/dockpad/flash-health.py]
+      interval: 30s
+      timeout: 25s
+      retries: 10
+      start_period: 20m
+
+  dcgm-exporter:
+    profiles: [monitoring]
+    image: nvcr.io/nvidia/k8s/dcgm-exporter@sha256:613ab03c11d442fd960ff515f547e9921537454a712d08160bc8f677f89f1c35
+    restart: unless-stopped
+    gpus: all
+    cap_add:
+      - SYS_ADMIN
+    ports:
+      - 127.0.0.1:9400:9400
+
+  alloy:
+    profiles: [monitoring]
+    image: grafana/alloy:v1.19.2
+    restart: unless-stopped
+    env_file:
+      - path: .env.grafana
+        required: true
+    environment:
+      SPARK_MODE: ${SPARK_MODE:-models}
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - 127.0.0.1:12345:12345
+    volumes:
+      - ./grafana:/etc/alloy:ro
+      - alloy-data:/var/lib/alloy/data
+      - /:/host/root:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    depends_on:
+      dcgm-exporter:
+        condition: service_started
+
+volumes:
+  alloy-data:

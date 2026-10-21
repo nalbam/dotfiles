@@ -1,0 +1,183 @@
+remotecfg {
+  url            = sys.env("GCLOUD_FM_URL")
+  id             = sys.env("GCLOUD_FM_COLLECTOR_ID")
+  poll_frequency = "60s"
+
+  basic_auth {
+    username = sys.env("GCLOUD_FM_USERNAME")
+    password = sys.env("GCLOUD_RW_API_KEY")
+  }
+}
+
+prometheus.remote_write "metrics_service" {
+  endpoint {
+    url = sys.env("GCLOUD_PROM_URL")
+
+    basic_auth {
+      username = sys.env("GCLOUD_PROM_USERNAME")
+      password = sys.env("GCLOUD_RW_API_KEY")
+    }
+  }
+}
+
+prometheus.exporter.blackbox "comfyui" {
+  config = "{ modules: { http_2xx: { prober: http, timeout: 5s } } }"
+
+  target {
+    name    = "comfyui"
+    address = "http://comfyui:8188/"
+    module  = "http_2xx"
+    labels = {
+      "instance" = sys.env("GCLOUD_FM_COLLECTOR_ID"),
+      "mode"     = sys.env("SPARK_MODE"),
+    }
+  }
+}
+
+discovery.relabel "comfyui" {
+  targets = prometheus.exporter.blackbox.comfyui.targets
+
+  rule {
+    source_labels = ["mode"]
+    regex         = "comfyui"
+    action        = "keep"
+  }
+
+  rule {
+    regex  = "mode"
+    action = "labeldrop"
+  }
+
+  rule {
+    target_label = "instance"
+    replacement  = sys.env("GCLOUD_FM_COLLECTOR_ID")
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "comfyui"
+  }
+}
+
+prometheus.scrape "comfyui" {
+  targets         = discovery.relabel.comfyui.output
+  scrape_interval = "15s"
+  scrape_timeout  = "10s"
+  forward_to      = [prometheus.remote_write.metrics_service.receiver]
+}
+
+prometheus.exporter.unix "spark" {
+  // GB10 cpufreq sysfs reads can block indefinitely after the first scrape.
+  disable_collectors = ["ipvs", "btrfs", "infiniband", "xfs", "zfs", "cpufreq"]
+  procfs_path        = "/host/proc"
+  rootfs_path        = "/host/root"
+  sysfs_path         = "/host/sys"
+
+  filesystem {
+    fs_types_exclude     = "autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs"
+    mount_points_exclude = "/dev|/proc|/run/credentials/.+|/sys|/var/lib/docker/.+|/var/lib/containers/storage/.+"
+    mount_timeout        = "5s"
+  }
+}
+
+discovery.relabel "node" {
+  targets = prometheus.exporter.unix.spark.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = sys.env("GCLOUD_FM_COLLECTOR_ID")
+  }
+
+  rule {
+    target_label = "job"
+    replacement  = "integrations/node_exporter"
+  }
+}
+
+prometheus.scrape "node" {
+  targets         = discovery.relabel.node.output
+  scrape_interval = "15s"
+  forward_to      = [prometheus.relabel.node.receiver]
+}
+
+prometheus.relabel "node" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "node_scrape_collector_.+"
+    action        = "drop"
+  }
+}
+
+prometheus.scrape "dcgm" {
+  targets = [{
+    "__address__" = "dcgm-exporter:9400",
+    "instance"    = sys.env("GCLOUD_FM_COLLECTOR_ID"),
+  }]
+
+  scrape_interval = "15s"
+  scrape_timeout  = "10s"
+  job_name        = "dcgm-exporter"
+  forward_to      = [prometheus.remote_write.metrics_service.receiver]
+}
+
+discovery.file "models" {
+  files            = ["/etc/alloy/model-targets.json"]
+  refresh_interval = "10s"
+}
+
+discovery.relabel "vllm" {
+  targets = discovery.file.models.targets
+
+  rule {
+    target_label = "instance"
+    replacement  = sys.env("GCLOUD_FM_COLLECTOR_ID")
+  }
+
+  rule {
+    target_label = "mode"
+    replacement  = sys.env("SPARK_MODE")
+  }
+
+  rule {
+    source_labels = ["mode"]
+    regex         = "models|flash"
+    action        = "keep"
+  }
+
+  rule {
+    regex  = "mode"
+    action = "labeldrop"
+  }
+}
+
+prometheus.scrape "vllm" {
+  targets = discovery.relabel.vllm.output
+
+  metrics_path    = "/metrics"
+  scrape_interval = "15s"
+  scrape_timeout  = "10s"
+  job_name        = "vllm"
+  forward_to      = [prometheus.relabel.model_metrics.receiver]
+}
+
+// TensorFold uses vLLM-compatible family names under its own prefix. Normalize
+// at the collector so existing dashboards keep working without duplicate series.
+prometheus.relabel "model_metrics" {
+  forward_to = [prometheus.remote_write.metrics_service.receiver]
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "tensorfold:(.*)"
+    target_label  = "runtime"
+    replacement   = "tensorfold"
+  }
+
+  rule {
+    source_labels = ["__name__"]
+    regex         = "tensorfold:(.*)"
+    target_label  = "__name__"
+    replacement   = "vllm:$1"
+  }
+}
