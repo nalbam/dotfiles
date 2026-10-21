@@ -33,12 +33,12 @@ class ShellStartupTests(unittest.TestCase):
 
     def startup(self, shell, config, body=""):
         # Map installed-system prefixes into the fixture so no real plugin is sourced.
-        source = (ROOT / config).read_text()
+        source = (ROOT / "config/shell" / config).read_text()
         for prefix, replacement in self.brew_prefixes.items():
             source = source.replace(prefix, str(replacement))
         fixture = self.home / config
         fixture.write_text(source)
-        shared = ROOT / "shell/nvm.sh"
+        shared = ROOT / "config/shell/nvm.sh"
         if shared.is_file():
             source = shared.read_text()
             for prefix, replacement in self.brew_prefixes.items():
@@ -144,7 +144,7 @@ esac
                         result = subprocess.run(
                             ["/bin/bash", "--noprofile", "--norc", "-c",
                              'locale() { printf "UTF-8\\n"; }; . "$1"; printf "%s" "$PATH"',
-                             "startup-test", str(ROOT / config)],
+                             "startup-test", str(ROOT / "config/shell" / config)],
                             env=env, capture_output=True, text=True, timeout=5,
                         )
                         self.assertEqual(result.returncode, 0, result.stderr)

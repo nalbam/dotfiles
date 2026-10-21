@@ -71,7 +71,7 @@ try {
     def test_success_creates_links_and_installs_packages(self):
         result = self.invoke()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.count("MOCK_LINK"), len(list(ROOT.glob("gitconfig*"))) + 1)
+        self.assertEqual(result.stdout.count("MOCK_LINK"), len(list((ROOT / "config/git").glob("gitconfig*"))) + 1)
         self.assertEqual(result.stdout.count("MOCK_INSTALL"), 2)
         self.assertIn("SETUP_RETURNED", result.stdout)
 
@@ -86,9 +86,9 @@ try {
         for line in records:
             link = json.loads(line)
             name = Path(link["Path"].replace("\\", "/")).name
-            source = Path(link["Target"].replace("\\", "/")).name
-            self.assertTrue((ROOT / source).is_file())
-            (home / name).symlink_to(ROOT / source)
+            source = ROOT / "config" / link["Target"].replace("\\", "/").split("/config/", 1)[1]
+            self.assertTrue(source.is_file())
+            (home / name).symlink_to(source)
         env = dict(os.environ, HOME=str(home), GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=str(home / ".gitconfig"))
         for account, profile in (("nalbam", "nalbam"), ("opspresso", "nalbam"),
                                  ("yujh404", "yujh404"), ("nalbam-me", "nalbam-me"),
@@ -98,7 +98,7 @@ try {
                 subprocess.run(["git", "init", "-q", str(workspace)], env=env, check=True)
                 for key in ("user.name", "user.email"):
                     actual = subprocess.check_output(["git", "-C", str(workspace), "config", "--get", key], env=env)
-                    expected = subprocess.check_output(["git", "config", "--file", str(ROOT / ("gitconfig-" + profile)), "--get", key], env=env)
+                    expected = subprocess.check_output(["git", "config", "--file", str(ROOT / "config/git" / ("gitconfig-" + profile)), "--get", key], env=env)
                     self.assertTrue(actual == expected, f"Incorrect {key} for {profile}")
 
     def test_installed_packages_skip_installation(self):

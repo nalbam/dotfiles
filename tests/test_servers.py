@@ -34,7 +34,7 @@ class ServerTests(unittest.TestCase):
     def run_shell(self, shell, body):
         args = ["--noprofile", "--norc"] if shell.endswith("bash") else ["-f"]
         return subprocess.run([shell, *args, "-c", '. "$1"\n' + body,
-                               "server-test", str(ROOT / "aliases")],
+                               "server-test", str(ROOT / "config/shell/aliases")],
                               cwd=self.home, env=self.env, capture_output=True,
                               text=True, timeout=10)
 
@@ -161,7 +161,7 @@ _server_del 8123
                         for port in ("8123", "8124"):
                             process = subprocess.Popen(
                                 [shell, *args, "-c", '. "$1"; _server_add "$2" python /example',
-                                 "server-test", str(ROOT / "aliases"), port],
+                                 "server-test", str(ROOT / "config/shell/aliases"), port],
                                 cwd=self.home, env=self.env, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, text=True,
                             )

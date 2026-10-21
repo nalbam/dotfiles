@@ -145,7 +145,10 @@ cmd_up() {
   # shellcheck disable=SC2046
   dot_execute $(dot_selected_modules)
   local status=$?
-  [ -d "$DOT_HOME/.git" ] || dot_repo_sync >/dev/null
+  # An archive install becomes a Git checkout once earlier modules made Git usable.
+  if [ "$DOT_PULL" = true ] && [ ! -d "$DOT_HOME/.git" ]; then
+    dot_repo_sync >/dev/null
+  fi
   return $status
 }
 

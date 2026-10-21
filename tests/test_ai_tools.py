@@ -26,7 +26,9 @@ class DeploymentTests(unittest.TestCase):
         self.repo = self.home / ".dotfiles"
         self.repo.mkdir(parents=True)
         shutil.copy(ROOT / "run.sh", self.repo / "run.sh")
-        shutil.copytree(ROOT / "scripts", self.repo / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
+        # run.sh --vibe hands over to bin/dot, which loads its libraries and modules.
+        for name in ("bin", "lib", "modules", "profiles", "scripts"):
+            shutil.copytree(ROOT / name, self.repo / name, ignore=shutil.ignore_patterns("__pycache__"))
         self.put(".dotfiles/claude/CLAUDE.md", "shared instructions\n")
         self.put(".dotfiles/codex/AGENTS.md", "shared Codex instructions\n")
         self.put(".dotfiles/codex/config.toml", 'approval_policy = "on-request"\n[features]\nhooks = true\n')
@@ -788,18 +790,21 @@ features = { local_thread_store_compression = true }
 
 
     def test_claude_update_timestamp_only_after_success(self):
-        source = (ROOT / "run.sh").read_text()
-        start = source.index("# Claude Code 업데이트")
-        block = source[start:source.index("# PIP 패키지 설치 (버전 체크 포함)", start)]
-        (self.home / ".toast").mkdir(exist_ok=True)
-        marker = self.home / ".toast/last_update_claude"
+        state = self.home / ".local/state/dotfiles"
+        marker = state / "stamps/claude"
+        env = dict(self.env, DOT_HOME=str(ROOT), DOT_STATE=str(state), DOT_PLATFORM="linux",
+                   DOT_ARCH="x86_64", DOT_COLOR="false", DOT_FORCE="false")
         for status in (1, 0):
-            prelude = "_should_update() { return 0; }; _run() { :; }; _ok() { :; }; _skip() { :; }; _warn() { :; };\n"
-            prelude += "claude() { return " + str(status) + "; };\n"
-            result = subprocess.run(["/bin/bash", "-c", prelude + block], env=self.env,
+            script = (". \"$DOT_HOME/lib/core.sh\"; . \"$DOT_HOME/lib/detect.sh\"; "
+                      ". \"$DOT_HOME/modules/claude.sh\"\n"
+                      f"claude() {{ return {status}; }}\n"
+                      "claude::up\n")
+            result = subprocess.run(["/bin/bash", "-c", script], env=env,
                                     capture_output=True, text=True, timeout=5)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(marker.exists(), status == 0)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(marker.exists(), status == 0, result.stdout)
+            if status:
+                self.assertIn("claude update failed", result.stdout)
 
 
 class GeneratorTests(unittest.TestCase):

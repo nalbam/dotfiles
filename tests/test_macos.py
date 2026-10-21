@@ -20,38 +20,48 @@ class MacOSSetupTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.home = Path(self.temp.name) / "machine-home"
         self.repo = self.home / ".dotfiles"
-        self.repo.mkdir(parents=True)
-        (self.home / ".toast").mkdir()
+        (self.repo / "config").mkdir(parents=True)
+        shutil.copytree(ROOT / "config/macos", self.repo / "config/macos")
+        self.source = self.repo / "config/macos/defaults.sh"
         bindings = self.home / "Library/KeyBindings"
         bindings.mkdir(parents=True)
-        (bindings / "DefaultkeyBinding.dict").touch()
-        shutil.copy(ROOT / "macos", self.repo / "macos")
-        self.marker = self.home / ".toast/macos.applied"
+        self.binding = bindings / "DefaultkeyBinding.dict"
+        self.binding.write_text("personal binding\n")
+        self.marker = self.home / ".local/state/dotfiles/applied/macos-defaults"
         self.log = self.home / "commands"
-        self.env = dict(os.environ, HOME=str(self.home), TERM="dumb")
-        source = (ROOT / "run.sh").read_text()
-        declarations = source[:source.index("# 실행 영역 (Execution Section)")] + "\n}\n"
-        step = source[source.index("# Step 7:"):source.index("# Step 8:")]
-        # Use the real installer helpers and Step 7, mocking only OS commands.
-        self.script = declarations + r'''
-OS_NAME="${TEST_OS_NAME:-darwin}"
-OS_ARCH="${TEST_OS_ARCH:-arm64}"
-TPUT=
+        self.env = {key: value for key, value in os.environ.items()
+                    if not key.startswith(("XDG_", "DOT_", "BASH_FUNC_"))}
+        self.env.update(HOME=str(self.home), TERM="dumb", DOT_HOME=str(self.repo), DOT_COLOR="false")
+        # Use the real dot helpers and macos module, mocking only OS commands.
+        self.script = f'''
+. "{ROOT}/lib/core.sh"
+. "{ROOT}/lib/detect.sh"
+. "{ROOT}/lib/modules.sh"
+. "{ROOT}/modules/macos.sh"
+DOT_PLATFORM="${{TEST_PLATFORM:-macos}}"
+DOT_OS=darwin
+DOT_ARCH="${{TEST_OS_ARCH:-arm64}}"
+''' + r'''
 export TEST_INSTALLER_PID=$$
-_md5() {
-  if [ "${TEST_MARKER_HASH_FAILURE:-0}" = 1 ] && [ "$1" = "$HOME/.toast/macos.applied" ]; then
+dot_load_paths() { :; }
+dot_md5() {
+  if [ "${TEST_MARKER_HASH_FAILURE:-0}" = 1 ] && [ "$1" = "$DOT_STATE/applied/macos-defaults" ]; then
     return 7
   fi
   cksum < "$1"
 }
-xcode-select() { return 0; }
-pgrep() { return 0; }
+xcode-select() {
+  [ "$1" = -p ] && return "${TEST_CLT_STATUS:-0}"
+  printf 'xcode-select %s\n' "$*" >> "$HOME/commands"
+}
+pgrep() { return "${TEST_ROSETTA_STATUS:-0}"; }
+softwareupdate() { printf 'softwareupdate %s\n' "$*" >> "$HOME/commands"; }
 curl() { printf 'Unexpected network request\n' >&2; return 1; }
-cp() {
-  if [ "${TEST_MARKER_STATUS:-0}" != 0 ] && [ "$2" = "$HOME/.toast/macos.applied" ]; then
+mv() {
+  if [ "${TEST_MARKER_STATUS:-0}" != 0 ] && [ "${!#}" = "$DOT_STATE/applied/macos-defaults" ]; then
     return 1
   fi
-  command cp "$@"
+  command mv "$@"
 }
 osascript() { printf 'osascript %s\n' "$*" >> "$HOME/commands"; }
 sudo() {
@@ -111,7 +121,9 @@ killall() {
   if [ "$1" = Terminal ]; then kill -HUP "$TEST_INSTALLER_PID"; fi
 }
 export -f osascript sudo nvram defaults chflags sysadminctl killall
-''' + step + '\nprintf "NEXT_STEP\\n"\n'
+dot_module_run macos || exit
+printf "NEXT_STEP\n"
+'''
 
     def invoke(self, *, terminal=True, **overrides):
         master, slave = os.openpty() if terminal else (None, None)
@@ -144,7 +156,7 @@ export -f osascript sudo nvram defaults chflags sysadminctl killall
                 self.marker.unlink(missing_ok=True)
                 self.log.unlink(missing_ok=True)
                 self.assert_continues(self.invoke(TEST_OS_ARCH=arch))
-                self.assertEqual(self.marker.read_bytes(), (self.repo / "macos").read_bytes())
+                self.assertEqual(self.marker.read_bytes(), self.source.read_bytes())
                 calls = self.log.read_text()
                 self.assertIn("defaults write", calls)
                 self.assertNotIn("killall", calls)
@@ -154,28 +166,15 @@ export -f osascript sudo nvram defaults chflags sysadminctl killall
                 self.assertEqual(self.marker.stat().st_mtime_ns, stamp)
                 self.assertEqual(self.log.read_text(), calls)
 
-    def test_download_backup_does_not_count_as_success(self):
-        previous = "#!/bin/bash\necho old preferences\n"
-        (self.home / ".macos").write_text(previous)
-        self.assert_continues(self.invoke())
-        self.assertIn("defaults write", self.log.read_text())
-        self.assertEqual((self.home / ".macos.backup").read_text(), previous)
-        self.assertEqual(self.marker.read_bytes(), (self.repo / "macos").read_bytes())
-
-    def test_unreadable_completion_hash_stops_before_preferences_are_applied(self):
+    def test_unreadable_completion_hash_stops_without_applying(self):
+        self.marker.parent.mkdir(parents=True)
         self.marker.write_text("previous successful preferences\n")
         result = self.invoke(TEST_MARKER_HASH_FAILURE="1")
-        self.assertNotEqual(result.returncode, 0)
-        self.assertFalse(self.log.exists())
+        self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("already applied", result.stdout)
+        self.assertIn("Failed to compare system preferences", result.stdout + result.stderr)
         self.assertEqual(self.marker.read_text(), "previous successful preferences\n")
-        self.assertNotIn("NEXT_STEP", result.stdout)
-
-    def test_legacy_backup_without_completion_marker_reapplies(self):
-        shutil.copy(self.repo / "macos", self.home / ".macos")
-        shutil.copy(self.repo / "macos", self.home / ".macos.backup")
-        self.assert_continues(self.invoke())
-        self.assertIn("defaults write", self.log.read_text())
-        self.assertTrue(self.marker.exists())
+        self.assertFalse(self.log.exists() and "defaults write" in self.log.read_text())
 
     def test_authentication_and_preference_failures_retry(self):
         for failure in ("TEST_SUDO_STATUS", "TEST_NVRAM_WRITE_STATUS", "TEST_DEFAULTS_STATUS"):
@@ -185,8 +184,8 @@ export -f osascript sudo nvram defaults chflags sysadminctl killall
                 result = self.invoke(TEST_STARTUP_MUTE="%00", **{failure: "1"})
                 self.assert_continues(result)
                 self.assertFalse(self.marker.exists())
-                self.assertIn("macOS system preferences failed", result.stdout)
-                self.assertNotIn("macOS system preferences applied", result.stdout)
+                self.assertIn("System preferences failed", result.stdout)
+                self.assertNotIn("System preferences applied", result.stdout)
                 if failure == "TEST_SUDO_STATUS":
                     self.assertNotIn("defaults write", self.log.read_text())
                 self.assert_continues(self.invoke())
@@ -195,7 +194,7 @@ export -f osascript sudo nvram defaults chflags sysadminctl killall
     def test_changed_preferences_failed_apply_preserves_marker_and_retries(self):
         self.assert_continues(self.invoke())
         previous = self.marker.read_bytes()
-        source = self.repo / "macos"
+        source = self.source
         source.write_text(source.read_text() + '\ndefaults write test.retry enabled -bool true\n')
         result = self.invoke(TEST_DEFAULTS_STATUS="1")
         self.assert_continues(result)
@@ -211,11 +210,9 @@ export -f osascript sudo nvram defaults chflags sysadminctl killall
         self.assert_continues(self.invoke())
         self.assertTrue(self.marker.exists())
 
-    def test_failed_completion_record_warns_and_retries(self):
+    def test_failed_completion_record_retries(self):
         result = self.invoke(TEST_MARKER_STATUS="1")
         self.assert_continues(result)
-        self.assertIn("Failed to record macOS system preferences", result.stdout)
-        self.assertNotIn("macOS system preferences applied", result.stdout)
         self.assertFalse(self.marker.exists())
         calls = self.log.read_text()
         self.assert_continues(self.invoke())
@@ -268,16 +265,42 @@ export -f osascript sudo nvram defaults chflags sysadminctl killall
                 result = self.invoke(TEST_SCREEN_LOCK_DELAY="60 seconds", **{failure: "1"})
                 self.assert_continues(result)
                 self.assertFalse(self.marker.exists())
-                self.assertIn("macOS system preferences failed", result.stdout)
-                self.assertNotIn("macOS system preferences applied", result.stdout)
+                self.assertIn("System preferences failed", result.stdout)
+                self.assertNotIn("System preferences applied", result.stdout)
                 self.assert_continues(self.invoke(TEST_SCREEN_LOCK_DELAY="60 seconds"))
                 self.assertTrue(self.marker.exists())
 
-    def test_linux_skips_macos_preferences(self):
-        self.assert_continues(self.invoke(TEST_OS_NAME="linux", TEST_OS_ARCH="x86_64"))
+    def test_other_platforms_skip_the_module(self):
+        result = self.invoke(TEST_PLATFORM="linux", TEST_OS_ARCH="x86_64")
+        self.assert_continues(result)
+        self.assertIn("not supported on linux", result.stdout)
         self.assertFalse(self.log.exists())
         self.assertFalse(self.marker.exists())
-        self.assertFalse((self.home / ".macos").exists())
+
+    def test_missing_command_line_tools_start_installer_and_warn(self):
+        result = self.invoke(TEST_CLT_STATUS="1")
+        self.assert_continues(result)
+        self.assertIn("xcode-select --install", self.log.read_text())
+        self.assertIn("Command Line Tools", result.stdout)
+        self.assertTrue(self.marker.exists())
+
+    def test_rosetta_is_installed_only_on_arm64_when_missing(self):
+        for arch, status, expected in (("arm64", "1", True), ("arm64", "0", False), ("x86_64", "1", False)):
+            with self.subTest(arch=arch, status=status):
+                self.log.unlink(missing_ok=True)
+                self.assert_continues(self.invoke(TEST_OS_ARCH=arch, TEST_ROSETTA_STATUS=status))
+                calls = self.log.read_text() if self.log.exists() else ""
+                self.assertEqual("--install-rosetta" in calls, expected)
+
+    def test_key_binding_is_copied_once_and_local_edits_survive(self):
+        self.binding.unlink()
+        self.assert_continues(self.invoke())
+        source = self.repo / "config/macos/DefaultkeyBinding.dict"
+        self.assertEqual(self.binding.read_bytes(), source.read_bytes())
+        self.binding.write_text("edited\n")
+        self.assert_continues(self.invoke())
+        self.assertEqual(self.binding.read_text(), "edited\n")
+
 
 
 if __name__ == "__main__":

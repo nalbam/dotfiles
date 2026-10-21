@@ -14,7 +14,7 @@ macos::up() {
 
   if [ "$DOT_ARCH" = arm64 ] && ! pgrep -q oahd; then
     dot_run "Installing Rosetta 2"
-    softwareupdate --install-rosetta --agree-to-license >/dev/null || dot_warn "Rosetta 2 installation failed"
+    sudo softwareupdate --install-rosetta --agree-to-license >/dev/null || dot_warn "Rosetta 2 installation failed"
   fi
 
   # The key binding (₩ types `) is copied once so local edits survive.
@@ -22,16 +22,23 @@ macos::up() {
     dot_install_file Library/KeyBindings/DefaultkeyBinding.dict config/macos/DefaultkeyBinding.dict
   fi
 
-  # Preferences are applied when their script changed or the last attempt failed.
-  if dot_applied "$DOT_HOME/config/macos/defaults.sh" macos-defaults; then
+  # Preferences are applied when their script changed or the last attempt
+  # failed. A failed checksum is neither "applied" nor a reason to re-apply.
+  local applied
+  dot_applied "$DOT_HOME/config/macos/defaults.sh" macos-defaults
+  applied=$?
+  if [ "$applied" -eq 0 ]; then
     dot_skip "System preferences already applied"
+  elif [ "$applied" -eq 2 ]; then
+    dot_die "Failed to compare system preferences with their completion marker"
   else
     dot_run "Applying system preferences (config/macos/defaults.sh)"
-    if /bin/bash "$DOT_HOME/config/macos/defaults.sh"; then
-      dot_mark_applied "$DOT_HOME/config/macos/defaults.sh" macos-defaults
+    if ! /bin/bash "$DOT_HOME/config/macos/defaults.sh"; then
+      dot_warn "System preferences failed; they are retried on the next run"
+    elif dot_mark_applied "$DOT_HOME/config/macos/defaults.sh" macos-defaults; then
       dot_ok "System preferences applied; some take effect after logout"
     else
-      dot_warn "System preferences failed; they are retried on the next run"
+      dot_warn "System preferences applied but not recorded; they are applied again on the next run"
     fi
   fi
 }

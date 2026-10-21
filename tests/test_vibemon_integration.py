@@ -26,7 +26,8 @@ class InstallerCoexistenceTests(unittest.TestCase):
                 home = Path(directory) / "machine home"
                 repo = home / ".dotfiles"
                 repo.mkdir(parents=True)
-                for name in ("claude", "codex", "kiro", "scripts"):
+                # run.sh --vibe hands over to bin/dot, which loads its libraries and modules.
+                for name in ("claude", "codex", "kiro", "scripts", "bin", "lib", "modules", "profiles"):
                     shutil.copytree(ROOT / name, repo / name, ignore=shutil.ignore_patterns("__pycache__"))
                 shutil.copy(ROOT / "run.sh", repo / "run.sh")
                 env = {"HOME": str(home), "PATH": os.environ["PATH"], "TERM": "dumb",

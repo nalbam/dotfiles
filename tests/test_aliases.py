@@ -21,7 +21,7 @@ class AliasTests(unittest.TestCase):
             prefix = "shopt -s expand_aliases\n" if shell.endswith("bash") else ""
             return subprocess.run(
                 [shell, *args, "-c", prefix + '. "$1"\n' + body,
-                 "aliases-test", str(ROOT / "aliases")],
+                 "aliases-test", str(ROOT / "config/shell/aliases")],
                 cwd=home, env=env, capture_output=True, text=True, timeout=5,
             )
 

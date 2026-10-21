@@ -13,13 +13,13 @@ if (-Not (Test-Path $DotfilesDir)) {
 # 2. 심볼릭 링크 생성 (예: .gitconfig)
 Write-Host "심볼릭 링크를 생성합니다..."
 $Links = @{
-    "$DotfilesDir\gitconfig" = "$HOME\.gitconfig"
-    "$DotfilesDir\gitconfig-bruce" = "$HOME\.gitconfig-bruce"
-    "$DotfilesDir\gitconfig-nalbam" = "$HOME\.gitconfig-nalbam"
-    "$DotfilesDir\gitconfig-nalbam-me" = "$HOME\.gitconfig-nalbam-me"
-    "$DotfilesDir\gitconfig-nalbam-bot" = "$HOME\.gitconfig-nalbam-bot"
-    "$DotfilesDir\gitconfig-yujh404" = "$HOME\.gitconfig-yujh404"
-    "$DotfilesDir\vimrc" = "$HOME\.vimrc"
+    "$DotfilesDir\config\git\gitconfig" = "$HOME\.gitconfig"
+    "$DotfilesDir\config\git\gitconfig-bruce" = "$HOME\.gitconfig-bruce"
+    "$DotfilesDir\config\git\gitconfig-nalbam" = "$HOME\.gitconfig-nalbam"
+    "$DotfilesDir\config\git\gitconfig-nalbam-me" = "$HOME\.gitconfig-nalbam-me"
+    "$DotfilesDir\config\git\gitconfig-nalbam-bot" = "$HOME\.gitconfig-nalbam-bot"
+    "$DotfilesDir\config\git\gitconfig-yujh404" = "$HOME\.gitconfig-yujh404"
+    "$DotfilesDir\config\vim\vimrc" = "$HOME\.vimrc"
 }
 
 foreach ($src in $Links.Keys) {
