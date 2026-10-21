@@ -52,9 +52,12 @@ spark_digest() {
   rm -f "$list"
 }
 
+# Records first that dot has written the runtime directory: from then on,
+# matching files no longer prove that a module was applied (see spark_adoptable).
 spark_sync() {
   local file
   mkdir -p "$DOT_SPARK_DIR" || return 1
+  [ -e "$DOT_STATE/applied/spark-synced" ] || : | dot_write "$DOT_STATE/applied/spark-synced" || return 1
   spark_files | while IFS= read -r file; do
     mkdir -p "$DOT_SPARK_DIR/${file%/*}" &&
       cp -p "$DOT_SPARK_SOURCE/$file" "$DOT_SPARK_DIR/$file.dot-tmp" &&
@@ -65,6 +68,17 @@ spark_sync() {
 # True when the runtime copy of the files (limited to PREFIX...) matches the repository.
 spark_in_sync() {
   [ "$(spark_digest "$DOT_SPARK_SOURCE" "$@")" = "$(spark_digest "$DOT_SPARK_DIR" "$@")" ]
+}
+
+# spark_adoptable KEY [PREFIX...]: true for a host set up before dot, when dot
+# has never written the runtime directory, KEY was never applied, and the
+# runtime files already match the repository. After a failed apply the files
+# match too, so this must not be used as an "applied" check.
+spark_adoptable() {
+  local key="$1"
+  shift
+  [ ! -f "$DOT_STATE/applied/spark-$key" ] && [ ! -e "$DOT_STATE/applied/spark-synced" ] &&
+    spark_in_sync "$@"
 }
 
 # spark_mark KEY [PREFIX...]: record that KEY was applied with the current

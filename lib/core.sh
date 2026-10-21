@@ -222,10 +222,13 @@ dot_mark_applied() {
 # Environment
 ################################################################################
 
+# Homebrew prefixes in lookup order; override for a custom prefix.
+DOT_BREW_PREFIXES="${DOT_BREW_PREFIXES:-/opt/homebrew /home/linuxbrew/.linuxbrew /usr/local}"
+
 # Make tools installed by earlier modules visible to later ones.
 dot_load_paths() {
   local prefix
-  for prefix in /opt/homebrew /home/linuxbrew/.linuxbrew /usr/local; do
+  for prefix in $DOT_BREW_PREFIXES; do
     if [ -x "$prefix/bin/brew" ]; then
       eval "$("$prefix/bin/brew" shellenv)"
       break

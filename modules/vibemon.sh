@@ -22,7 +22,7 @@ vibemon::up() {
     dot_skip "Collector is active and matches the repository"
     return 0
   fi
-  if spark_in_sync $VIBEMON_FILES && systemctl --user is-active --quiet "$VIBEMON_UNIT" 2>/dev/null &&
+  if spark_adoptable vibemon $VIBEMON_FILES && systemctl --user is-active --quiet "$VIBEMON_UNIT" 2>/dev/null &&
      [ "$DOT_FORCE" != true ]; then
     spark_mark vibemon $VIBEMON_FILES
     dot_ok "Adopted the active collector"

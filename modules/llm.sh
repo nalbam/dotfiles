@@ -28,7 +28,7 @@ llm::up() {
     dot_skip "Stack matches the repository (mode: $(spark_mode))"
     return 0
   fi
-  if [ -f "$DOT_SPARK_DIR/.env" ] && spark_in_sync && [ "$DOT_FORCE" != true ]; then
+  if [ -f "$DOT_SPARK_DIR/.env" ] && spark_adoptable llm && [ "$DOT_FORCE" != true ]; then
     spark_mark llm
     dot_ok "Adopted the running stack; files already match (mode: $(spark_mode))"
     return 0

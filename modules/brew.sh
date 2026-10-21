@@ -36,7 +36,15 @@ brew::up() {
   dot_has brew || _brew_install
 
   dot_due brew && due=true
-  [ -f "$brewfile" ] && ! dot_applied "$brewfile" Brewfile && changed=true
+  if [ -f "$brewfile" ]; then
+    # A failed checksum is neither "applied" nor a reason to apply.
+    dot_applied "$brewfile" Brewfile
+    case $? in
+      0) ;;
+      2) dot_die "Failed to compare the Brewfile with its completion marker" ;;
+      *) changed=true ;;
+    esac
+  fi
   if [ "$due" = false ] && [ "$changed" = false ]; then
     dot_skip "Packages upgraded $(dot_stamp_age brew); next upgrade after 6 hours (dot up --force)"
     return 0

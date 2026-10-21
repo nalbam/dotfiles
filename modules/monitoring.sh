@@ -22,7 +22,7 @@ monitoring::up() {
     return 0
   fi
   # A host set up before dot keeps running untouched when its files already match.
-  if [ -s "$DOT_SPARK_DIR/.env.grafana" ] && spark_in_sync $MONITORING_FILES && [ "$DOT_FORCE" != true ]; then
+  if [ -s "$DOT_SPARK_DIR/.env.grafana" ] && spark_adoptable monitoring $MONITORING_FILES && [ "$DOT_FORCE" != true ]; then
     spark_mark monitoring $MONITORING_FILES
     dot_ok "Adopted the existing monitoring setup"
     return 0
