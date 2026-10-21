@@ -207,9 +207,9 @@ dot_stamp() {
 
 dot_stamp_age() {
   local stamp="$DOT_STATE/stamps/$1" last
-  last=$(cat "$stamp" 2>/dev/null) || { printf 'never'; return; }
+  last=$(cat "$stamp" 2>/dev/null) || { printf -- '-'; return; }
   case "$last" in
-    '' | *[!0-9]*) printf 'never'; return ;;
+    '' | *[!0-9]*) printf -- '-'; return ;;
   esac
   last=$(( $(date +%s) - last ))
   if [ "$last" -lt 3600 ]; then printf '%dm ago' $((last / 60))

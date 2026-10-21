@@ -276,7 +276,7 @@ dot_same_file "$HOME/a" "$HOME/b"; printf '%s\\n' $?
         self.assertEqual(result.stdout, "fresh")
         self.assertEqual(self.run_shell('dot_due brew && printf due\n', DOT_FORCE="true").stdout, "due")
         self.assertIn("m ago", self.run_shell('dot_stamp_age brew\n').stdout)
-        self.assertEqual(self.run_shell('dot_stamp_age never-run\n').stdout, "never")
+        self.assertEqual(self.run_shell('dot_stamp_age never-run\n').stdout, "-")
 
     def test_applied_marker_tracks_successful_content(self):
         source = self.home / "defaults.sh"

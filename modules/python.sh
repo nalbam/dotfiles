@@ -5,7 +5,7 @@ DOT_PIP_PACKAGES="${DOT_PIP_PACKAGES:-toast-cli}"
 
 python::describe() { printf 'pip tools: %s\n' "$DOT_PIP_PACKAGES"; }
 python::supported() { dot_has python3; }
-python::status() { if dot_has toast; then toast --version 2>/dev/null | head -1; else printf 'toast not installed\n'; fi; }
+python::status() { if dot_has toast; then toast version 2>/dev/null | head -1; else printf 'toast not installed\n'; fi; }
 
 # PEP 668 systems refuse plain installs, and some machines lock the user site;
 # try each method in order and stop at the first that works.

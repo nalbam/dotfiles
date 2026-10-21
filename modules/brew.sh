@@ -18,6 +18,21 @@ _brew_install() {
   dot_ok "Homebrew installed"
 }
 
+# Homebrew 7 loads formulae and casks from third-party taps only after
+# `brew trust`. Trust exactly the tap-qualified entries the Brewfile installs
+# (brew "owner/tap/name", cask "owner/tap/name"), not whole taps.
+_brew_trust() {
+  local kind name
+  brew trust --help >/dev/null 2>&1 || return 0
+  sed -nE 's#^[[:space:]]*(brew|cask)[[:space:]]+"([^"/]+/[^"/]+/[^"]+)".*#\1 \2#p' "$1" |
+    while read -r kind name; do
+      case "$kind" in
+        brew) brew trust --quiet --formula "$name" ;;
+        cask) brew trust --quiet --cask "$name" ;;
+      esac || exit 1
+    done
+}
+
 # On DGX Spark, model serving shares memory with the host and a watchdog stops
 # Flash when memory runs low. Source builds during an upgrade can trigger it.
 _brew_memory_ok() {
@@ -60,6 +75,7 @@ brew::up() {
   fi
   if [ -f "$brewfile" ]; then
     dot_run "brew bundle --file=packages/Brewfile.$DOT_OS"
+    _brew_trust "$brewfile" || dot_warn "brew trust failed; packages from third-party taps may not load"
     if brew bundle --file="$brewfile"; then
       dot_mark_applied "$brewfile" Brewfile
     else

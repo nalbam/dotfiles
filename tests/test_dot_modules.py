@@ -90,12 +90,35 @@ class BrewTests(ModuleCase):
     def setUp(self):
         super().setUp()
         self.machine.stub("brew", RECORD + 'case "$1" in update) exit "${UPDATE_STATUS:-0}" ;; '
-                                           'bundle) exit "${BUNDLE_STATUS:-0}" ;; esac\n')
+                                           'bundle) exit "${BUNDLE_STATUS:-0}" ;; '
+                                           'trust) exit "${TRUST_STATUS:-0}" ;; esac\n')
         self.brewfile = self.machine.repo / "packages/Brewfile.linux"
         self.marker = self.machine.state / "applied/Brewfile"
 
     def brew_calls(self):
-        return [call.split()[1] for call in self.recorded() if call.startswith("brew ")]
+        return [call.split()[1] for call in self.recorded()
+                if call.startswith("brew ") and call.split()[1] != "trust"]
+
+    def test_third_party_entries_are_trusted_before_bundle(self):
+        self.brewfile.write_text('tap "acme/tap"\nbrew "jq"\nbrew "acme/tap/tool"\n'
+                                 '  cask "acme/tap/app" # comment\ncask "font-x"\n')
+        result = self.module("brew", "run brew::up\n")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        calls = [call for call in self.recorded() if call.startswith("brew ")]
+        trusts = [call for call in calls if call.split()[1] == "trust"]
+        self.assertEqual(trusts, ["brew trust --help",
+                                  "brew trust --quiet --formula acme/tap/tool",
+                                  "brew trust --quiet --cask acme/tap/app"])
+        self.assertLess(calls.index(trusts[-1]), [c.split()[1] for c in calls].index("bundle"))
+
+    def test_homebrew_without_trust_skips_it(self):
+        self.brewfile.write_text('brew "acme/tap/tool"\n')
+        result = self.module("brew", "run brew::up\n", TRUST_STATUS="1")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        calls = [call for call in self.recorded() if call.startswith("brew ")]
+        self.assertEqual([call for call in calls if call.split()[1] == "trust"], ["brew trust --help"])
+        self.assertIn("bundle", [call.split()[1] for call in calls])
+        self.assertNotIn("brew trust failed", result.stdout + result.stderr)
 
     def test_brewfile_change_bypasses_the_throttle(self):
         self.stamp("brew")

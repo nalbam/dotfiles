@@ -6,7 +6,11 @@ DOT_NVM_VERSION="${DOT_NVM_VERSION:-v0.40.3}"
 
 node::describe() { printf 'nvm and Node.js %s as the default\n' "$DOT_NODE_VERSION"; }
 node::detect() { [ -s "${NVM_DIR:-$HOME/.nvm}/nvm.sh" ]; }
-node::status() { node --version 2>/dev/null || printf 'not installed\n'; }
+node::status() {
+  # The shared loader only reads an existing nvm; it never installs or creates.
+  . "$DOT_HOME/config/shell/nvm.sh" >/dev/null 2>&1
+  if dot_has node; then node --version; else printf 'not installed\n'; fi
+}
 
 _node_load() {
   export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
