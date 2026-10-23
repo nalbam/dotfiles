@@ -1,9 +1,10 @@
 # shellcheck shell=bash
-# Directories, SSH key, credential templates and the `dot` command on PATH.
+# Directories, SSH key and credential templates.
+#
+# The CLI stays at $DOT_HOME/bin/dot and is not put on PATH: `dot` belongs to
+# Graphviz and other tools, and a machine's existing commands must keep working.
 
-base::describe() { printf 'Directories, SSH key, SSH/AWS templates, dot on PATH\n'; }
-
-base::status() { printf 'dot -> %s\n' "$(readlink "$HOME/.local/bin/dot" 2>/dev/null || printf missing)"; }
+base::describe() { printf 'Directories, SSH key, SSH/AWS templates\n'; }
 
 # Markers from the previous installer (~/.toast) keep their meaning, so an
 # existing machine does not repeat work such as macOS preferences.
@@ -44,13 +45,10 @@ base::up() {
   [ -f "$HOME/.ssh/config" ] || dot_install_file .ssh/config config/ssh/config
   [ -f "$HOME/.aws/config" ] || dot_install_file .aws/config config/aws/config
 
-  if [ "$(readlink "$HOME/.local/bin/dot" 2>/dev/null)" != "$DOT_HOME/bin/dot" ]; then
-    if [ -e "$HOME/.local/bin/dot" ] && [ ! -L "$HOME/.local/bin/dot" ]; then
-      dot_warn "~/.local/bin/dot is not a link to dotfiles; leaving it in place"
-    else
-      ln -sfn "$DOT_HOME/bin/dot" "$HOME/.local/bin/dot" || dot_die "Failed to link ~/.local/bin/dot"
-      dot_ok "Linked ~/.local/bin/dot"
-    fi
+  # Earlier versions linked ~/.local/bin/dot here. Remove only that link.
+  if [ -L "$HOME/.local/bin/dot" ] && [ "$(readlink "$HOME/.local/bin/dot")" = "$DOT_HOME/bin/dot" ]; then
+    rm -f "$HOME/.local/bin/dot" || dot_die "Failed to remove ~/.local/bin/dot"
+    dot_ok "Removed the ~/.local/bin/dot link"
   fi
   dot_ok "Base directories ready"
 }

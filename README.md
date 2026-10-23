@@ -17,13 +17,15 @@
 curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 ```
 
-`run.sh`는 `~/.dotfiles`를 준비한 뒤 `dot up`을 실행한다. Git을 아직 쓸 수 없으면(Command Line Tools가 없는 새 macOS 등) 저장소 압축 파일을 받고, Homebrew 설치 등으로 Git을 쓸 수 있게 되면 `dot up` 끝에서 Git checkout으로 바꾼다. 설치가 끝나면 `dot`이 `~/.local/bin/dot`에 연결된다.
+`run.sh`는 `~/.dotfiles`를 준비한 뒤 `dot up`을 실행한다. Git을 아직 쓸 수 없으면(Command Line Tools가 없는 새 macOS 등) 저장소 압축 파일을 받고, Homebrew 설치 등으로 Git을 쓸 수 있게 되면 `dot up` 끝에서 Git checkout으로 바꾼다. 설치기는 `dot`을 PATH에 추가하지 않는다. `dot`이라는 이름은 Graphviz 등 기존 도구가 쓰기 때문이다.
 
-완료 요약에 `⚠`나 `✗`가 있으면 해당 모듈의 로그를 확인하고 원인을 해결한 뒤 `dot up`을 다시 실행한다. 새 터미널에서 `dot doctor`로 셸·PATH·도구 상태를 확인한다.
+완료 요약에 `⚠`나 `✗`가 있으면 해당 모듈의 로그를 확인하고 원인을 해결한 뒤 `tt`를 다시 실행한다. 새 터미널에서 `~/.dotfiles/bin/dot doctor`로 셸·도구 상태를 확인한다.
 
 이전 설치기를 쓰던 머신은 같은 명령(`tt`)을 한 번 실행하면 새 구조로 바뀐다. 이전 `~/.toast` 기록은 그대로 이어받으므로 macOS 설정을 다시 적용하지 않는다.
 
 ## dot 명령
+
+`dot`은 `~/.dotfiles/bin/dot`에 있는 CLI이고 PATH에는 없다. 아래 표의 `dot`은 `~/.dotfiles/bin/dot`으로 실행한다. 예: `~/.dotfiles/bin/dot status`. 설치·업그레이드(`dot up`)는 `tt`로 실행해도 된다. PATH의 `dot`은 Graphviz 같은 기존 도구다.
 
 | 명령 | 동작 |
 |------|------|
@@ -37,7 +39,7 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 | `dot vibe` | AI 도구 설정만 배포한다(`dot run ai`). |
 | `dot upgrade-system [--yes]` | OS 패키지 업그레이드. `--yes` 없이는 대상만 보여준다. `dot up`은 OS 패키지를 업그레이드하지 않는다. |
 | `dot platform [set NAME\|reset]` | 감지된 플랫폼을 보거나 고정한다. |
-| `dot doctor` | 셸·PATH·Python·Homebrew·Git 신원을 점검한다. |
+| `dot doctor` | checkout·셸·Python·Homebrew·Git 신원을 점검한다. |
 | `dot llm ...` | DGX Spark 모델 스택 운영. `dot llm help` 참고. |
 | `dot @HOST COMMAND...` | 다른 머신에서 SSH로 `dot`을 실행한다. 예: `dot @spark llm status`, `dot @web-1 up` |
 | `dot @HOST bootstrap` | 원격 머신에 dotfiles를 처음 설치한다. |
@@ -66,7 +68,7 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 
 | 모듈 | 설치·업그레이드 내용 |
 |------|----------------------|
-| `base` | `~/.ssh`(700)·SSH 키·SSH/AWS 템플릿, `~/.local/bin/dot` 링크 |
+| `base` | `~/.ssh`(700)·SSH 키·SSH/AWS 템플릿. 이전 버전이 만든 `~/.local/bin/dot` 링크는 삭제하고, 다른 `dot`은 그대로 둔다 |
 | `apt` | 필수 APT 패키지. 빠진 패키지가 있을 때만 index를 갱신한다. |
 | `server` | 시간대, fail2ban, fstrim, 스왑, AWS CLI v2 |
 | `git` | `~/.gitconfig`와 디렉터리별 신원 파일 |
@@ -208,7 +210,7 @@ Git 기본 설정과 디렉터리별 신원 프로필, Vim 설정을 링크한�
 
 | 명령 | 동작 |
 |------|------|
-| `tt` | 부트스트랩(`run.sh`)을 내려받아 실행한다. 현재 위치와 PATH의 `dot`에 관계없이 `~/.dotfiles/bin/dot up`이 실행된다. 인자는 `run.sh`로 전달된다(`tt --force`). |
+| `tt` | 부트스트랩(`run.sh`)을 내려받아 실행한다. 현재 위치와 관계없이 `~/.dotfiles/bin/dot up`이 실행된다. 인자는 `run.sh`로 전달된다(`tt --force`). |
 | `c <workspace>` | toast-cli로 워크스페이스 이동 |
 | `av <profile> <cmd>` | aws-vault 프로필로 실행. 예: `av n kubectl get pods` |
 | `nn` / `nnn` / `nb` | lockfile 유지 재설치 / lockfile 삭제 후 의존성 다시 결정 / build |
