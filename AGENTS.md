@@ -4,7 +4,7 @@ Guidance for Codex (and other AI agents) working in this repository. For a human
 
 ## What this repo is
 
-Machine setup and maintenance for macOS, WSL2, DGX Spark, EC2 (k3s nodes), Raspberry Pi and generic Ubuntu/Debian. `run.sh` bootstraps `~/.dotfiles` and runs `dot up`; `bin/dot` detects the platform, applies its profile and enabled add-on modules, and upgrades what is due on every run. Add-ons include the DGX Spark model stack (`stacks/dgx-spark`), monitoring, VibeMon, k3s and Docker.
+Machine setup and maintenance for macOS, WSL2, DGX Spark, EC2 (k3s nodes), Raspberry Pi and generic Ubuntu/Debian. `run.sh` bootstraps `~/.dotfiles` and runs `dot up`; `bin/dot` detects the platform, applies its profile and enabled add-on modules, and upgrades what is due on every run. Add-ons include the DGX Spark model stack (`stacks/dgx-spark`), monitoring, k3s and Docker. The VibeMon collector is not managed here; VibeMon's own installer installs it (`--collector` on a Linux host, `--kubernetes` for clusters).
 
 `run.sh`, `bin/dot`, `lib/` and `modules/` are Bash and **must stay compatible with Bash 3.2** (macOS `/bin/bash`): no associative arrays, `${var,,}`, `mapfile` or `declare -A`. AI settings sync and stack helpers use Python 3.11+ standard libraries. `config/shell/aliases` and the zprofiles must work in both Bash and Zsh. **No build step, no package graph.**
 
@@ -19,7 +19,7 @@ Machine setup and maintenance for macOS, WSL2, DGX Spark, EC2 (k3s nodes), Raspb
 | `profiles/<platform>` | Default modules per platform. |
 | `config/shell/aliases` | All shell aliases and helper functions. |
 | `packages/Brewfile.darwin`, `packages/Brewfile.linux` | Declarative package lists (read these — do not enumerate packages here). |
-| `stacks/dgx-spark/` | Docker Compose model stack operated by the `llm`, `monitoring` and `vibemon` modules. |
+| `stacks/dgx-spark/` | Docker Compose model stack operated by the `llm` and `monitoring` modules. |
 
 **Before changing installer behavior, read `bin/dot`, `lib/` and the affected modules end to end.** Module order matters (e.g., `brew` installs nvm before `node` uses it).
 

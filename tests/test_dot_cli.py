@@ -171,7 +171,7 @@ class CommandTests(unittest.TestCase):
         spark_dir.mkdir()
         (spark_dir / ".env").write_text("SPARK_MODE=models\n")
         self.machine.config.mkdir(parents=True)
-        (self.machine.config / "modules").write_text("vibemon\n-monitoring\n")
+        (self.machine.config / "modules").write_text("nvim\n-monitoring\n")
         (spark_dir / ".env.grafana").write_text("x=1\n")
         result = self.machine.shell('''dot_detect
 dot_adopt_modules
@@ -185,10 +185,28 @@ cat "$DOT_CONFIG/modules"
         self.assertEqual(lines.count("  ℹ Adopted existing installation: llm"), 1)
         selected = lines[1].split()
         # Profile modules and add-ons run in DOT_MODULE_ORDER, not in file order.
-        self.assertEqual(selected, ["base", "apt", "git", "brew", "node", "python", "claude", "shell", "ai",
-                                    "llm", "vibemon"])
+        self.assertEqual(selected, ["base", "apt", "git", "brew", "node", "python", "claude", "shell", "nvim",
+                                    "ai", "llm"])
         self.assertNotIn("monitoring", selected, "a disabled module is never adopted")
-        self.assertEqual(lines[2:], ["vibemon", "-monitoring", "llm"])
+        self.assertEqual(lines[2:], ["nvim", "-monitoring", "llm"])
+
+    def test_removed_module_recorded_on_a_host_is_ignored(self):
+        # A host may still list a module that was removed from the repository.
+        self.machine.config.mkdir(parents=True)
+        (self.machine.config / "modules").write_text("vibemon\n")
+        spark = {"DOT_PLATFORM": "dgx-spark", "DOT_SPARK_DIR": str(self.machine.root / "spark")}
+        states = self.states(**spark)
+        self.assertNotIn("vibemon", states)
+        result = self.machine.shell("dot_detect\ndot_adopt_modules\ndot_selected_modules\n", **spark)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn("vibemon", result.stdout.split())
+        for args in (("run", "vibemon"), ("add", "vibemon"), ("remove", "vibemon"), ("vibemon",)):
+            with self.subTest(args=args):
+                result = self.machine.dot(*args, **spark)
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        result = self.machine.dot("remove", "llm", **spark)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.machine.config / "modules").read_text(), "vibemon\n-llm\n")
 
     def live_lock(self):
         lock = self.machine.state / "run.lock"

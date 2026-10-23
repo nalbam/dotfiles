@@ -587,12 +587,11 @@ class SparkTests(ModuleCase):
         self.source = self.machine.repo / "stacks/dgx-spark"
         self.runtime = self.machine.root / "dgx-spark"
         scripts = self.source / "scripts"
-        for name in ("deploy.sh", "health-check.sh", "setup-grafana.sh", "setup-vibemon.sh"):
+        for name in ("deploy.sh", "health-check.sh", "setup-grafana.sh"):
             variable = "FAIL_" + name.split(".")[0].replace("-", "_").upper()
             (scripts / name).write_text("#!/bin/sh\n" + RECORD + f'exit "${{{variable}:-0}}"\n')
             (scripts / name).chmod(0o755)
         (self.source / "grafana/model-targets.json").write_text("source must not be copied\n")
-        self.machine.stub("systemctl", 'exit "${ACTIVE:-1}"\n')
         self.machine.env.update(DOT_PLATFORM="dgx-spark", DOT_SPARK_DIR=str(self.runtime))
 
     def install_runtime(self):
@@ -738,32 +737,6 @@ class SparkTests(ModuleCase):
         self.assertIn("rc=0", result.stdout, result.stderr)
         self.assertEqual(self.scripts_called(), ["setup-grafana.sh"])
         self.assertEqual((self.runtime / "grafana/config.alloy").read_text(), "new collector config\n")
-        self.assertNotEqual((self.runtime / "Caddyfile.api").read_text(), "changed\n")
-
-    def test_vibemon_adopts_an_active_collector_or_sets_it_up(self):
-        self.install_runtime()
-        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="0")
-        self.assertIn("Adopted the active collector", result.stdout, result.stderr)
-        self.assertEqual(self.scripts_called(), [])
-        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="0", DOT_FORCE="true")
-        self.assertIn("Collector is active and matches", result.stdout)
-        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="0", DOT_ADDING="true")
-        self.assertEqual(self.scripts_called(), ["setup-vibemon.sh"], result.stderr)
-        shutil.rmtree(self.machine.state)
-        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="1")
-        self.assertIn("rc=0", result.stdout, result.stderr)
-        self.assertEqual(self.scripts_called(), ["setup-vibemon.sh"])
-        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="1", FAIL_SETUP_VIBEMON="1")
-        self.assertIn("rc=1", result.stdout)
-
-    def test_vibemon_copies_only_its_files(self):
-        self.install_runtime()
-        self.module("llm", "run llm::up\n")
-        self.change("vibemon.env", "VIBEMON_URL=https://vibemon.io\n")
-        self.change("Caddyfile.api")
-        result = self.module("vibemon", "run vibemon::up\n", ACTIVE="1")
-        self.assertIn("rc=0", result.stdout, result.stderr)
-        self.assertEqual((self.runtime / "vibemon.env").read_text(), "VIBEMON_URL=https://vibemon.io\n")
         self.assertNotEqual((self.runtime / "Caddyfile.api").read_text(), "changed\n")
 
     def test_cli_validates_service_names(self):

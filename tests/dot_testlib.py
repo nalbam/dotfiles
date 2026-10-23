@@ -36,7 +36,7 @@ def clean_env(**overrides):
     """The host environment without settings that change dot's behavior."""
     env = {key: value for key, value in os.environ.items() if not key.startswith("BASH_FUNC_")}
     for key in list(env):
-        if key.startswith(("DOT_", "NVM_", "XDG_", "GCLOUD_", "VIBEMON_", "K3S_")) or key in (
+        if key.startswith(("DOT_", "NVM_", "XDG_", "GCLOUD_", "K3S_")) or key in (
                 "BREWPATH", "WSL_DISTRO_NAME", "SSH_AUTH_SOCK", "PYENV_VERSION"):
             env.pop(key)
     env.update(TERM="dumb", BASH_ENV="", DOT_COLOR="false", PYTHONIOENCODING="utf-8",
