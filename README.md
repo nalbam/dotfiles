@@ -208,7 +208,7 @@ Git 기본 설정과 디렉터리별 신원 프로필, Vim 설정을 링크한�
 
 | 명령 | 동작 |
 |------|------|
-| `tt` | `dot up` 실행. `dot`이 없으면 부트스트랩을 내려받아 실행한다. |
+| `tt` | 부트스트랩(`run.sh`)을 내려받아 실행한다. 현재 위치와 PATH의 `dot`에 관계없이 `~/.dotfiles/bin/dot up`이 실행된다. 인자는 `run.sh`로 전달된다(`tt --force`). |
 | `c <workspace>` | toast-cli로 워크스페이스 이동 |
 | `av <profile> <cmd>` | aws-vault 프로필로 실행. 예: `av n kubectl get pods` |
 | `nn` / `nnn` / `nb` | lockfile 유지 재설치 / lockfile 삭제 후 의존성 다시 결정 / build |
