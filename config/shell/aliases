@@ -8,7 +8,9 @@ alias tu='python3 -m pip install --user -U toast-cli'
 # Remove the alias from older sessions so the function definition parses.
 unalias tt 2>/dev/null
 tt() {
-  curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash -s -- "$@"
+  local script
+  script=$(curl -fsSL https://nalbam.github.io/dotfiles/run.sh) || return
+  bash -c "$script" run.sh "$@"
 }
 alias vv='curl -fsSL https://docs.vibemon.io/install.py | python3 - --all --yes'
 
