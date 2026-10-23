@@ -14,7 +14,7 @@
 # (including a profile module) and prevents adoption.
 
 # Execution order. Every module must appear here exactly once.
-DOT_MODULE_ORDER="base apt server git brew macos node python claude shell terminal nvim ai docker k3s llm monitoring vibemon"
+DOT_MODULE_ORDER="base apt server git brew macos node python claude shell terminal nvim ai docker k3s llm monitoring"
 
 dot_fn() { declare -F "$1" >/dev/null 2>&1; }
 

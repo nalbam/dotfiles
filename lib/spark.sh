@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Shared by the DGX Spark modules (llm, monitoring, vibemon).
+# Shared by the DGX Spark modules (llm, monitoring).
 #
 # stacks/dgx-spark is copied into a runtime directory where Docker Compose runs
 # it. Runtime-only files (.env, credentials, backups, generated targets) exist

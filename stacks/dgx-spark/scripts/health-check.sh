@@ -17,10 +17,6 @@ SPARK_MODE="${SPARK_MODE:-models}"
 [[ "$SPARK_MODE" == comfyui || "$SPARK_MODE" == models || "$SPARK_MODE" == flash ]] || { echo "SPARK_MODE must be comfyui, models or flash" >&2; exit 1; }
 
 failed=false
-if ! scripts/check-vibemon.sh; then
-  echo "FAIL VibeMon collector delivery" >&2
-  failed=true
-fi
 wait_seconds="${HEALTH_WAIT_SECONDS:-0}"
 [[ "$wait_seconds" =~ ^[0-9]+$ ]] || { echo "HEALTH_WAIT_SECONDS must be a non-negative integer" >&2; exit 1; }
 metrics_file="$(mktemp)"

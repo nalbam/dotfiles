@@ -29,9 +29,6 @@ class SparkConfigTests(unittest.TestCase):
         self.assertNotIn("COMFYUI_DATA_PATH", env_values(SPARK / ".env.example"))
         self.assertIn('COMFYUI_DATA_PATH="${COMFYUI_DATA_PATH:-$HOME/.local/share/comfyui}"',
                       (SPARK / "scripts" / "deploy.sh").read_text())
-        vibemon = env_values(SPARK / "vibemon.env")
-        self.assertNotIn("VIBEMON_SOURCE_ID", vibemon)
-        self.assertNotIn("VIBEMON_SOURCE_NAME", vibemon)
 
     def test_dashboard_covers_host_gpu_workloads_and_io(self) -> None:
         dashboard = json.loads(

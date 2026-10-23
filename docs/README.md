@@ -7,7 +7,7 @@ Choose a guide by the task you want to complete.
 | Install a machine or run `dot` | [Quick Start](../README.md#quick-start), [dot commands](../README.md#dot-명령) |
 | Check what a platform installs | [Platforms and modules](../README.md#플랫폼과-모듈) |
 | Keep machine-specific values out of Git | [Machine settings](../README.md#머신별-설정) |
-| Operate models, monitoring or VibeMon on DGX Spark | [DGX Spark stack](../stacks/dgx-spark/README.md) |
+| Operate models or monitoring on DGX Spark | [DGX Spark stack](../stacks/dgx-spark/README.md) |
 | Upload Grafana dashboards | [Grafana dashboards](../stacks/grafana/README.md) |
 | Add a module or platform, or diagnose a run | [Architecture](ARCHITECTURE.md) |
 | Edit, verify or deploy AI settings | [AI Tools Sync](../README.md#ai-tools-sync) |

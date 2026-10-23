@@ -59,7 +59,7 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 |--------|-----------|-------------|-------------|
 | `macos` | `uname`이 Darwin | base git brew macos node python claude shell terminal ai | nvim |
 | `wsl` | `WSL_DISTRO_NAME` 또는 커널 이름의 `microsoft` | base apt git brew node python claude shell ai | nvim |
-| `dgx-spark` | `/etc/dgx-release` 또는 DMI 제품명 | base apt git brew node python claude shell ai | llm monitoring vibemon |
+| `dgx-spark` | `/etc/dgx-release` 또는 DMI 제품명 | base apt git brew node python claude shell ai | llm monitoring |
 | `ec2` | DMI 제조사 `Amazon EC2`, 인스턴스 asset tag, Xen UUID | base apt server git shell ai | k3s docker brew node |
 | `rpi` | device tree 모델명 | base apt git python shell ai | node nvim |
 | `linux` | 그 밖의 Linux | base apt git brew node python claude shell ai | server docker k3s nvim |
@@ -85,7 +85,6 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 | `k3s` | k3s 서버·에이전트. 채널의 최신 바이너리를 SHA-256으로 검증한 뒤 교체한다. minor 버전을 건너뛰는 업그레이드는 하지 않는다. |
 | `llm` | DGX Spark 모델 서빙 스택([stacks/dgx-spark](stacks/dgx-spark/README.md)). 처음과 `dot add llm`에서만 배포하고, 이후 변경은 `dot llm deploy`로 반영한다. |
 | `monitoring` | DGX Spark의 Grafana Alloy·DCGM Exporter. `llm` 스택이 먼저 배포되어 있어야 한다. |
-| `vibemon` | DGX Spark의 VibeMon 요약 수집기 |
 
 ## 머신별 설정
 
@@ -107,9 +106,8 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 | `DOT_TIMEZONE`, `DOT_SWAP_SIZE` | `Asia/Seoul`, `4G` | server |
 | `DOT_K3S_CHANNEL` | 새 설치는 `stable`, 기존 설치는 설치된 minor(예: `v1.33`) | k3s. minor 업그레이드는 다음 minor(예: `v1.34`)로 지정해 한 번에 하나씩 올린다. |
 | `DOT_K3S_URL`, `DOT_K3S_TOKEN`, `DOT_K3S_EXEC` | 없음 | k3s 첫 설치. URL이 있으면 에이전트로 설치한다. |
-| `DOT_SPARK_DIR` | `~/.config/dgx-spark` | llm·monitoring·vibemon |
+| `DOT_SPARK_DIR` | `~/.config/dgx-spark` | llm·monitoring |
 | `DOT_BREW_MIN_MEMORY_GIB` | `16` | brew(DGX Spark에서 이보다 여유 메모리가 적으면 업그레이드를 미룬다) |
-| `VIBEMON_SOURCE_ID`, `VIBEMON_SOURCE_NAME` | 호스트 이름, `DGX Spark` | vibemon |
 
 원격 호스트 파일 예시(`~/.config/dotfiles/hosts/spark.env`):
 
@@ -123,7 +121,7 @@ DOT_IDENTITY=~/.ssh/id_ed25519
 
 ## DGX Spark
 
-`dgx-spark` 프로필은 개발 환경만 설치한다. 모델 서빙·모니터링·VibeMon은 add-on이며, 이미 운영 중이면 첫 `dot up`에서 자동으로 이어받는다. 파일이 저장소와 같으면 컨테이너를 다시 만들지 않는다.
+`dgx-spark` 프로필은 개발 환경만 설치한다. 모델 서빙·모니터링은 add-on이며, 이미 운영 중이면 첫 `dot up`에서 자동으로 이어받는다. 파일이 저장소와 같으면 컨테이너를 다시 만들지 않는다. VibeMon 수집기는 dotfiles가 설치하거나 관리하지 않는다. VibeMon 설치기로 설치한다: `curl -fsSL https://vibemon.io/install/install.py | python3 - --collector`.
 
 ```bash
 dot add llm            # 모델 서빙 스택 배포 (기본 모드: models)
