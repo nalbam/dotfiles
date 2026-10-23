@@ -15,7 +15,7 @@ Use this guide when you change the installer, add a module or platform, or diagn
 | Entry point | Purpose | Preconditions |
 |-------------|---------|---------------|
 | `run.sh` | Bootstrap: prepare `~/.dotfiles`, then run `dot up` (or `dot vibe` with `--vibe`) | Regular user, Bash, curl, network |
-| `bin/dot` | CLI for all machine operations; linked to `~/.local/bin/dot` | A checkout or archive of this repository |
+| `bin/dot` | CLI for all machine operations; not on `PATH`, because `dot` belongs to Graphviz and other tools. Run it as `~/.dotfiles/bin/dot` or through `tt` | A checkout or archive of this repository |
 | `run.ps1` | Windows Git/Vim links, Git and 7-Zip packages, optional `custom.ps1` | Checkout at `$HOME\.dotfiles`, winget, permission to create symlinks |
 
 ## Components

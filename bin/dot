@@ -280,7 +280,6 @@ cmd_doctor() {
   _check() {
     if eval "$2" >/dev/null 2>&1; then dot_ok "$1"; else dot_warn "$1 — $3"; issues=$((issues + 1)); fi
   }
-  _check "dot is on PATH" '[ "$(command -v dot)" -ef "$DOT_HOME/bin/dot" ]' "run: dot run base"
   _check "Checkout is a Git repository" '[ -d "$DOT_HOME/.git" ]' "run: dot up"
   shell_name="$(basename "${SHELL:-}")"
   _check "Login shell is zsh" '[ "$shell_name" = zsh ]' "run: dot run shell"

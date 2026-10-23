@@ -151,7 +151,7 @@ class FullRunTests(unittest.TestCase):
         for target, source in expected.items():
             with self.subTest(target=target):
                 self.assertEqual((home / target).read_bytes(), (repo / source).read_bytes())
-        self.assertEqual(os.readlink(home / ".local/bin/dot"), str(repo / "bin/dot"))
+        self.assertFalse(os.path.lexists(home / ".local/bin/dot"))
         for name in (".ssh/config", ".aws/config"):
             self.assertEqual((home / name).read_text(), "machine-specific configuration\n")
         self.assertEqual((home / ".ssh").stat().st_mode & 0o777, 0o700)
@@ -182,6 +182,17 @@ class FullRunTests(unittest.TestCase):
 
     def test_dgx_spark_without_addons(self):
         self.check("Linux", "aarch64", "dgx-spark", dgx=True)
+
+    def test_legacy_dot_link_is_removed_and_other_dot_kept(self):
+        machine = self.prepare("Darwin", "arm64")
+        link = machine.home / ".local/bin/dot"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(machine.repo / "bin/dot")
+        self.up(machine)
+        self.assertFalse(os.path.lexists(link))
+        link.symlink_to("/opt/homebrew/bin/dot")
+        self.up(machine)
+        self.assertEqual(os.readlink(link), "/opt/homebrew/bin/dot")
 
     def test_legacy_markers_are_migrated(self):
         machine = self.prepare("Darwin", "arm64")

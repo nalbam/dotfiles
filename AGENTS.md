@@ -13,7 +13,7 @@ Machine setup and maintenance for macOS, WSL2, DGX Spark, EC2 (k3s nodes), Raspb
 | File | Role |
 |------|------|
 | `run.sh` | Bootstrap only: clone or download `~/.dotfiles`, then exec `bin/dot up` (`--vibe` → `dot vibe`). |
-| `bin/dot` | CLI. Commands: `up`, `run`, `add`, `remove`, `list`, `status`, `doctor`, `platform`, `upgrade-system`, `vibe`, `@HOST`, and module CLIs such as `dot llm`. |
+| `bin/dot` | CLI. Commands: `up`, `run`, `add`, `remove`, `list`, `status`, `doctor`, `platform`, `upgrade-system`, `vibe`, `@HOST`, and module CLIs such as `dot llm`. Never put it on `PATH`: `dot` belongs to Graphviz and other tools, and setup must not shadow commands a machine already has. |
 | `lib/modules.sh` | Module contract and `DOT_MODULE_ORDER` (the execution order). |
 | `modules/<name>.sh` | One module per file: `<name>::describe`, `<name>::up`, optional `supported`, `detect`, `status`, `cli`. |
 | `profiles/<platform>` | Default modules per platform. |
