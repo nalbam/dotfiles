@@ -11,6 +11,7 @@ Choose a guide by the task you want to complete.
 | Upload Grafana dashboards | [Grafana dashboards](../stacks/grafana/README.md) |
 | Add a module or platform, or diagnose a run | [Architecture](ARCHITECTURE.md) |
 | Edit, verify or deploy AI settings | [AI Tools Sync](../README.md#ai-tools-sync) |
+| Choose development agents and coordinate their work | [Development Agents](DEVELOPMENT_AGENTS.md) |
 | Choose a shared AI skill | [Skills](SKILLS.md) |
 | Use the Neovim configuration | [Neovim](../config/nvim/README.md) |
 | Change shell helpers | [aliases](../config/shell/aliases) |

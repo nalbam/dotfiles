@@ -234,6 +234,7 @@ Claude Code·Codex·OpenCode·Kiro의 공통 지침과 설정을 저장소에서
 |-------------|-----------|-----------|
 | `claude/CLAUDE.md`·`claude/rules/` → `codex/AGENTS.md` | `~/.codex/AGENTS.md` | Claude 지침과 규칙을 한 파일로 합친 공통 지침 |
 | `claude/skills/` → `codex/skills/` | `~/.agents/skills/` | Claude 원본에서 생성한 Codex 스킬·참조 문서 |
+| `claude/agents/` → `codex/agents/` | `~/.codex/agents/` | Claude 역할에서 생성한 Codex TOML 에이전트 |
 | `codex/skills/*/agents/openai.yaml` | 해당 배포 스킬의 `agents/openai.yaml` | 직접 관리하는 Codex 메타데이터 |
 | `claude/CLAUDE.md`·`claude/rules/` → `opencode/AGENTS.md` | `~/.config/opencode/AGENTS.md` | Codex와 같은 공통 지침. 스킬 호출 문법만 `@<name>`이다 |
 | `claude/settings.json` → `opencode/opencode.json` | `~/.config/opencode/opencode.json` | Claude `permissions.deny`의 셸 규칙. `permissions`만 원본 우선 |
@@ -254,7 +255,7 @@ Codex와 Claude는 요청 범위에서 문제가 없음을 검증한 릴리즈·
 
 ### 수정과 검증
 
-작업 중인 checkout의 루트에서 실행한다. 공통 지침은 `claude/CLAUDE.md`·`claude/rules/`, 공유 스킬은 `claude/skills/`, 서브에이전트는 `claude/agents/`, deny 규칙은 `claude/settings.json`을 수정한 뒤 Codex·OpenCode 파일을 재생성한다. [스킬 안내](docs/SKILLS.md)에서 역할과 원본 위치를 확인할 수 있다.
+작업 중인 checkout의 루트에서 실행한다. 공통 지침은 `claude/CLAUDE.md`·`claude/rules/`, 공유 스킬은 `claude/skills/`, 서브에이전트는 `claude/agents/`, deny 규칙은 `claude/settings.json`을 수정한 뒤 Codex·OpenCode 파일을 재생성한다. [스킬 안내](docs/SKILLS.md)와 [개발 에이전트 안내](docs/DEVELOPMENT_AGENTS.md)에서 역할·선택 기준·사용 예시·원본 위치를 확인할 수 있다. 개발 에이전트는 master부터 분석·기획·설계·구현·테스트·리뷰·배포까지 14개 역할을 제공한다.
 
 ```bash
 python3 scripts/gen-ai-tools.py
@@ -277,12 +278,14 @@ dot vibe
 cmp ~/.dotfiles/codex/AGENTS.md ~/.codex/AGENTS.md
 cmp ~/.dotfiles/claude/CLAUDE.md ~/.claude/CLAUDE.md
 diff -qr ~/.dotfiles/codex/skills ~/.agents/skills
+diff -qr ~/.dotfiles/claude/agents ~/.claude/agents
+diff -qr ~/.dotfiles/codex/agents ~/.codex/agents
 cmp ~/.dotfiles/opencode/AGENTS.md ~/.config/opencode/AGENTS.md
 diff -qr ~/.dotfiles/opencode/skills ~/.config/opencode/skills
 diff -qr ~/.dotfiles/opencode/agents ~/.config/opencode/agents
 ```
 
-`cmp`는 파일이 같으면 출력 없이 종료한다. 스킬 비교에서는 저장소 파일의 차이를 확인하고, 배포 대상에만 있는 사용자 설치 스킬·백업은 따로 구분한다.
+`cmp`는 파일이 같으면 출력 없이 종료한다. 스킬·에이전트 비교에서는 저장소 파일의 차이를 확인하고, 배포 대상에만 있는 사용자 설치 파일·백업은 따로 구분한다. 배포 후 새 세션에서 역할이 로드되는지 확인한다.
 
 ### 기존 설정 보존과 실패 처리
 
@@ -315,17 +318,19 @@ DOTFILES_VIBEMON_INSTALLER=/path/to/vibemon-app/public/install/install.py \
 
 [`scripts/sync-ai-tools.py`](scripts/sync-ai-tools.py)는 모든 대상의 병합 결과와 상위 디렉터리 구조를 확인한 뒤 배포한다. 원본 하위 디렉터리를 읽지 못하면 삭제된 파일로 취급하지 않고 배포 전에 중단한다. JSON·TOML 오류, 손상된 규칙 마커, 심볼릭 링크 대상, 지원하지 않는 TOML 편집 형태는 오류로 종료한다. 동시 실행은 잠금으로 차단한다.
 
-파일 배포 중 I/O 오류가 나면 일부 파일이 이미 반영되었을 수 있다. 실패한 쓰기는 원본을 보존하며, 모든 파일 배포가 성공해야 대상별 manifest를 갱신한다. 오류를 해결한 뒤 재실행한다. 생성기는 원본에서 삭제된 Markdown을 미러에서 정리하고, 수동 관리하는 `agents/openai.yaml`은 보존한다.
+파일 배포 중 I/O 오류가 나면 일부 파일이 이미 반영되었을 수 있다. 실패한 쓰기는 원본을 보존하며, 모든 파일 배포가 성공해야 대상별 manifest를 갱신한다. 오류를 해결한 뒤 재실행한다. 생성기는 원본에서 삭제된 스킬 Markdown과 에이전트 생성본을 정리하고, 수동 관리하는 `agents/openai.yaml`은 보존한다.
 
 ### 지침 로딩
 
 설치기는 Codex 설정을 `~/.codex`에 배포한다. 별도 `CODEX_HOME`이나 `AGENTS.override.md`를 사용하면 실제 로딩 위치를 확인하고 새 세션에서 지침을 확인한다. [공식 지침 로딩 규칙](https://learn.chatgpt.com/docs/agent-configuration/agents-md)을 참고한다.
 
+Codex 에이전트는 `~/.codex/agents/*.toml`에서 로드하며 Claude 역할 원본에서 생성한다. 모델과 권한은 부모 세션을 상속한다. 역할 선택과 도구별 제한은 [개발 에이전트 안내](docs/DEVELOPMENT_AGENTS.md#도구별-사용)를 참고한다.
+
 Codex CLI에서는 `/skills` 또는 `$<name>`으로 스킬을 지정한다. `skills/<name>/...` 참조는 세션에 표시된 해당 스킬 경로를 기준으로 해석한다. [공식 스킬 안내](https://learn.chatgpt.com/docs/build-skills)를 참고한다.
 
 OpenCode V2는 `AGENTS.md`만 지침으로 읽으며 `CLAUDE.md`와 `~/.claude/rules/`는 읽지 않는다. 설정의 `instructions` 항목도 아직 적용하지 않으므로 공통 지침은 `~/.config/opencode/AGENTS.md`로 배포한다. 같은 이름의 스킬은 `.claude/skills` → `.agents/skills` → `~/.config/opencode/skills` → 프로젝트 `.opencode/skills` 순서로 나중 경로가 우선한다. `.claude/skills`와 `.agents/skills`는 전역 경로 다음에 프로젝트 경로를 읽는다. 따라서 OpenCode 전용 생성본이 Claude·Codex 사본을 대체하고, 프로젝트의 `.opencode/skills`는 생성본보다 우선한다. 스킬은 `@<name>`으로 지정한다. Claude.ai에서 동기화한 `~/.claude/skills/synced/` 스킬도 함께 표시되며 dotfiles는 이를 관리하지 않는다.
 
-OpenCode 서브에이전트는 Claude `tools` 목록을 권한 허용 목록으로 바꾼다. 모든 작업을 거부한 뒤 목록의 도구만 허용하고, `.env` 읽기와 프로젝트 밖 경로는 확인을 요청한다. OpenCode는 에이전트 규칙을 전역 `permissions` 뒤에 적용하고 마지막으로 일치한 규칙을 사용한다. 그래서 생성기는 셸을 허용한 서브에이전트에 `claude/settings.json`의 deny 규칙을 다시 넣는다. `opencode.jsonc`에 추가한 머신 전용 셸 규칙은 셸을 허용한 서브에이전트에 적용되지 않으므로, 모든 도구에 적용할 규칙은 `claude/settings.json`에 추가한다. 변환하는 frontmatter는 `name`(파일명과 일치), `description`, `tools`뿐이다. 설정 위치는 `opencode debug paths`의 `config`로, 배포된 서브에이전트는 `opencode debug agents`로 확인한다. [공식 지침](https://opencode.ai/v2/docs/instructions/), [스킬](https://opencode.ai/v2/docs/skills/), [에이전트](https://opencode.ai/v2/docs/agents/) 문서를 참고한다.
+OpenCode 서브에이전트는 Claude `tools` 목록을 권한 허용 목록으로 바꾼다. 모든 작업을 거부한 뒤 목록의 도구만 허용하고, `.env` 읽기와 프로젝트 밖 경로는 확인을 요청한다. OpenCode는 에이전트 규칙을 전역 `permissions` 뒤에 적용하고 마지막으로 일치한 규칙을 사용한다. 그래서 생성기는 셸을 허용한 서브에이전트에 `claude/settings.json`의 deny 규칙을 다시 넣는다. `opencode.jsonc`에 추가한 머신 전용 셸 규칙은 셸을 허용한 서브에이전트에 적용되지 않으므로, 모든 도구에 적용할 규칙은 `claude/settings.json`에 추가한다. 변환하는 frontmatter는 `name`(파일명과 일치), `description`, 선택적 `tools`뿐이다. `tools`를 생략하면 별도 권한 목록을 만들지 않고 클라이언트 기본 도구·권한을 상속한다. master는 `mode: all`, 나머지는 `mode: subagent`로 생성한다. 설정 위치는 `opencode debug paths`의 `config`로, 배포된 서브에이전트는 `opencode debug agents`로 확인한다. [공식 지침](https://opencode.ai/v2/docs/instructions/), [스킬](https://opencode.ai/v2/docs/skills/), [에이전트](https://opencode.ai/v2/docs/agents/) 문서를 참고한다.
 
 ## Security
 

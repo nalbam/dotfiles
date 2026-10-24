@@ -168,7 +168,7 @@ Keep these when editing modules; they exist because of real failures on constrai
 
 ## AI instructions and skills
 
-Global instructions live in `claude/CLAUDE.md` and `claude/rules/`; `codex/AGENTS.md` and `opencode/AGENTS.md` are generated from them. `claude/skills/` and `claude/agents/` are the sources for shared skills and subagents. `scripts/gen-ai-tools.py` writes `codex/skills/` and `opencode/`, and `--check` reports mismatches. The `ai` module runs `scripts/sync-ai-tools.py`, which validates every merge result before it writes, backs up changed files, replaces files atomically and updates manifests last. See [AI Tools Sync](../README.md#ai-tools-sync).
+Global instructions live in `claude/CLAUDE.md` and `claude/rules/`; `codex/AGENTS.md` and `opencode/AGENTS.md` are generated from them. `claude/skills/` and `claude/agents/` are the sources for shared skills and subagents. `scripts/gen-ai-tools.py` writes `codex/skills/`, standalone `codex/agents/*.toml` definitions and `opencode/`, and `--check` reports mismatches. The `ai` module runs `scripts/sync-ai-tools.py`, which validates every merge result before it writes, backs up changed files, replaces files atomically and updates manifests last. The 14 development roles share scope and handoff rules; see [Development Agents](DEVELOPMENT_AGENTS.md) for role selection and client permission differences. See [AI Tools Sync](../README.md#ai-tools-sync).
 
 ## Verification
 
