@@ -8,7 +8,8 @@ Sources (edit these):
     claude/settings.json                 `permissions.deny` shell rules
 
 Generated (do not edit):
-    codex/AGENTS.md, codex/skills/       Codex; hand-maintained agents/openai.yaml is kept
+    codex/AGENTS.md, codex/agents/       Codex instructions and standalone TOML agents
+    codex/skills/                       Codex skills; hand-maintained agents/openai.yaml is kept
     opencode/                            OpenCode AGENTS.md, opencode.json, agents/, skills/
 
 Each tool gets its own copy because tool-specific syntax differs: skill
@@ -81,6 +82,8 @@ def strip_frontmatter(text, fields):
 
 def translate(text, tool, sources, rule_prefix="AGENTS.md의 "):
     text = text.replace(*ARGUMENTS)
+    if tool == CODEX_TOOL:
+        text = text.replace("`agents/<name>.md`", "`agents/<name>.toml`의 `developer_instructions`")
 
     # Claude loads rules from separate files; the other tools get them as AGENTS.md sections.
     def rule(match):
@@ -169,8 +172,8 @@ def agent_permissions(tools, denies):
     return rules + [("external_directory", "*", "ask")]
 
 
-def convert_agent(path, sources, denies):
-    """Convert a Claude Code subagent into an OpenCode V2 subagent."""
+def read_agent(path):
+    """Read our deliberately small subset of Claude agent frontmatter."""
     frontmatter, body = split_frontmatter(path.read_text(encoding="utf-8"))
     if frontmatter is None:
         raise ValueError(f"{path.name}: missing frontmatter")
@@ -179,22 +182,52 @@ def convert_agent(path, sources, denies):
         key, separator, value = line.partition(":")
         if not separator or key not in AGENT_FIELDS:
             raise ValueError(f"{path.name}: unsupported frontmatter line: {line}")
+        if key in fields:
+            raise ValueError(f"{path.name}: duplicate frontmatter field: {key}")
         fields[key] = value.strip()
-    # OpenCode takes the agent ID from the filename.
-    if fields.get("name") != path.stem:
+    if fields.get("name") != path.stem or not re.fullmatch(r"[a-z][a-z0-9-]*", path.stem):
         raise ValueError(f"{path.name}: name must match the filename")
     if not fields.get("description"):
         raise ValueError(f"{path.name}: description is required")
-    tools = [name.strip() for name in fields.get("tools", "").split(",") if name.strip()]
-    if not tools:
-        raise ValueError(f"{path.name}: tools is required")
+    if not body.strip():
+        raise ValueError(f"{path.name}: instructions are required")
+    # Omission inherits the client's tools (including configured MCP tools).
+    tools = None
+    if "tools" in fields:
+        tools = [name.strip() for name in fields["tools"].split(",")]
+        if not all(tools):
+            raise ValueError(f"{path.name}: tools must be omitted or nonempty")
+        for name in tools:
+            if name not in AGENT_TOOL_ACTIONS:
+                raise ValueError(f"{path.name}: unsupported Claude tool: {name}")
+    return fields, body, tools
+
+
+def convert_agent(path, sources, denies):
+    """Convert a Claude Code agent into an OpenCode V2 agent."""
+    fields, body, tools = read_agent(path)
     lines = ["---",
              "description: " + json.dumps(translate(fields["description"], OPENCODE_TOOL, sources), ensure_ascii=False),
-             "mode: subagent",
-             "permissions:"]
-    lines += [f"  - {{action: {json.dumps(action)}, resource: {json.dumps(resource)}, effect: {json.dumps(effect)}}}"
-              for action, resource, effect in agent_permissions(tools, denies)]
+             "mode: all" if path.stem == "master" else "mode: subagent"]
+    if tools is not None:
+        lines.append("permissions:")
+        lines += [f"  - {{action: {json.dumps(action)}, resource: {json.dumps(resource)}, effect: {json.dumps(effect)}}}"
+                  for action, resource, effect in agent_permissions(tools, denies)]
     return "\n".join(lines + ["---"]) + "\n" + translate(body, OPENCODE_TOOL, sources)
+
+
+def codex_agent(path, sources):
+    """Codex inherits parent permissions; Claude tool lists are not sandbox rules."""
+    fields, body, _ = read_agent(path)
+    lines = ["# Generated from claude/agents/" + path.name + "; do not edit."]
+    for key in ("name", "description"):
+        lines.append(f"{key} = {json.dumps(translate(fields[key], CODEX_TOOL, sources), ensure_ascii=False)}")
+    # Encode line by line to preserve literal backslashes, quotes and control
+    # characters while keeping the instructions readable in multiline TOML.
+    body = translate(body, CODEX_TOOL, sources).lstrip("\n")
+    escaped = "\n".join(json.dumps(line, ensure_ascii=False)[1:-1] for line in body.split("\n"))
+    lines.append('developer_instructions = """\n' + escaped + '"""')
+    return "\n".join(lines) + "\n"
 
 
 def generated_files():
@@ -217,6 +250,7 @@ def generated_files():
             files[CODEX / "skills" / relative] = transform(text, CODEX_TOOL, sources)
             files[OPENCODE / "skills" / relative] = transform(text, OPENCODE_TOOL, sources)
     for agent in sorted((CLAUDE / "agents").glob("*.md")):
+        files[CODEX / "agents" / (agent.stem + ".toml")] = codex_agent(agent, sources)
         files[OPENCODE / "agents" / agent.name] = convert_agent(agent, sources, denies)
     return files
 
@@ -226,6 +260,7 @@ def owned_files():
     skills = CODEX / "skills"
     codex = {path for path in skills.rglob("*.md") if len(path.relative_to(skills).parts) > 1}
     codex |= {CODEX / "AGENTS.md"} if (CODEX / "AGENTS.md").is_file() else set()
+    codex |= set((CODEX / "agents").glob("*.toml"))
     return codex | {path for path in OPENCODE.rglob("*") if path.is_file()}
 
 

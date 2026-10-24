@@ -98,6 +98,35 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual((self.home / ".agents/skills/demo/SKILL.md.backup").read_text(), "demo skill\n")
         self.assertTrue((self.home / ".agents/skills/local/SKILL.md").is_file())
 
+    def test_agent_update_repeat_and_retirement_preserve_personal_agents(self):
+        targets = (("claude", ".claude", "md"), ("codex", ".codex", "toml"),
+                   ("opencode", ".config/opencode", "md"))
+        sources = []
+        for tool, destination, suffix in targets:
+            original = (ROOT / tool / "agents" / f"analyst.{suffix}").read_text()
+            source = self.put(f".dotfiles/{tool}/agents/analyst.{suffix}", original)
+            personal = self.put(f"{destination}/agents/personal.{suffix}", "user owned\n")
+            sources.append((source, self.home / destination / "agents" / source.name, personal))
+        self.sync()
+        stamps = {target: target.stat().st_mtime_ns for _, target, _ in sources}
+        self.sync()
+        self.assertTrue(all(target.stat().st_mtime_ns == stamp for target, stamp in stamps.items()))
+        for source, target, _ in sources:
+            self.assertEqual(source.read_bytes(), target.read_bytes())
+            source.write_text(source.read_text().replace("Analyst", "Updated Analyst"))
+        self.sync()
+        for source, target, _ in sources:
+            self.assertEqual(source.read_bytes(), target.read_bytes())
+            self.assertNotEqual(target.read_bytes(), target.with_suffix(target.suffix + ".backup").read_bytes())
+            source.unlink()
+        self.sync()
+        for _, target, personal in sources:
+            self.assertFalse(target.exists())
+            backup = target.with_suffix(target.suffix + ".backup")
+            self.assertIn("Updated Analyst", backup.read_text())
+            self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+            self.assertEqual(personal.read_text(), "user owned\n")
+
     def test_missing_source_preserves_manifest(self):
         self.sync()
         manifest = self.home / ".toast/vibe_manifest_codex_skills"
@@ -841,10 +870,13 @@ class GeneratorTests(unittest.TestCase):
         source = "---\nname: sample\ndescription: sample\ndisable-model-invocation: true\n---\n"
         source += "CLAUDE.md / AGENTS.md\n`rules/git-workflow.md`\n`/validate`\nskills/validate/SKILL.md\n"
         source += "PR 번호 인자: `$ARGUMENTS`\n"
+        source += "Role: `agents/<name>.md`\n"
         codex = transform(source, self.module["CODEX_TOOL"], self.sources)
         opencode = transform(source, self.module["OPENCODE_TOOL"], self.sources)
         self.assertNotIn("disable-model-invocation:", codex)
         self.assertIn("disable-model-invocation: true", opencode)
+        self.assertIn("`agents/<name>.toml`의 `developer_instructions`", codex)
+        self.assertIn("`agents/<name>.md`", opencode)
         for result, invocation in ((codex, "`$validate`"), (opencode, "`@validate`")):
             self.assertNotIn("rules/git-workflow.md", result)
             self.assertNotIn("$ARGUMENTS", result)
@@ -888,6 +920,44 @@ class GeneratorTests(unittest.TestCase):
                 with self.subTest(frontmatter=frontmatter), self.assertRaises(ValueError):
                     self.module["convert_agent"](agent, self.sources, [])
 
+    def test_codex_agent_toml_round_trips_instructions_and_translates_references(self):
+        with tempfile.TemporaryDirectory(prefix="dotfiles-agent-") as tmp:
+            agent = Path(tmp) / "reviewer.md"
+            body = '# Review\n\nQuotes """; literal \\n; tab\t; 한글\n`/validate`\n`rules/git-workflow.md`\n'
+            agent.write_text("---\nname: reviewer\ndescription: Review with /validate\ntools: Read, Bash\n---\n\n" + body)
+            result = tomllib.loads(self.module["codex_agent"](agent, self.sources))
+            self.assertEqual(set(result), {"name", "description", "developer_instructions"})
+            self.assertEqual(result["name"], "reviewer")
+            self.assertEqual(result["description"], "Review with $validate")
+            self.assertEqual(result["developer_instructions"],
+                             body.replace("/validate", "$validate").replace("`rules/git-workflow.md`", "AGENTS.md의 Git Workflow"))
+
+    def test_omitted_tools_inherit_permissions_and_master_supports_primary_mode(self):
+        with tempfile.TemporaryDirectory(prefix="dotfiles-agent-") as tmp:
+            for name, mode in (("master", "all"), ("developer", "subagent")):
+                agent = Path(tmp) / f"{name}.md"
+                agent.write_text(f"---\nname: {name}\ndescription: Delegate work\n---\n\nBody\n")
+                result = self.module["convert_agent"](agent, self.sources, ["reboot *"])
+                self.assertIn(f"mode: {mode}\n", result)
+                self.assertNotIn("permissions:", result)
+                codex = tomllib.loads(self.module["codex_agent"](agent, self.sources))
+                self.assertEqual(codex["developer_instructions"], "Body\n")
+
+    def test_invalid_agent_stops_before_any_generated_file_changes(self):
+        fixture = self.fixture()
+        target = fixture / "claude/agents/invalid.md"
+        for extra, body in (("tools:\n", "Body"), ("tools: Teleport\n", "Body"),
+                            ("tools: Read,\n", "Body"), ("name: invalid\n", "Body"),
+                            ("", "")):
+            target.write_text(f"---\nname: invalid\ndescription: Invalid\n{extra}---\n{body}")
+            before = {p: p.read_bytes() for tool in ("codex", "opencode")
+                      for p in (fixture / tool).rglob("*") if p.is_file()}
+            result = self.generate(fixture)
+            self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+            after = {p: p.read_bytes() for tool in ("codex", "opencode")
+                     for p in (fixture / tool).rglob("*") if p.is_file()}
+            self.assertEqual(before, after)
+
     def test_committed_files_are_current(self):
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts/gen-ai-tools.py"), "--check"],
@@ -914,6 +984,7 @@ class GeneratorTests(unittest.TestCase):
         self.assertFalse((fixture / "codex/skills/commit/SKILL.md").exists())
         self.assertFalse((fixture / "opencode/skills/commit").exists())
         self.assertFalse((fixture / "opencode/agents/debugger.md").exists())
+        self.assertFalse((fixture / "codex/agents/debugger.toml").exists())
         self.assertTrue(all(p.read_bytes() == data for p, data in metadata.items()))
         self.assertEqual(self.generate(fixture, "--check").returncode, 0)
 
@@ -931,8 +1002,9 @@ class SkillReferenceTests(unittest.TestCase):
     def test_referenced_files_exist(self):
         for tool in ("claude", "codex", "opencode"):
             root = ROOT / tool
-            for source in root.rglob("*.md"):
-                body = source.read_text()
+            for source in list(root.rglob("*.md")) + list((root / "agents").glob("*.toml")):
+                body = (tomllib.loads(source.read_text())["developer_instructions"]
+                        if source.suffix == ".toml" else source.read_text())
                 references = [
                     root / match
                     for match in re.findall(r"`((?:skills|rules)/[\w./-]+\.md)(?:#[^`]+)?`", body)

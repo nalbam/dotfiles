@@ -13,6 +13,8 @@
 | CodeRabbit 평가·수정·resolve | [resolve-coderabbit](../claude/skills/resolve-coderabbit/SKILL.md) |
 | 코드와 문서의 정합 확인·구조·표현 개선 | [docs-sync](../claude/skills/docs-sync/SKILL.md) |
 
+에이전트는 책임과 검토 관점, 스킬은 반복 절차를 정의한다. 개발 전 과정의 역할 선택과 인계는 [Development Agents](DEVELOPMENT_AGENTS.md)를 참고한다.
+
 ## 관리
 
 - `name`은 디렉터리명과 맞추고 `description`은 적용할 작업을 짧게 설명한다. 일반 원칙을 별도 스킬로 복제하지 않는다.
