@@ -255,7 +255,7 @@ Codex와 Claude는 요청 범위에서 문제가 없음을 검증한 릴리즈·
 
 ### 수정과 검증
 
-작업 중인 checkout의 루트에서 실행한다. 공통 지침은 `claude/CLAUDE.md`·`claude/rules/`, 공유 스킬은 `claude/skills/`, 서브에이전트는 `claude/agents/`, deny 규칙은 `claude/settings.json`을 수정한 뒤 Codex·OpenCode 파일을 재생성한다. [스킬 안내](docs/SKILLS.md)와 [개발 에이전트 안내](docs/DEVELOPMENT_AGENTS.md)에서 역할·선택 기준·사용 예시·원본 위치를 확인할 수 있다. 개발 에이전트는 master부터 분석·기획·설계·구현·테스트·리뷰·배포까지 14개 역할을 제공한다.
+작업 중인 checkout의 루트에서 실행한다. 공통 지침은 `claude/CLAUDE.md`·`claude/rules/`, 공유 스킬은 `claude/skills/`, 서브에이전트는 `claude/agents/`, deny 규칙은 `claude/settings.json`을 수정한 뒤 Codex·OpenCode 파일을 재생성한다. [스킬 안내](docs/SKILLS.md)와 [개발 에이전트 안내](docs/DEVELOPMENT_AGENTS.md)에서 역할·선택 기준·사용 예시·원본 위치를 확인할 수 있다. 개발 에이전트는 14개 전문 역할을 제공한다. 메인이 분석·설계·구현·수정을 이어가는 것이 기본이며, 독립 조사·병렬 구현·독립 검증의 이점이 있을 때 범위를 정해 위임한다. 역할별 순차 호출은 요구하지 않는다.
 
 ```bash
 python3 scripts/gen-ai-tools.py
