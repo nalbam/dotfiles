@@ -25,6 +25,13 @@ class AliasTests(unittest.TestCase):
                 cwd=home, env=env, capture_output=True, text=True, timeout=5,
             )
 
+    def test_terraform_plugin_cache_exists_after_startup(self):
+        for shell in SHELLS:
+            with self.subTest(shell=shell):
+                result = self.run_shell(shell, '[ -d "$TF_PLUGIN_CACHE_DIR" ] && printf %s "$TF_PLUGIN_CACHE_DIR"')
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertTrue(result.stdout.endswith("/.terraform.d/plugin-cache"), result.stdout)
+
     def test_workspace_arguments_and_failure(self):
         for shell in SHELLS:
             with self.subTest(shell=shell):

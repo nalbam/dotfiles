@@ -129,6 +129,10 @@ alias avc='av clear'
 alias avl='av list'
 
 # Terraform
+# Share one copy of each provider instead of one per working directory.
+export TF_PLUGIN_CACHE_DIR="$HOME/.terraform.d/plugin-cache"
+[ -d "$TF_PLUGIN_CACHE_DIR" ] || mkdir -p "$TF_PLUGIN_CACHE_DIR"
+
 alias tf='terraform'
 alias tfc='echo "Removing Terraform cache and lockfile..." && rm -rf .terraform .terraform.lock.hcl'
 alias tff='m && tf init -upgrade && tf fmt'
