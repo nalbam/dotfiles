@@ -9,17 +9,7 @@ description: Audit an entire codebase and report evidence-backed findings withou
 
 ## Exclude Patterns
 
-다음은 탐색 시 기본 제외 대상이다. 저장소가 직접 관리하거나 감사 대상에 필요한 파일은 이름만으로 제외하지 않는다.
-
-| Category | Directories / files |
-|----------|---------------------|
-| Dependencies | `node_modules/`, `vendor/`, `bower_components/`, `.pnp/` |
-| Build outputs | `dist/`, `build/`, `out/`, `target/`, `.next/`, `.nuxt/`, `.vercel/` |
-| Cache | `.cache/`, `.tmp/`, `tmp/`, `__pycache__/`, `.turbo/`, `.parcel-cache/` |
-| Virtual envs | `.venv/`, `venv/`, `.env/`, `env/` |
-| VCS / IDE | `.git/`, `.svn/`, `.hg/`, `.idea/`, `.vscode/`, `.vs/` |
-| Test outputs | `coverage/`, `.nyc_output/`, `test-results/` |
-| Generated / OS | `*.min.js`, `*.bundle.js`, `.DS_Store`, `Thumbs.db` |
+의존성·빌드 출력·캐시·가상환경·VCS·IDE·테스트 출력·생성 파일은 기본으로 제외한다. 저장소가 직접 관리하거나 감사 대상에 필요한 파일은 이름만으로 제외하지 않는다.
 
 lockfile·배포 설정은 의존성·운영 위험을 확인할 때 읽는다. 시크릿 파일의 값을 출력하지 않는다.
 
