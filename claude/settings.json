@@ -8,8 +8,7 @@
     "allow": [
       "Skill(*)",
       "WebFetch",
-      "WebSearch",
-      "Bash(node prices.cjs:*)"
+      "WebSearch"
     ],
     "deny": [
       "Bash(chmod -R 777 /:*)",
@@ -48,13 +47,53 @@
     "gopls-lsp@claude-plugins-official": true,
     "linear@claude-plugins-official": false,
     "notion@claude-plugins-official": false,
-    "slack@claude-plugins-official": true
+    "slack@claude-plugins-official": true,
+    "savvy-progress@claude-kit": true,
+    "swift-lsp@claude-plugins-official": true,
+    "filetree@claude-code-filetree": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
       "source": {
         "source": "github",
         "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "claude-kit": {
+      "source": {
+        "source": "github",
+        "repo": "johnnyvizz/claude-kit"
+      }
+    },
+    "claude-code-filetree": {
+      "source": {
+        "source": "github",
+        "repo": "data-goblin/claude-code-filetree"
+      }
+    }
+  },
+  "pluginConfigs": {
+    "savvy-progress@claude-kit": {
+      "options": {
+        "language": "auto",
+        "autoOpen": "savvy"
+      }
+    },
+    "filetree@claude-code-filetree": {
+      "options": {
+        "activity": "reads and writes",
+        "glyphs": "auto",
+        "follow": "on",
+        "start": "on",
+        "focus": "on",
+        "column": "date",
+        "hints": "on",
+        "spacing": "on",
+        "shortcuts": "auto",
+        "binaries": "Open with",
+        "target": "auto",
+        "split": "bottom",
+        "treemap": "auto"
       }
     }
   },
