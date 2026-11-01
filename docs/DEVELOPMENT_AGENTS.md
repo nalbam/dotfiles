@@ -2,7 +2,7 @@
 
 메인 에이전트가 목표를 이해하고 분석·설계·구현·디버깅·검증을 이어가는 것이 기본이다. 14개 역할은 작업에 필요한 전문 기준을 제공한다. 역할이 등록되어 있다는 이유로 별도 에이전트를 실행하지 않는다.
 
-이 문서는 Claude Code·Codex·OpenCode에서 역할을 선택하고, 독립 작업을 위임하고, 결과를 검증할 때 사용한다. 실행 규칙의 원본은 [Agent Workflow](../claude/rules/agent-workflow.md), 반복 절차는 [Skills](SKILLS.md)다. 역할의 이름이나 자신감 대신 실제 산출물과 근거로 품질을 판단한다.
+이 문서는 Claude Code·Codex·OpenCode에서 역할을 선택하고, 독립 작업을 위임하고, 결과를 검증할 때 사용한다. 실행 규칙의 원본은 [Agent Workflow](../claude/rules/agent-workflow.md), 반복 절차는 [Skills](SKILLS.md)다. 공통 지시문과 모든 역할 정의는 각 에이전트를 해당 분야 최고의 전문가로 규정하고, 항상 Masterpiece 수준의 품질과 완성도를 요구한다. 그 수준은 역할별 완료 조건, 실제 산출물과 검증 근거로 판단한다.
 
 ## 작업 흐름
 
