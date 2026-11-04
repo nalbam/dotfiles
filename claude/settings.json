@@ -8,7 +8,11 @@
     "allow": [
       "Skill(*)",
       "WebFetch",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cd *)",
+      "Bash(node *)",
+      "Bash(npm *)",
+      "Bash(pnpm *)"
     ],
     "deny": [
       "Bash(chmod -R 777 /:*)",
@@ -117,9 +121,9 @@
       "**Network posture**: None configured",
       "**Host containment**: None configured — assume Claude Code runs on an ordinary developer machine or CI runner with open internet",
       "**Source control**: github.com under `nalbam` and `opspresso`, plus `gitlab.clush.net` (internal mirror reachable only from the internal network). Other orgs are outside the trust boundary.",
-      "**Trusted internal domains**: `opspresso.com`, `agrt.dev`, and their subdomains (for example `memory.agrt.dev`, `studio.opspresso.com`).",
+      "**Trusted internal domains**: `opspresso.com`, `opsp.dev`, `agrt.dev`, `rovr.dev`, and their subdomains (for example `studio.agrt.dev`, `argocd.demo.opsp.dev`).",
       "**Trusted cloud buckets**: None configured",
-      "**Key internal services**: agent-memory, agent-studio, agent-forge, agent-librio, vibemon (app, web, collector)",
+      "**Key internal services**: agent-studio, agent-memory, agent-forge, agent-runway, rovr, vibemon (app, web, collector)",
       "**Internal package registry**: None configured",
       "**Sensitive data locations & audiences**: `.env*` files, `~/.aws`, `~/.ssh`, kubeconfig files, Kubernetes Secret manifests, and Terraform state. Only the user may see their values.",
       "**Data retention / declassification**: None configured",
