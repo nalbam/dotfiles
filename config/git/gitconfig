@@ -35,7 +35,7 @@
   path = .gitconfig-nalbam
 [includeIf "gitdir:~/workspace/github.com/yujh404/"]
   path = .gitconfig-yujh404
-[includeIf "gitdir:~/workspace/github.com/nalbam-me/"]
-  path = .gitconfig-nalbam-me
+[includeIf "gitdir:~/workspace/github.com/nalbam-two/"]
+  path = .gitconfig-nalbam-two
 [includeIf "gitdir:~/workspace/github.com/nalbam-bot/"]
   path = .gitconfig-nalbam-bot
