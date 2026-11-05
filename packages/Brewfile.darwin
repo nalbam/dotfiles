@@ -68,6 +68,8 @@ cask "microsoft-office"
 cask "visual-studio-code"
 cask "orbstack"
 cask "tailscale-app"
+cask "chatgpt"
+cask "claude"
 
 tap "opspresso/tap"
 brew "opspresso/tap/romty"
