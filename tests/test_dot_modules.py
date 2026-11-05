@@ -182,7 +182,7 @@ class GitTests(ModuleCase):
         root = Path(__file__).resolve().parent.parent
         env = dict(self.machine.env, PATH="/usr/bin:/bin", GIT_CONFIG_NOSYSTEM="1")
         for account, profile in [("nalbam", "nalbam"), ("opspresso", "nalbam"), ("yujh404", "yujh404"),
-                                 ("nalbam-me", "nalbam-me"), ("nalbam-bot", "nalbam-bot")]:
+                                 ("nalbam-two", "nalbam-two"), ("nalbam-bot", "nalbam-bot")]:
             with self.subTest(account=account):
                 workspace = self.machine.home / "workspace/github.com" / account / "example"
                 subprocess.run(["git", "init", "-q", str(workspace)], env=env, check=True)

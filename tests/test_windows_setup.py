@@ -91,7 +91,7 @@ try {
             (home / name).symlink_to(source)
         env = dict(os.environ, HOME=str(home), GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=str(home / ".gitconfig"))
         for account, profile in (("nalbam", "nalbam"), ("opspresso", "nalbam"),
-                                 ("yujh404", "yujh404"), ("nalbam-me", "nalbam-me"),
+                                 ("yujh404", "yujh404"), ("nalbam-two", "nalbam-two"),
                                  ("nalbam-bot", "nalbam-bot")):
             with self.subTest(account=account):
                 workspace = home / "workspace/github.com" / account / "example"
