@@ -102,6 +102,7 @@
     }
   },
   "effortLevel": "xhigh",
+  "autoCompactWindow": 500000,
   "outputStyle": "Concise",
   "tui": "fullscreen",
   "theme": "auto",
