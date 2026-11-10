@@ -12,7 +12,8 @@
       "Bash(cd *)",
       "Bash(node *)",
       "Bash(npm *)",
-      "Bash(pnpm *)"
+      "Bash(pnpm *)",
+      "Bash(terraform *)"
     ],
     "deny": [
       "Bash(chmod -R 777 /:*)",
