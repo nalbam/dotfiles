@@ -105,6 +105,7 @@
   "effortLevel": "xhigh",
   "autoCompactWindow": 500000,
   "outputStyle": "Concise",
+  "language": "korean",
   "tui": "fullscreen",
   "theme": "auto",
   "skillOverrides": {
