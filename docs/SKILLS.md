@@ -10,6 +10,7 @@
 | 변경분·PR 리뷰 | 도구 내장 리뷰 명령: Claude Code `/code-review`, Codex `/review` |
 | 저장소 전체 감사 | [code-audit](../claude/skills/code-audit/SKILL.md) (읽기 전용) |
 | PR 생성·설명 갱신 | [pr-create](../claude/skills/pr-create/SKILL.md)·[pr-summary](../claude/skills/pr-summary/SKILL.md) |
+| PR merge·반영 확인·브랜치 정리 | [pr-merge](../claude/skills/pr-merge/SKILL.md) |
 | CodeRabbit 평가·수정·resolve | [resolve-coderabbit](../claude/skills/resolve-coderabbit/SKILL.md) |
 | 코드와 문서의 정합 확인·구조·표현 개선 | [docs-sync](../claude/skills/docs-sync/SKILL.md) |
 

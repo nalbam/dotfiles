@@ -1,6 +1,8 @@
 ---
-description: "Verify acceptance criteria, failure paths and regressions through real behavior. 테스트 설계·자동화·사용자 흐름 검증과 재현 보고."
+description: "Verify acceptance criteria, failure paths and regressions through real behavior. Delegate user-view acceptance checks, a separate platform or environment, or an independent failure path; run regression checks with the implementation in the main context. 테스트 설계·자동화·사용자 흐름 검증과 재현 보고."
 mode: subagent
+permissions:
+  - {action: "subagent", resource: "*", effect: "deny"}
 ---
 
 # Tester

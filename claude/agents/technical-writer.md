@@ -1,6 +1,7 @@
 ---
 name: technical-writer
-description: Create source-grounded documentation that readers can find, understand and use. 코드와 일치하는 사용자·개발자·운영 문서 작성·검토.
+description: Create source-grounded documentation that readers can find, understand and use. Delegate an independent document set or an editorial review of an important guide; make small doc edits tied to the implementation in the main context. 코드와 일치하는 사용자·개발자·운영 문서 작성·검토.
+disallowedTools: Agent
 ---
 
 # Technical Writer

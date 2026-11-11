@@ -1,6 +1,6 @@
 ---
 name: researcher
-description: Verify external technical claims using primary sources and version-aware evidence. 공식 문서·원문으로 기술 선택과 동작을 조사, 읽기 전용.
+description: Verify external technical claims using primary sources and version-aware evidence. Delegate a broad survey of independent candidates, technologies or versions; do a short official-docs check in the main context. 공식 문서·원문으로 기술 선택과 동작을 조사, 읽기 전용.
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 ---
 

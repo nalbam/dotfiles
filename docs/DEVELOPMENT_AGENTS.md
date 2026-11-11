@@ -114,7 +114,7 @@ researcher에게는 사용 중인 인증 라이브러리 버전의 갱신 토큰
 
 | 단계 | 파일과 계약 |
 |------|-------------|
-| 원본 | `claude/agents/*.md`: `name`, `description`, 선택적 `tools`, 역할 본문 |
+| 원본 | `claude/agents/*.md`: `name`, `description`, 선택적 `tools`·`disallowedTools`, 역할 본문 |
 | Codex 생성본 | `codex/agents/*.toml`: `name`, `description`, `developer_instructions` |
 | OpenCode 생성본 | `opencode/agents/*.md`: `description`, `mode`, 선택적 `permissions`, 역할 본문 |
 | 배포 | `~/.claude/agents/`, `~/.codex/agents/`, `~/.config/opencode/agents/` |
@@ -123,7 +123,9 @@ researcher에게는 사용 중인 인증 라이브러리 버전의 갱신 토큰
 
 `tools`가 있으면 Claude는 도구 허용 목록으로 사용하고 OpenCode는 권한 목록으로 변환한다. 생략하면 클라이언트의 기본 도구·연결을 상속하며, 상위 권한·deny 규칙을 바꾸지 않는다. 구현·디자인·테스트·배포 역할은 연결된 브라우저·MCP·스킬을 사용할 수 있도록 도구 목록을 고정하지 않는다.
 
-Codex 에이전트는 부모의 권한과 연결을 상속한다. Claude의 `tools`를 Codex의 샌드박스로 변환하지 않는다. **읽기 전용은 역할의 행동 계약이며, 별도 격리를 보장하지 않는다.** Claude·OpenCode에서 Bash·shell을 허용한 역할도 셸로 쓰기를 할 기술적 가능성이 있다. 강제 격리가 필요하면 실행 환경·자격증명·도구 권한에 경계를 설정한다. 역할 파일은 merge·배포 권한을 추가하지 않는다.
+도구 목록을 고정하지 않는 역할 중 master를 제외한 developer·debugger·designer·tester·technical-writer·release-engineer는 `disallowedTools: Agent`로 재위임을 막는다. Claude는 이 역할에서 Agent 도구를 제거하고, OpenCode 생성본은 `subagent` 실행을 거부하는 규칙을 넣는다. `tools` 목록이 있는 역할은 목록에 Agent가 없어 이미 재위임할 수 없다. 생성기는 `disallowedTools`의 값으로 `Agent`만 받는다.
+
+Codex 에이전트는 부모의 권한과 연결을 상속한다. Claude의 `tools`·`disallowedTools`를 Codex의 샌드박스로 변환하지 않으므로, Codex에서 재위임 제한은 역할의 행동 계약이다. **읽기 전용은 역할의 행동 계약이며, 별도 격리를 보장하지 않는다.** Claude·OpenCode에서 Bash·shell을 허용한 역할도 셸로 쓰기를 할 기술적 가능성이 있다. 강제 격리가 필요하면 실행 환경·자격증명·도구 권한에 경계를 설정한다. 역할 파일은 merge·배포 권한을 추가하지 않는다.
 
 모델은 어느 도구에서도 고정하지 않는다. 각 머신의 계정·프로바이더·가용 모델과 부모 세션 선택을 유지한다. 도구별 모델을 선택해야 한다면 검증된 클라이언트 설정을 사용하고 공통 역할 원본에 다른 도구의 모델 ID를 넣지 않는다. 동시 실행 한도도 세션 설정을 따른다.
 

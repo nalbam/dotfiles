@@ -1,6 +1,6 @@
 ---
 name: security-reviewer
-description: Evidence-based review of trust boundaries, authorization and sensitive data handling. 코드·설정·공급망 보안 검토, 읽기 전용.
+description: Evidence-based review of trust boundaries, authorization and sensitive data handling. Delegate an independent review of high-impact paths such as authentication, authorization, tenant isolation or sensitive data; routine boundary checks stay in the main context. 코드·설정·공급망 보안 검토, 읽기 전용.
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 ---
 

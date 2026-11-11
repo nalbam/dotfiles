@@ -49,7 +49,9 @@ AGENT_TOOL_ACTIONS = {
     "Read": "read", "Grep": "grep", "Glob": "glob", "Bash": "shell",
     "Edit": "edit", "Write": "edit", "WebFetch": "webfetch", "WebSearch": "websearch",
 }
-AGENT_FIELDS = {"name", "description", "tools"}
+AGENT_FIELDS = {"name", "description", "tools", "disallowedTools"}
+# Claude `disallowedTools: Agent` -> the OpenCode rule that stops an agent from launching subagents.
+NO_SUBAGENT = [("subagent", "*", "deny")]
 # OpenCode's default .env guard, which a later read allowance would override.
 ENV_GUARD = [("read", "*.env", "ask"), ("read", "*.env.*", "ask"), ("read", "*.env.example", "allow")]
 
@@ -200,6 +202,12 @@ def read_agent(path):
         for name in tools:
             if name not in AGENT_TOOL_ACTIONS:
                 raise ValueError(f"{path.name}: unsupported Claude tool: {name}")
+    # A tools allowlist cannot name Agent, so only a tool-inheriting agent needs this field.
+    if "disallowedTools" in fields:
+        if fields["disallowedTools"] != "Agent":
+            raise ValueError(f"{path.name}: disallowedTools supports only Agent")
+        if tools is not None:
+            raise ValueError(f"{path.name}: disallowedTools is redundant with a tools allowlist")
     return fields, body, tools
 
 
@@ -210,14 +218,18 @@ def convert_agent(path, sources, denies):
              "description: " + json.dumps(translate(fields["description"], OPENCODE_TOOL, sources), ensure_ascii=False),
              "mode: all" if path.stem == "master" else "mode: subagent"]
     if tools is not None:
+        rules = agent_permissions(tools, denies)
+    else:
+        rules = NO_SUBAGENT if "disallowedTools" in fields else []
+    if rules:
         lines.append("permissions:")
         lines += [f"  - {{action: {json.dumps(action)}, resource: {json.dumps(resource)}, effect: {json.dumps(effect)}}}"
-                  for action, resource, effect in agent_permissions(tools, denies)]
+                  for action, resource, effect in rules]
     return "\n".join(lines + ["---"]) + "\n" + translate(body, OPENCODE_TOOL, sources)
 
 
 def codex_agent(path, sources):
-    """Codex inherits parent permissions; Claude tool lists are not sandbox rules."""
+    """Codex inherits parent permissions; Claude tool lists and denials are not sandbox rules."""
     fields, body, _ = read_agent(path)
     lines = ["# Generated from claude/agents/" + path.name + "; do not edit."]
     for key in ("name", "description"):

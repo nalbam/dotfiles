@@ -1,6 +1,6 @@
 ---
 name: master
-description: Own delivery end to end; solve in one context and delegate bounded work when it improves the outcome. 목표부터 검증된 결과까지 직접 해결·통합.
+description: Own delivery end to end; solve in one context and delegate bounded work when it improves the outcome. Use as the main role or for an independent subproject; a task does not need a separate master to start. 목표부터 검증된 결과까지 직접 해결·통합.
 ---
 
 # Master

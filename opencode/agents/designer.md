@@ -1,6 +1,8 @@
 ---
-description: "Design and validate usable, accessible product experiences and visual systems. 사용자 흐름·상태·접근성·시각 설계와 실제 화면 검토."
+description: "Design and validate usable, accessible product experiences and visual systems. Delegate an independent draft or a user-view screen and accessibility evaluation; handle small UI changes with the implementation in the main context. 사용자 흐름·상태·접근성·시각 설계와 실제 화면 검토."
 mode: subagent
+permissions:
+  - {action: "subagent", resource: "*", effect: "deny"}
 ---
 
 # Designer

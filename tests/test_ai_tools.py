@@ -915,7 +915,9 @@ class GeneratorTests(unittest.TestCase):
             self.assertLess(rules.index(("shell", "*", "allow")), rules.index(("shell", "reboot *", "deny")))
             self.assertTrue(result.endswith("---\n\nBody\n"))
             for frontmatter in ("name: other\ndescription: x\ntools: Read", "name: reviewer\ndescription: x\ntools: Task",
-                                "name: reviewer\ndescription: x\ntools: Read\nmodel: opus"):
+                                "name: reviewer\ndescription: x\ntools: Read\nmodel: opus",
+                                "name: reviewer\ndescription: x\ndisallowedTools: Bash",
+                                "name: reviewer\ndescription: x\ntools: Read\ndisallowedTools: Agent"):
                 agent.write_text(f"---\n{frontmatter}\n---\nBody\n")
                 with self.subTest(frontmatter=frontmatter), self.assertRaises(ValueError):
                     self.module["convert_agent"](agent, self.sources, [])
@@ -942,6 +944,17 @@ class GeneratorTests(unittest.TestCase):
                 self.assertNotIn("permissions:", result)
                 codex = tomllib.loads(self.module["codex_agent"](agent, self.sources))
                 self.assertEqual(codex["developer_instructions"], "Body\n")
+
+    def test_disallowed_agent_tool_denies_only_subagent_launch(self):
+        with tempfile.TemporaryDirectory(prefix="dotfiles-agent-") as tmp:
+            agent = Path(tmp) / "developer.md"
+            agent.write_text("---\nname: developer\ndescription: Implement\ndisallowedTools: Agent\n---\n\nBody\n")
+            result = self.module["convert_agent"](agent, self.sources, ["reboot *"])
+            # No allowlist: the agent keeps inherited permissions and only loses subagent launch.
+            self.assertEqual(re.findall(r'action: "([^"]+)", resource: "([^"]+)", effect: "(\w+)"', result),
+                             [("subagent", "*", "deny")])
+            codex = tomllib.loads(self.module["codex_agent"](agent, self.sources))
+            self.assertEqual(set(codex), {"name", "description", "developer_instructions"})
 
     def test_invalid_agent_stops_before_any_generated_file_changes(self):
         fixture = self.fixture()

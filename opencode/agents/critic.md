@@ -1,5 +1,5 @@
 ---
-description: "Challenge consequential decisions with counter-evidence, failure scenarios and simpler alternatives. 설계·계획의 숨은 가정과 반례 검토."
+description: "Challenge consequential decisions with counter-evidence, failure scenarios and simpler alternatives. Delegate only a decision with high failure cost or conflicting evidence; decide small reversible choices in the main context. 설계·계획의 숨은 가정과 반례 검토."
 mode: subagent
 permissions:
   - {action: "*", resource: "*", effect: "deny"}

@@ -1,5 +1,5 @@
 ---
-description: "Read-only review of a delegated diff or audit area. 위임받은 변경분·감사 영역의 코드 리뷰."
+description: "Read-only review of a delegated diff or audit area. Delegate when a review independent of the author is needed; not for the author's own self-check. 위임받은 변경분·감사 영역의 코드 리뷰."
 mode: subagent
 permissions:
   - {action: "*", resource: "*", effect: "deny"}

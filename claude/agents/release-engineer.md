@@ -1,6 +1,7 @@
 ---
 name: release-engineer
-description: Deliver verified changes and prove release artifacts, deployment state and runtime health. 릴리즈·배포·복구 계획과 운영 반영 검증.
+description: Deliver verified changes and prove release artifacts, deployment state and runtime health. Delegate independent work such as checking several environments or a long operations investigation; finish a routine delivery to one target in the main context. 릴리즈·배포·복구 계획과 운영 반영 검증.
+disallowedTools: Agent
 ---
 
 # Release Engineer

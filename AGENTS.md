@@ -75,7 +75,7 @@ Hook ownership follows deployed script paths, not whole event arrays. Sync refre
 
 **`codex/AGENTS.md`, `codex/agents/*.toml`, `codex/skills/` Markdown, and everything under `opencode/` are generated — do not edit directly.** Sources: `claude/CLAUDE.md` and `claude/rules/` for global instructions, `claude/skills/` for skills, `claude/agents/` for Codex and OpenCode agents, and `claude/settings.json` deny rules for OpenCode shell permissions. Regenerate with `python3 scripts/gen-ai-tools.py` (verify with `--check`). Codex-only skill metadata like `codex/skills/*/agents/openai.yaml` are hand-maintained and preserved by the generator. OpenCode V2 reads only `AGENTS.md` instructions and registers every root-level `*.md` in a skills directory as a skill, so keep skill directories free of guide files. Tool-specific instructions must be adapted by the generator, not copied into the other tool's workflow.
 
-Development roles and their scope, handoff, permission differences and usage are documented in [Development Agents](./docs/DEVELOPMENT_AGENTS.md). Agent frontmatter supports `name`, `description`, and optional `tools`; omitted tools inherit the client tool pool. Do not pin a model or widen parent permissions in shared role definitions.
+Development roles and their scope, handoff, permission differences and usage are documented in [Development Agents](./docs/DEVELOPMENT_AGENTS.md). Agent frontmatter supports `name`, `description`, and optional `tools` or `disallowedTools: Agent`; omitted tools inherit the client tool pool, and `disallowedTools: Agent` stops a tool-inheriting role from delegating further. Do not pin a model or widen parent permissions in shared role definitions.
 
 For Codex and OpenCode instruction changes:
 
