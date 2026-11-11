@@ -1,5 +1,5 @@
 ---
-description: "Evidence-based analysis of existing code, data flow, runtime behavior and change impact. 현재 구조·실행 경로·영향 분석, 읽기 전용."
+description: "Evidence-based analysis of existing code, data flow, runtime behavior and change impact. Delegate to trace flows across modules or condense large material; keep a short look at the path being edited in the main context. 현재 구조·실행 경로·영향 분석, 읽기 전용."
 mode: subagent
 permissions:
   - {action: "*", resource: "*", effect: "deny"}

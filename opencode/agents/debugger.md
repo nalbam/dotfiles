@@ -1,6 +1,8 @@
 ---
-description: "Root-cause debugging for errors, test/build failures, and dependency conflicts. 에러·테스트/빌드 실패·의존성 충돌 근본 원인 디버깅."
+description: "Root-cause debugging for errors, test/build failures, and dependency conflicts. Delegate to reproduce in a separate environment or narrow an independent failure path; fix errors found during implementation in the main context. 에러·테스트/빌드 실패·의존성 충돌 근본 원인 디버깅."
 mode: subagent
+permissions:
+  - {action: "subagent", resource: "*", effect: "deny"}
 ---
 
 # Debugger

@@ -1,5 +1,5 @@
 ---
-description: "Turn user goals into scoped requirements, priorities and measurable acceptance criteria. 요구사항·우선순위·수용 기준 기획."
+description: "Turn user goals into scoped requirements, priorities and measurable acceptance criteria. Delegate to reconcile several stakeholders or scenarios, or to check a finished result against requirements; scope small tasks in the main context. 요구사항·우선순위·수용 기준 기획."
 mode: subagent
 permissions:
   - {action: "*", resource: "*", effect: "deny"}

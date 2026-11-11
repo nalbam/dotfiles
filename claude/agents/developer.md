@@ -1,6 +1,7 @@
 ---
 name: developer
-description: Implement scoped features with clear contracts and focused regression checks. 설계·수용 기준에 맞는 기능 구현과 회귀 검증.
+description: Implement scoped features with clear contracts and focused regression checks. Delegate only a unit with a fixed contract and file ownership that can finish independently; keep one feature's analysis, design and implementation in the main context. 설계·수용 기준에 맞는 기능 구현과 회귀 검증.
+disallowedTools: Agent
 ---
 
 # Developer

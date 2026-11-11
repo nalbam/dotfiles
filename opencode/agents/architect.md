@@ -1,5 +1,5 @@
 ---
-description: "Design maintainable system boundaries, contracts, data and failure handling. 요구사항과 현재 구조에 근거한 기술 설계."
+description: "Design maintainable system boundaries, contracts, data and failure handling. Delegate a separately evaluated decision such as a shared interface or data migration with fixed criteria; keep design within one feature in the main context. 요구사항과 현재 구조에 근거한 기술 설계."
 mode: subagent
 permissions:
   - {action: "*", resource: "*", effect: "deny"}
