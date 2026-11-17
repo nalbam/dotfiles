@@ -141,6 +141,7 @@ class FullRunTests(unittest.TestCase):
                     ".vimrc": "config/vim/vimrc", ".tmux.conf": "config/tmux/tmux.conf",
                     ".zprofile": f"config/shell/zprofile/{os_dir}.{architecture}.sh",
                     ".config/dotfiles/nvm.sh": "config/shell/nvm.sh", ".gitconfig": "config/git/gitconfig",
+                    ".config/git/ignore": "config/git/ignore",
                     ".codex/AGENTS.md": "codex/AGENTS.md", ".config/opencode/AGENTS.md": "opencode/AGENTS.md",
                     ".agents/skills/docs-sync/SKILL.md": "codex/skills/docs-sync/SKILL.md"}
         for source in (ROOT / "config/git").glob("gitconfig-*"):

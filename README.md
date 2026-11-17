@@ -71,7 +71,7 @@ curl -fsSL https://nalbam.github.io/dotfiles/run.sh | bash
 | `base` | `~/.ssh`(700)·SSH 키·SSH/AWS 템플릿. 이전 버전이 만든 `~/.local/bin/dot` 링크는 삭제하고, 다른 `dot`은 그대로 둔다 |
 | `apt` | 필수 APT 패키지. 빠진 패키지가 있을 때만 index를 갱신한다. |
 | `server` | 시간대, fail2ban, fstrim, 스왑, AWS CLI v2 |
-| `git` | `~/.gitconfig`와 디렉터리별 신원 파일 |
+| `git` | `~/.gitconfig`와 디렉터리별 신원 파일, 저장소 안 worktree(`.worktrees/`, `.claude/worktrees/`)를 무시하는 `~/.config/git/ignore` |
 | `brew` | Homebrew와 [`packages/Brewfile.<os>`](packages) |
 | `macos` | Command Line Tools, Rosetta 2, 키 바인딩, [시스템 설정](config/macos/defaults.sh) |
 | `node` | nvm과 Node.js 24(최신 24.x) |

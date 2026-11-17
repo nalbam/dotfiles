@@ -29,7 +29,7 @@ This repository is public. Never commit host names, tailnet names, IP addresses,
 
 ## Git profile switching (non-obvious)
 
-Base `config/git/gitconfig` uses `includeIf` to select directory-specific identities. Read all `config/git/gitconfig*` files together when changing identity settings. The `git` module deploys every `gitconfig-*` file, so a new include needs only its file; a wrong email changes commit attribution.
+Base `config/git/gitconfig` uses `includeIf` to select directory-specific identities. Read all `config/git/gitconfig*` files together when changing identity settings. The `git` module deploys every `gitconfig-*` file, so a new include needs only its file; a wrong email changes commit attribution. It also deploys `config/git/ignore` to `$XDG_CONFIG_HOME/git/ignore` (default `~/.config/git/ignore`), which Git reads only while `core.excludesFile` is unset; it ignores the in-repository worktree paths `.worktrees/` and `.claude/worktrees/` required by the global Git workflow.
 
 ## Platform-specific gotchas
 

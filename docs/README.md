@@ -22,7 +22,7 @@ Choose a guide by the task you want to complete.
 - Platforms: [profiles](../profiles); modules: [modules](../modules).
 - Packages: [macOS Brewfile](../packages/Brewfile.darwin), [Linux Brewfile](../packages/Brewfile.linux).
 - Shell startup: [Zsh](../config/shell/zshrc), [Bash](../config/shell/bashrc), [profile](../config/shell/profile), [nvm loader](../config/shell/nvm.sh) and [platform zprofiles](../config/shell/zprofile).
-- Git identities: [base configuration](../config/git/gitconfig) and the `gitconfig-*` files next to it.
+- Git identities: [base configuration](../config/git/gitconfig) and the `gitconfig-*` files next to it. Global ignore: [ignore](../config/git/ignore), deployed to `$XDG_CONFIG_HOME/git/ignore` (default `~/.config/git/ignore`).
 - Terminal and editor settings: [Ghostty](../config/terminal/ghostty.config), [iTerm2](../config/terminal/iterm2-profiles.json), [tmux](../config/tmux/tmux.conf), [Vim](../config/vim/vimrc).
 - OS settings: [macOS preferences](../config/macos/defaults.sh).
 
