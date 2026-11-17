@@ -194,16 +194,23 @@ class GitTests(ModuleCase):
                     self.assertEqual(actual, expected, f"{key} for {profile}")
 
     def test_in_repository_worktrees_are_ignored(self):
-        result = self.module("git", "run git::up\n")
+        # Git reads the global ignore from XDG_CONFIG_HOME when it is set.
+        for xdg in (None, str(self.machine.home / "xdg")):
+            with self.subTest(xdg=xdg):
+                extra = {"XDG_CONFIG_HOME": xdg} if xdg else {}
+                result = self.module("git", "run git::up\n", **extra)
+                self.assertIn("rc=0", result.stdout, result.stderr)
+                env = dict(self.machine.env, PATH="/usr/bin:/bin", GIT_CONFIG_NOSYSTEM="1", **extra)
+                workspace = self.machine.home / "workspace/github.com/nalbam" / ("xdg" if xdg else "default")
+                subprocess.run(["git", "init", "-q", str(workspace)], env=env, check=True)
+                for path in (".worktrees/feat-x/", ".claude/worktrees/task/"):
+                    checked = subprocess.run(["git", "-C", str(workspace), "check-ignore", "-q", path], env=env)
+                    self.assertEqual(checked.returncode, 0, f"{path} is not ignored")
+
+    def test_ignore_outside_home_is_reported(self):
+        result = self.module("git", "run git::up\n", XDG_CONFIG_HOME=str(self.machine.root / "outside"))
         self.assertIn("rc=0", result.stdout, result.stderr)
-        env = dict(self.machine.env, PATH="/usr/bin:/bin", GIT_CONFIG_NOSYSTEM="1")
-        env.pop("XDG_CONFIG_HOME", None)
-        workspace = self.machine.home / "workspace/github.com/nalbam/example"
-        subprocess.run(["git", "init", "-q", str(workspace)], env=env, check=True)
-        for path in (".worktrees/feat-x/", ".claude/worktrees/task/"):
-            with self.subTest(path=path):
-                checked = subprocess.run(["git", "-C", str(workspace), "check-ignore", "-q", path], env=env)
-                self.assertEqual(checked.returncode, 0, f"{path} is not ignored")
+        self.assertIn("XDG_CONFIG_HOME is outside HOME", result.stdout + result.stderr)
 
 
 class NodeTests(ModuleCase):

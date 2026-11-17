@@ -115,9 +115,9 @@ ISO 24495-1처럼 쉽게 찾고 이해하고 사용할 수 있게, ASD-STE100처
 - **worktree는 격리가 필요할 때만 만든다.** 같은 저장소에서 다른 세션·에이전트가 동시에 작업하거나, 원래 체크아웃에 사용자의 미커밋 변경이 있어 브랜치를 전환할 수 없거나, 실행 환경·위임 설정이 격리를 요구할 때다. 그 밖에는 원래 체크아웃에서 작업 브랜치를 만든다.
   - 작업 전 `git worktree list`로 기존 worktree와 브랜치를 확인한다. 다른 세션이 만든 worktree는 수정·삭제하지 않는다.
   - 직접 만드는 worktree는 저장소 최상위의 `.worktrees/<branch-slug>`에 둔다. 예: `git worktree add -b feat/x .worktrees/feat-x origin/main`. 도구가 관리하는 worktree는 도구의 위치와 정리 방식을 따른다.
-  - 만들기 전 `git check-ignore -q .worktrees/`로 무시 여부를 확인한다. 무시되지 않으면 저장소의 `.gitignore`를 바꾸지 않고 `.worktrees/`를 `$(git rev-parse --git-common-dir)/info/exclude`에 추가한다.
+  - worktree가 놓일 디렉터리(`.worktrees/` 또는 도구 위치)가 무시되는지 `git check-ignore -q <dir>/`로 확인한다. 무시되지 않으면 저장소의 `.gitignore`를 바꾸지 않고 그 디렉터리를 `$(git rev-parse --git-common-dir)/info/exclude`에 추가한다.
   - worktree 하나에는 작업 브랜치 하나만 둔다. 기본 브랜치는 원래 체크아웃에서만 checkout한다.
-  - 작업 브랜치를 정리할 때 해당 worktree를 `git worktree remove <path>`로 삭제하고 `git worktree prune`을 실행한다. 미커밋 변경·미반영 커밋이 있으면 삭제하지 않고 보고한다.
+  - 작업 브랜치를 정리할 때 그 작업용으로 만든 연결 worktree만 `git worktree remove <path>`로 삭제하고 `git worktree prune`을 실행한다. 원래 체크아웃은 삭제하지 않는다. `git worktree remove`는 Git이 무시하는 파일(`.env` 등)도 경고 없이 지우므로, 삭제 전 `git -C <path> status --short --ignored`로 미커밋 변경과 무시된 파일을 확인한다. 미커밋 변경·미반영 커밋이나 보존할 무시된 파일이 있으면 삭제하지 않고 보고한다.
 - 기존 작업 트리·index의 무관한 변경을 되돌리거나 본인 커밋에 섞지 않는다.
 - 변경 폐기·이력 정리·브랜치 삭제는 요청 범위와 기존 작업 보존을 확인한 뒤 필요한 경우에만 수행한다. 본인 작업 브랜치의 이력을 다시 push해야 하면 원격 변경을 확인하고 `--force-with-lease`를 사용한다.
 - 커밋 메시지·PR 본문에 `Co-Authored-By`, `Generated with`, 도구 귀속 푸터·배지를 넣지 않는다.
