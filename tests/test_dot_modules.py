@@ -193,6 +193,18 @@ class GitTests(ModuleCase):
                         env=env)
                     self.assertEqual(actual, expected, f"{key} for {profile}")
 
+    def test_in_repository_worktrees_are_ignored(self):
+        result = self.module("git", "run git::up\n")
+        self.assertIn("rc=0", result.stdout, result.stderr)
+        env = dict(self.machine.env, PATH="/usr/bin:/bin", GIT_CONFIG_NOSYSTEM="1")
+        env.pop("XDG_CONFIG_HOME", None)
+        workspace = self.machine.home / "workspace/github.com/nalbam/example"
+        subprocess.run(["git", "init", "-q", str(workspace)], env=env, check=True)
+        for path in (".worktrees/feat-x/", ".claude/worktrees/task/"):
+            with self.subTest(path=path):
+                checked = subprocess.run(["git", "-C", str(workspace), "check-ignore", "-q", path], env=env)
+                self.assertEqual(checked.returncode, 0, f"{path} is not ignored")
+
 
 class NodeTests(ModuleCase):
     def nvm(self, actual="24.21.0", alias_status=0, installed=True):

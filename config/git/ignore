@@ -1,0 +1,4 @@
+# Global gitignore. Git reads ~/.config/git/ignore when core.excludesFile is unset.
+# Worktrees created inside a repository must never show up as untracked files.
+.worktrees/
+.claude/worktrees/
